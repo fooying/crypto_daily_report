@@ -1,0 +1,4 @@
+[flake8]
+exclude = .git,.venv,__pycache__,crypto_daily_report
+max-line-length = 180
+extend-ignore = E203

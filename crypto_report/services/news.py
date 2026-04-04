@@ -1,0 +1,266 @@
+from __future__ import annotations
+
+import datetime
+import re
+from datetime import datetime as dt, timedelta
+from typing import Any, Dict, List, Tuple
+
+from ..config import BACKUP_NEWS_URL, PRIMARY_NEWS_BASE_URL, PRIMARY_NEWS_URL
+from ..http_client import HTTPRequestError
+from ..models import NewsItem
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover
+    BeautifulSoup = None
+
+
+class NewsService:
+    """Fetch and parse upstream news pages with parser helpers suitable for fixtures."""
+
+    def __init__(self, config, http, logger, now_provider=None) -> None:
+        self.config = config
+        self.http = http
+        self.logger = logger
+        self.now_provider = now_provider or dt.now
+        self.news_date_range = "最新"
+        self.last_source_used = "unknown"
+
+    def parse_news_time(self, time_text: str, now: dt, fallback_time: dt) -> dt:
+        if not time_text:
+            return fallback_time
+        try:
+            if "小时前" in time_text:
+                match = re.search(r"(\d+)", time_text)
+                if match:
+                    return now - datetime.timedelta(hours=int(match.group(1)))
+            elif "天前" in time_text:
+                match = re.search(r"(\d+)", time_text)
+                if match:
+                    return now - datetime.timedelta(days=int(match.group(1)))
+            else:
+                return dt.strptime(time_text, "%Y-%m-%d %H:%M")
+        except Exception:
+            return fallback_time
+        return fallback_time
+
+    def classify_news_sentiment(self, title: str, summary: str) -> str:
+        positive_keywords = [
+            "涨", "上涨", "突破", "创新高", "利好", "增长", "复苏", "反弹", "盈利", "收益",
+            "成功", "批准", "通过", "合作", "投资", "扩张", "发展", "升级", "优化", "积极", "正面",
+        ]
+        negative_keywords = [
+            "跌", "下跌", "暴跌", "下滑", "亏损", "损失", "失败", "拒绝", "崩盘", "危机", "风险",
+            "警告", "担忧", "调查", "罚款", "诉讼", "违规", "欺诈", "黑客", "攻击", "漏洞", "利空",
+        ]
+        neutral_themes = ["监管", "政策", "法律", "合规", "标准", "框架", "讨论", "会议"]
+        text_to_check = (title + " " + summary).lower()
+        positive_count = sum(1 for keyword in positive_keywords if keyword in text_to_check)
+        negative_count = sum(1 for keyword in negative_keywords if keyword in text_to_check)
+        if positive_count > negative_count:
+            return "积极"
+        if negative_count > positive_count:
+            return "谨慎"
+        if any(theme in text_to_check for theme in neutral_themes):
+            return "中性"
+        if "投资" in text_to_check or "合作" in text_to_check:
+            return "积极"
+        if "罚款" in text_to_check or "调查" in text_to_check:
+            return "谨慎"
+        return "中性"
+
+    def extract_news_summary(
+        self,
+        article: Any,
+        fallback_title: str,
+        link: str,
+        listing_url: str,
+        headers: Dict[str, str],
+        detail_fetch_count: int,
+    ) -> Tuple[str, int]:
+        if BeautifulSoup is None:
+            return fallback_title[:150], detail_fetch_count
+
+        summary = "点击查看详情"
+        summary_elem = article.find("p", class_=re.compile(r"summary|excerpt|description|post-card__text|post-card-inline__text"))
+        if summary_elem:
+            summary = summary_elem.get_text(strip=True)
+
+        if (
+            summary == "点击查看详情"
+            and link != listing_url
+            and detail_fetch_count < self.config.max_news_detail_fetches
+        ):
+            try:
+                article_html = self.http.fetch_html(
+                    link,
+                    timeout=self.config.article_request_timeout_seconds,
+                    headers=headers,
+                )
+                detail_fetch_count += 1
+                article_soup = BeautifulSoup(article_html, "html.parser")
+                content_elem = article_soup.find(
+                    "div", class_=re.compile(r"post-content|article-content|content")
+                )
+                if content_elem:
+                    first_para = content_elem.find("p")
+                    if first_para:
+                        summary = first_para.get_text(strip=True)[:200]
+                else:
+                    for selector in ["article p", ".post p", ".article p"]:
+                        paras = article_soup.select(selector)
+                        if paras:
+                            summary = paras[0].get_text(strip=True)[:200]
+                            break
+            except Exception as exc:
+                self.logger.debug(f"访问新闻详情页失败: {exc}")
+
+        if summary == "点击查看详情":
+            summary = fallback_title[:150]
+        return summary, detail_fetch_count
+
+    def parse_primary_news_html(self, html: str, listing_url: str | None = None) -> List[NewsItem]:
+        if BeautifulSoup is None:
+            return []
+
+        listing_url = listing_url or PRIMARY_NEWS_URL
+        headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
+        soup = BeautifulSoup(html, "html.parser")
+        articles = soup.find_all("article", class_=re.compile(r"post-card|post-card-inline"))
+        if not articles:
+            articles = soup.find_all("div", class_=re.compile(r"post-card|article-card"))
+
+        today = self.now_provider()
+        if today.weekday() == 0:
+            start_date = today - timedelta(days=3)
+            date_range_text = f"{start_date.strftime('%m月%d日')}-{today.strftime('%m月%d日')}"
+        else:
+            start_date = today - timedelta(days=1)
+            date_range_text = f"{start_date.strftime('%m月%d日')}"
+        self.news_date_range = date_range_text
+
+        news_items: List[NewsItem] = []
+        detail_fetch_count = 0
+        for article in articles[: self.config.max_news_items]:
+            try:
+                title_elem = article.find(["h2", "h3", "h4", "span"], class_=re.compile(r"title|headline"))
+                if not title_elem:
+                    title_elem = article.find("a", class_=re.compile(r"title"))
+                title = title_elem.get_text(strip=True) if title_elem else "未找到标题"
+
+                link_elem = article.find("a", href=True)
+                link = link_elem["href"] if link_elem else listing_url
+                if link.startswith("/"):
+                    link = f"{PRIMARY_NEWS_BASE_URL}{link}"
+
+                summary, detail_fetch_count = self.extract_news_summary(
+                    article=article,
+                    fallback_title=title,
+                    link=link,
+                    listing_url=listing_url,
+                    headers=headers,
+                    detail_fetch_count=detail_fetch_count,
+                )
+
+                time_elem = article.find("time")
+                news_time = start_date
+                if time_elem:
+                    news_time = self.parse_news_time(time_elem.get_text(strip=True), today, start_date)
+
+                if news_time.date() >= start_date.date():
+                    news_items.append(
+                        {
+                            "title": title,
+                            "summary": summary[:150] + "..." if len(summary) > 150 else summary,
+                            "sentiment": self.classify_news_sentiment(title, summary),
+                            "time": news_time.strftime("%Y-%m-%d %H:%M"),
+                            "url": link,
+                            "source": "CoinTelegraph",
+                        }
+                    )
+            except Exception as exc:
+                self.logger.warning(f"解析新闻文章失败: {exc}")
+        return news_items
+
+    def parse_backup_news_html(self, html: str) -> List[NewsItem]:
+        if BeautifulSoup is None:
+            return []
+
+        soup = BeautifulSoup(html, "html.parser")
+        news_items: List[NewsItem] = []
+        articles = soup.find_all("a", href=lambda value: value and "/zh/news/" in value)
+        for article in articles[: self.config.max_news_items]:
+            title_elem = article.find(["h3", "h4"]) or article
+            title = title_elem.get_text(strip=True)
+            if title and len(title) > 10:
+                news_items.append(
+                    {
+                        "title": title[:80],
+                        "summary": "点击查看详情",
+                        "sentiment": "中性",
+                        "time": "最新",
+                        "source": "CoinMarketCap",
+                        "url": f"https://coinmarketcap.com{article.get('href', '')}",
+                    }
+                )
+        return news_items
+
+    def get_backup_news(self) -> List[NewsItem]:
+        try:
+            url = BACKUP_NEWS_URL
+            html = self.http.fetch_html(url, timeout=self.config.news_request_timeout_seconds)
+            news_items = self.parse_backup_news_html(html)
+            if news_items:
+                self.last_source_used = "coinmarketcap_backup"
+                self.logger.info("新闻数据已切换为 CoinMarketCap 备用源")
+                return news_items
+        except HTTPRequestError as exc:
+            self.logger.warning("CoinMarketCap 备用新闻源请求失败: %s", exc)
+        except Exception as exc:
+            self.logger.warning("CoinMarketCap 备用新闻源获取失败: %s", exc)
+
+        self.last_source_used = "fallback_stub"
+        return [
+            {
+                "title": "备用新闻源不可用",
+                "summary": "上游新闻页面暂时无法访问，当前报告使用降级数据。",
+                "sentiment": "中性",
+                "time": "最新",
+                "source": "Fallback",
+                "url": PRIMARY_NEWS_URL,
+            }
+        ]
+
+    def get_crypto_news(self) -> List[NewsItem]:
+        try:
+            url = PRIMARY_NEWS_URL
+            headers = {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            }
+            html = self.http.fetch_html(
+                url,
+                timeout=self.config.news_request_timeout_seconds,
+                headers=headers,
+            )
+            news_items = self.parse_primary_news_html(html, listing_url=url)
+            self.last_source_used = "cointelegraph_primary"
+            if len(news_items) < self.config.max_news_items:
+                self.logger.warning(
+                    f"从CoinTelegraph只找到{len(news_items)}条新闻，使用备用数据"
+                )
+                backup_news = self.get_backup_news()[: self.config.max_news_items - len(news_items)]
+                if backup_news:
+                    news_items.extend(backup_news)
+                    self.last_source_used = "mixed_primary_backup"
+            self.logger.info(f"成功获取{len(news_items)}条新闻，时间范围: {self.news_date_range}")
+            return news_items[: self.config.max_news_items]
+        except HTTPRequestError as exc:
+            self.logger.warning("CoinTelegraph 新闻源请求失败，尝试 CoinMarketCap 备用源: %s", exc)
+        except Exception as exc:
+            self.logger.warning("CoinTelegraph 新闻源获取失败，尝试 CoinMarketCap 备用源: %s", exc)
+            return self.get_backup_news()
+        return self.get_backup_news()

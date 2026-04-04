@@ -1,0 +1,708 @@
+from __future__ import annotations
+
+import json
+from typing import Any, Dict, List
+
+
+class AIAnalysisService:
+    """Generate narrative analysis with AI-first, rule-based fallback."""
+
+    def __init__(self, config, http, logger, sentiment_service) -> None:
+        self.config = config
+        self.http = http
+        self.logger = logger
+        self.sentiment_service = sentiment_service
+
+    def get_ai_analysis(
+        self,
+        fear_greed_index: Dict[str, Any],
+        crypto_news: List[Dict[str, Any]],
+        market_overview: Dict[str, Any],
+        technical_context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        sentiment_counts, news_keywords = self._collect_news_features(crypto_news)
+        weekly_ai_trend = self.analyze_ai_weekly_trend(
+            fear_greed_index,
+            market_overview,
+        )
+        fallback = self._build_rule_based_analysis(
+            fear_greed_index,
+            market_overview,
+            technical_context or {},
+            sentiment_counts,
+            news_keywords,
+            weekly_ai_trend,
+        )
+
+        ai_result = self._generate_deepseek_analysis(
+            fear_greed_index,
+            crypto_news,
+            market_overview,
+            technical_context or {},
+            sentiment_counts,
+            weekly_ai_trend,
+        )
+        if not ai_result:
+            return fallback
+
+        analysis = dict(fallback)
+        analysis.update(ai_result)
+        analysis["sentiment_summary"] = sentiment_counts
+        if weekly_ai_trend:
+            analysis["weekly_trend"] = weekly_ai_trend
+            analysis.setdefault(
+                "trend_enhanced_analysis",
+                self.generate_ai_trend_enhanced_analysis(weekly_ai_trend),
+            )
+        return analysis
+
+    @staticmethod
+    def _collect_news_features(
+        crypto_news: List[Dict[str, Any]],
+    ) -> tuple[Dict[str, int], List[str]]:
+        sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
+        news_keywords: List[str] = []
+        for item in crypto_news:
+            sentiment = item.get("sentiment", "")
+            if "利好" in sentiment or "积极" in sentiment:
+                sentiment_counts["positive"] += 1
+            elif "利空" in sentiment or "谨慎" in sentiment:
+                sentiment_counts["negative"] += 1
+            else:
+                sentiment_counts["neutral"] += 1
+
+            title = item.get("title", "")
+            if "比特币" in title:
+                news_keywords.append("比特币")
+            elif "以太坊" in title:
+                news_keywords.append("以太坊")
+            elif "监管" in title or "政策" in title:
+                news_keywords.append("监管")
+            elif "DeFi" in title or "Layer2" in title:
+                news_keywords.append("技术")
+        return sentiment_counts, news_keywords
+
+    def _build_rule_based_analysis(
+        self,
+        fear_greed_index: Dict[str, Any],
+        market_overview: Dict[str, Any],
+        technical_context: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+        news_keywords: List[str],
+        weekly_ai_trend: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        fgi_value = fear_greed_index.get("value", 50)
+        sentiment_analysis = self.sentiment_service.get_sentiment_analysis(fear_greed_index)
+        sentiment_deep_analysis = self.build_sentiment_deep_analysis(
+            sentiment_analysis,
+            market_overview,
+        )
+        financial_analyst = self.build_financial_analyst_view(
+            sentiment_analysis,
+            market_overview,
+            sentiment_counts,
+            weekly_ai_trend,
+        )
+        analysis = {
+            "market_overview": self.generate_dynamic_market_overview(
+                fgi_value,
+                market_overview,
+                sentiment_counts,
+                weekly_ai_trend,
+            ),
+            "technical_analysis": self.generate_dynamic_technical_analysis(
+                fgi_value,
+                technical_context,
+                weekly_ai_trend,
+            ),
+            "risk_assessment": self.generate_dynamic_risk_assessment(
+                fgi_value,
+                sentiment_counts,
+            ),
+            "trading_signals": self.generate_dynamic_trading_signals(
+                fgi_value,
+                news_keywords,
+            ),
+            "sentiment_summary": sentiment_counts,
+            "sentiment_deep_analysis": sentiment_deep_analysis,
+            "financial_analyst": financial_analyst,
+        }
+        if weekly_ai_trend:
+            analysis["weekly_trend"] = weekly_ai_trend
+            analysis["trend_enhanced_analysis"] = (
+                self.generate_ai_trend_enhanced_analysis(weekly_ai_trend)
+            )
+        return analysis
+
+    def _has_deepseek_config(self) -> bool:
+        api_key = (self.config.deepseek_api_key or "").strip()
+        return bool(api_key and api_key != "replace-me")
+
+    def _deepseek_headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.config.deepseek_api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def _build_deepseek_payload(
+        self,
+        fear_greed_index: Dict[str, Any],
+        crypto_news: List[Dict[str, Any]],
+        market_overview: Dict[str, Any],
+        technical_context: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+        weekly_ai_trend: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        news_digest = [
+            {
+                "title": item.get("title", ""),
+                "summary": item.get("summary", ""),
+                "sentiment": item.get("sentiment", ""),
+                "source": item.get("source", ""),
+            }
+            for item in crypto_news[:5]
+        ]
+        prompt_context = {
+            "fear_greed_index": {
+                "value": fear_greed_index.get("value", 50),
+                "classification": fear_greed_index.get("classification", "中性"),
+                "daily_change": fear_greed_index.get("daily_change"),
+                "weekly_change": fear_greed_index.get("weekly_change"),
+                "monthly_change": fear_greed_index.get("monthly_change"),
+            },
+            "market_overview": {
+                "market_cap_change_percentage_24h_usd": market_overview.get(
+                    "market_cap_change_percentage_24h_usd",
+                    0,
+                ),
+                "btc_dominance": market_overview.get(
+                    "market_cap_percentage",
+                    {},
+                ).get("btc", 0),
+                "total_market_cap": market_overview.get("total_market_cap", 0),
+                "total_volume": market_overview.get("total_volume", 0),
+            },
+            "news_sentiment_summary": sentiment_counts,
+            "technical_context": technical_context,
+            "weekly_trend": weekly_ai_trend,
+            "top_news": news_digest,
+        }
+        return {
+            "model": "deepseek-chat",
+            "temperature": 0.4,
+            "max_tokens": 900,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "你是数字货币日报分析助手。"
+                        "请基于提供的数据生成简洁、专业、偏交易和风控视角的中文分析。"
+                        "输出风格要求：避免空泛表述，优先使用'情绪修复'、'资金偏防御'、"
+                        "'量价确认'、'仓位管理'、'关键支撑/阻力'等投研措辞；"
+                        "避免鸡汤式总结和过度绝对化判断。"
+                        "只返回JSON对象，不要输出Markdown。"
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "请输出一个JSON对象，字段必须包含："
+                        "market_overview(字符串), technical_analysis(字符串), "
+                        "risk_assessment(字符串), trading_signals(字符串数组，3到5条), "
+                        "trend_enhanced_analysis(字符串), "
+                        "sentiment_deep_analysis(对象，包含 current_interpretation/weekly_trend/"
+                        "historical_comparison/market_impact/investor_behavior/trading_advice), "
+                        "financial_analyst(对象，包含 overall_points(5条数组)/"
+                        "short_term(对象: stance/summary/action_items)/"
+                        "long_term(对象: stance/summary/action_items))。"
+                        "要求：内容必须基于输入数据，不编造不存在的价格点位；"
+                        "technical_analysis 可包含少量HTML片段；"
+                        "trading_signals 每条一句中文；"
+                        f"输入数据: {json.dumps(prompt_context, ensure_ascii=False)}"
+                    ),
+                },
+            ],
+        }
+
+    @staticmethod
+    def _extract_deepseek_content(response: Dict[str, Any]) -> str:
+        choices = response.get("choices", [])
+        if not choices:
+            raise ValueError("DeepSeek 返回缺少 choices")
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        if not content:
+            raise ValueError("DeepSeek 返回缺少 content")
+        return content
+
+    @staticmethod
+    def _normalize_ai_output(content: str) -> Dict[str, Any]:
+        data = json.loads(content)
+        required_fields = {
+            "market_overview",
+            "technical_analysis",
+            "risk_assessment",
+            "trading_signals",
+            "sentiment_deep_analysis",
+            "financial_analyst",
+        }
+        missing = [field for field in required_fields if field not in data]
+        if missing:
+            raise ValueError(f"DeepSeek 返回缺少字段: {', '.join(missing)}")
+        if not isinstance(data["trading_signals"], list):
+            raise ValueError("DeepSeek trading_signals 不是数组")
+        data["trading_signals"] = [
+            str(item).strip()
+            for item in data["trading_signals"]
+            if str(item).strip()
+        ][:5]
+        if not isinstance(data["sentiment_deep_analysis"], dict):
+            raise ValueError("DeepSeek sentiment_deep_analysis 不是对象")
+        if not isinstance(data["financial_analyst"], dict):
+            raise ValueError("DeepSeek financial_analyst 不是对象")
+        return data
+
+    def _generate_deepseek_analysis(
+        self,
+        fear_greed_index: Dict[str, Any],
+        crypto_news: List[Dict[str, Any]],
+        market_overview: Dict[str, Any],
+        technical_context: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+        weekly_ai_trend: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        if not self._has_deepseek_config():
+            self.logger.info("未配置 DeepSeek API Key，跳过 AI 分析生成")
+            return {}
+
+        try:
+            payload = self._build_deepseek_payload(
+                fear_greed_index,
+                crypto_news,
+                market_overview,
+                technical_context,
+                sentiment_counts,
+                weekly_ai_trend,
+            )
+            response = self.http.post_json(
+                self.config.deepseek_api_url,
+                payload,
+                timeout=self.config.request_timeout_seconds,
+                headers=self._deepseek_headers(),
+            )
+            content = self._extract_deepseek_content(response)
+            analysis = self._normalize_ai_output(content)
+            self.logger.info("DeepSeek 分析生成成功")
+            return analysis
+        except Exception as exc:
+            self.logger.warning("DeepSeek 分析生成失败，回退规则分析: %s", exc)
+            return {}
+
+    def analyze_ai_weekly_trend(
+        self,
+        fear_greed_index: Dict[str, Any],
+        market_overview: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        try:
+            if not fear_greed_index or not market_overview:
+                return {
+                    "market_trend": "unknown",
+                    "volatility_trend": "unknown",
+                    "sentiment_trend": "unknown",
+                    "key_patterns": ["数据不足，无法进行分析"],
+                    "anomalies_detected": [],
+                    "confidence_score": 0.0,
+                }
+
+            fgi_value = fear_greed_index.get("value", 50)
+            market_change = market_overview.get(
+                "market_cap_change_percentage_24h_usd",
+                0,
+            )
+            if market_change > 1.0:
+                market_trend = "uptrend"
+            elif market_change < -1.0:
+                market_trend = "downtrend"
+            else:
+                market_trend = "consolidation"
+
+            weekly_change = fear_greed_index.get("weekly_change")
+            if weekly_change is None:
+                sentiment_trend = "stable"
+                volatility_trend = "stable"
+            else:
+                if weekly_change > 5:
+                    sentiment_trend = "improving"
+                elif weekly_change < -5:
+                    sentiment_trend = "declining"
+                else:
+                    sentiment_trend = "stable"
+
+                if abs(weekly_change) >= 12:
+                    volatility_trend = "increasing"
+                elif abs(weekly_change) <= 3:
+                    volatility_trend = "decreasing"
+                else:
+                    volatility_trend = "stable"
+
+            return {
+                "market_trend": market_trend,
+                "volatility_trend": volatility_trend,
+                "sentiment_trend": sentiment_trend,
+                "key_patterns": [
+                    f"市场{market_trend}，24小时变化{market_change:.2f}%",
+                    f"情绪指数{fgi_value}，周度变化{fear_greed_index.get('weekly_change')}",
+                    f"月度变化{fear_greed_index.get('monthly_change')}",
+                ],
+                "anomalies_detected": [],
+                "confidence_score": 0.8,
+            }
+        except Exception as exc:
+            self.logger.warning(f"AI周度趋势分析失败: {exc}")
+            return {}
+
+    @staticmethod
+    def generate_ai_trend_enhanced_analysis(weekly_trend: Dict[str, Any]) -> str:
+        if not weekly_trend:
+            return "暂无周度AI趋势数据"
+        trend_analysis = []
+        market_trend = weekly_trend.get("market_trend", "unknown")
+        sentiment_trend = weekly_trend.get("sentiment_trend", "stable")
+        if market_trend == "uptrend":
+            trend_analysis.append("📈 周度市场趋势：上涨趋势，买盘力量增强")
+        elif market_trend == "downtrend":
+            trend_analysis.append("📉 周度市场趋势：下跌趋势，卖压持续")
+        else:
+            trend_analysis.append("⚖️ 周度市场趋势：盘整阶段，等待突破方向")
+
+        if sentiment_trend == "improving":
+            trend_analysis.append("😊 周度情绪趋势：逐步改善，恐慌情绪缓解")
+        elif sentiment_trend == "declining":
+            trend_analysis.append("😨 周度情绪趋势：持续恶化，恐慌加剧")
+        else:
+            trend_analysis.append("😐 周度情绪趋势：保持稳定，无明显变化")
+
+        return "\n".join(trend_analysis)
+
+    def generate_dynamic_market_overview(
+        self,
+        fgi_value: int,
+        market_data: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+        weekly_trend: Dict[str, Any] | None = None,
+    ) -> str:
+        market_cap_change = market_data.get("market_cap_change_percentage_24h_usd", 0)
+        btc_dominance = market_data.get("market_cap_percentage", {}).get("btc", 50)
+        sentiment_bucket = self.sentiment_service.get_sentiment_bucket(fgi_value)
+        parts = []
+        if sentiment_bucket == "extreme_fear":
+            parts.append(f"📉 市场情绪极度悲观（{fgi_value}/100），投资者普遍持谨慎态度。")
+            parts.append("历史数据显示，当恐惧贪婪指数低于20时，市场往往处于超卖状态。")
+        elif sentiment_bucket == "fear":
+            parts.append(f"⚠️ 市场情绪偏向恐惧（{fgi_value}/100），投资者观望情绪浓厚。")
+        elif sentiment_bucket == "neutral":
+            parts.append(f"⚖️ 市场情绪相对平衡（{fgi_value}/100），多空力量较为均衡。")
+        elif sentiment_bucket == "greed":
+            parts.append(f"📈 市场情绪偏向贪婪（{fgi_value}/100），风险偏好有所回升。")
+        else:
+            parts.append(f"🚨 市场情绪极度贪婪（{fgi_value}/100），需警惕回调风险。")
+
+        if market_cap_change > 0:
+            parts.append(f"总市值24小时上涨{market_cap_change:.2f}%，显示买盘有所恢复。")
+        else:
+            parts.append(f"总市值24小时下跌{abs(market_cap_change):.2f}%，卖压依然存在。")
+        parts.append(f"比特币主导地位为{btc_dominance:.1f}%，显示其避险属性得到市场认可。")
+
+        total_news = sum(sentiment_counts.values())
+        if total_news > 0:
+            positive_ratio = sentiment_counts["positive"] / total_news * 100
+            if positive_ratio > 50:
+                parts.append("新闻情绪偏正面，市场关注积极发展。")
+            elif positive_ratio < 30:
+                parts.append("新闻情绪偏谨慎，市场关注风险因素。")
+            else:
+                parts.append("新闻情绪相对平衡，多空消息交织。")
+
+        if weekly_trend:
+            market_trend = weekly_trend.get("market_trend", "unknown")
+            sentiment_trend = weekly_trend.get("sentiment_trend", "stable")
+            if market_trend == "uptrend":
+                parts.append("从周度趋势看，市场呈现上涨态势，买盘力量逐步增强。")
+            elif market_trend == "downtrend":
+                parts.append("周度趋势显示市场仍处于下跌通道，卖压持续。")
+            else:
+                parts.append("周度市场处于盘整阶段，多空力量相对均衡。")
+            if sentiment_trend == "improving":
+                parts.append("情绪趋势逐步改善，市场恐慌有所缓解。")
+            elif sentiment_trend == "declining":
+                parts.append("情绪趋势持续恶化，需保持高度警惕。")
+        return " ".join(parts)
+
+    @staticmethod
+    def generate_dynamic_technical_analysis(
+        fgi_value: int,
+        technical_context: Dict[str, Any] | None = None,
+        weekly_trend: Dict[str, Any] | None = None,
+    ) -> str:
+        technical_context = technical_context or {}
+        btc_context = technical_context.get("BTC", {})
+        btc_latest = float(btc_context.get("latest_close", 0) or 0)
+        btc_low_30d = float(btc_context.get("low_30d", 0) or 0)
+        btc_high_30d = float(btc_context.get("high_30d", 0) or 0)
+        btc_support = (
+            btc_low_30d
+            if btc_low_30d > 0
+            else btc_latest * 0.9 if btc_latest > 0 else 40000
+        )
+        btc_resistance = (
+            btc_high_30d
+            if btc_high_30d > 0
+            else btc_latest * 1.05 if btc_latest > 0 else 45000
+        )
+        btc_range_text = (
+            f"近30天价格区间约为 ${btc_low_30d:,.0f} - ${btc_high_30d:,.0f}"
+            if btc_low_30d > 0 and btc_high_30d > 0
+            else "需继续观察近30天区间结构"
+        )
+        if fgi_value <= 20:
+            analysis = f"""
+            <div class="technical-analysis">
+                <ul>
+                    <li><strong>超卖状态明显</strong>：多数主流币RSI指标低于30，显示技术性超卖</li>
+                    <li><strong>关键支撑测试</strong>：比特币正围绕 ${btc_support:,.0f} 一带寻找支撑，需观察是否形成止跌结构</li>
+                    <li><strong>成交量萎缩</strong>：市场交投清淡，观望情绪浓厚</li>
+                    <li><strong>区间观察</strong>：{btc_range_text}</li>
+                </ul>
+            </div>
+            """
+        elif fgi_value <= 40:
+            analysis = f"""
+            <div class="technical-analysis">
+                <ul>
+                    <li><strong>震荡整理</strong>：主要币种在关键支撑阻力区间内震荡</li>
+                    <li><strong>均线压制</strong>：价格受短期均线压制，需要放量突破</li>
+                    <li><strong>支撑测试</strong>：关注 ${btc_support:,.0f} 一带支撑是否有效</li>
+                    <li><strong>指标修复</strong>：RSI指标从超卖区域有所修复</li>
+                </ul>
+            </div>
+            """
+        else:
+            analysis = f"""
+            <div class="technical-analysis">
+                <ul>
+                    <li><strong>趋势分化</strong>：各币种走势出现分化，需区别对待</li>
+                    <li><strong>关键阻力</strong>：关注 ${btc_resistance:,.0f} 一带能否有效突破</li>
+                    <li><strong>成交量配合</strong>：上涨需要成交量放大配合</li>
+                    <li><strong>指标健康</strong>：主要技术指标处于健康区间</li>
+                </ul>
+            </div>
+            """
+
+        if weekly_trend:
+            volatility_trend = weekly_trend.get("volatility_trend", "stable")
+            patterns = weekly_trend.get("key_patterns", [])
+            analysis = analysis.replace(
+                "</ul>",
+                (
+                    "<li><strong>周度波动趋势</strong>："
+                    f"{AIAnalysisService.get_volatility_trend_text(volatility_trend)}</li></ul>"
+                ),
+            )
+            if patterns:
+                analysis += (
+                    '<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; '
+                    'border-radius: 5px; font-size: 0.9em;">'
+                    f'<strong>🔍 周度技术观察：</strong> {patterns[0]}</div>'
+                )
+        return analysis
+
+    @staticmethod
+    def get_volatility_trend_text(volatility_trend: str) -> str:
+        return {
+            "decreasing": "波动率下降，市场趋于稳定",
+            "increasing": "波动率上升，市场不确定性增加",
+            "stable": "波动率稳定，市场正常波动",
+        }.get(volatility_trend, "波动趋势未知")
+
+    @staticmethod
+    def get_financial_technical_trend_text(weekly_trend: Dict[str, Any]) -> str:
+        if not weekly_trend:
+            return ""
+        market_trend = weekly_trend.get("market_trend", "unknown")
+        volatility_trend = weekly_trend.get("volatility_trend", "stable")
+        if market_trend == "uptrend":
+            trend_text = "周度技术面呈现上涨态势，"
+        elif market_trend == "downtrend":
+            trend_text = "周度技术面仍处于下跌通道，"
+        else:
+            trend_text = "周度技术面处于盘整阶段，"
+        if volatility_trend == "decreasing":
+            return trend_text + "波动率下降显示市场趋于稳定。"
+        if volatility_trend == "increasing":
+            return trend_text + "波动率上升增加市场不确定性。"
+        return trend_text + "波动率保持稳定。"
+
+    def generate_dynamic_risk_assessment(
+        self,
+        fgi_value: int,
+        sentiment_counts: Dict[str, int],
+    ) -> str:
+        negative_news = sentiment_counts.get("negative", 0)
+        total_news = sum(sentiment_counts.values())
+        sentiment_bucket = self.sentiment_service.get_sentiment_bucket(fgi_value)
+        sentiment_profile = self.sentiment_service.get_sentiment_profile(fgi_value)
+        if sentiment_bucket == "extreme_fear" and negative_news <= total_news * 0.5:
+            return sentiment_profile["risk_assessment_light"]
+        return sentiment_profile["risk_assessment"]
+
+    def generate_dynamic_trading_signals(
+        self,
+        fgi_value: int,
+        news_keywords: List[str],
+    ) -> List[str]:
+        sentiment_profile = self.sentiment_service.get_sentiment_profile(fgi_value)
+        signals = list(sentiment_profile.get("base_signals", []))
+        if "比特币" in news_keywords:
+            signals.append("关注比特币：作为市场风向标，比特币走势至关重要")
+        if "监管" in news_keywords:
+            signals.append("政策敏感：监管消息可能引发市场波动，需密切关注")
+        if "技术" in news_keywords:
+            signals.append("技术驱动：技术进展可能带来结构性机会")
+        return signals[:5]
+
+    def build_sentiment_deep_analysis(
+        self,
+        sentiment_analysis: Dict[str, Any],
+        market_overview: Dict[str, Any],
+    ) -> Dict[str, str]:
+        market_change = market_overview.get("market_cap_change_percentage_24h_usd", 0)
+        if market_change >= 2:
+            market_impact = "总市值短线回暖，说明风险偏好有所恢复，但持续性仍需成交量确认。"
+        elif market_change <= -2:
+            market_impact = "总市值继续承压，市场仍处于防御模式，情绪修复尚未完成。"
+        else:
+            market_impact = "总市值波动有限，市场仍以试探和等待方向选择为主。"
+
+        return {
+            "current_interpretation": str(
+                sentiment_analysis.get("description", "当前市场情绪暂无明确结论")
+            ),
+            "weekly_trend": str(
+                sentiment_analysis.get("trend_analysis", "暂无周度趋势数据")
+            ),
+            "historical_comparison": self._build_historical_comparison_text(
+                sentiment_analysis,
+            ),
+            "market_impact": market_impact,
+            "investor_behavior": str(
+                self.sentiment_service.get_sentiment_profile(
+                    sentiment_analysis.get("value", 50)
+                ).get("investor_behavior", "")
+            ),
+            "trading_advice": str(
+                sentiment_analysis.get("recommendation", "建议继续观察市场变化")
+            ),
+        }
+
+    @staticmethod
+    def _build_historical_comparison_text(sentiment_analysis: Dict[str, Any]) -> str:
+        historical_data = sentiment_analysis.get("historical_data") or []
+        current_value = sentiment_analysis.get("value", 0)
+        if not historical_data:
+            return "暂无足够历史数据进行比较"
+        values = [
+            int(item.get("value"))
+            for item in historical_data[:30]
+            if item.get("value") is not None
+        ]
+        if not values:
+            return "暂无足够历史数据进行比较"
+        average = sum(values) / len(values)
+        diff = current_value - average
+        if diff >= 10:
+            return f"当前指数显著高于近30天均值（{average:.1f}），情绪修复力度较强。"
+        if diff >= 3:
+            return f"当前指数略高于近30天均值（{average:.1f}），情绪边际改善。"
+        if diff <= -10:
+            return f"当前指数显著低于近30天均值（{average:.1f}），市场仍处于深度谨慎阶段。"
+        if diff <= -3:
+            return f"当前指数低于近30天均值（{average:.1f}），资金偏防御。"
+        return f"当前指数接近近30天均值（{average:.1f}），市场情绪处于常态区间。"
+
+    def build_financial_analyst_view(
+        self,
+        sentiment_analysis: Dict[str, Any],
+        market_overview: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+        weekly_ai_trend: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        value = sentiment_analysis.get("value", 50)
+        classification = sentiment_analysis.get("classification", "中性")
+        market_change = market_overview.get("market_cap_change_percentage_24h_usd", 0)
+        btc_dominance = market_overview.get("market_cap_percentage", {}).get("btc", 0)
+        positive = sentiment_counts.get("positive", 0)
+        negative = sentiment_counts.get("negative", 0)
+        overall_points = [
+            f"市场情绪当前为{classification}（{value}分），情绪仍是短线定价的重要变量。",
+            f"总市值24小时变化为{market_change:+.2f}%，说明风险偏好{'回暖' if market_change > 0 else '仍偏弱' if market_change < 0 else '暂未形成方向'}。",
+            f"比特币市值占比为{btc_dominance:.1f}%，反映资金在主流资产与避险偏好之间的平衡。",
+            f"新闻面统计显示正面{positive}条、负面{negative}条，消息面对盘面形成{'一定支撑' if positive >= negative else '一定压制'}。",
+            (
+                f"结合趋势观察，当前更适合{'等待确认后逐步提高风险暴露' if value > 40 else '控制仓位并耐心等待情绪修复'}。"
+                f"{self._summarize_weekly_trend(weekly_ai_trend)}"
+            ),
+        ]
+
+        short_term_stance = "谨慎" if value <= 40 else "中性偏谨慎" if value <= 60 else "中性偏积极"
+        long_term_stance = "潜在机会" if value <= 40 else "中性布局"
+
+        return {
+            "overall_points": overall_points,
+            "short_term": {
+                "stance": short_term_stance,
+                "summary": (
+                    "短线更适合围绕情绪修复节奏和关键支撑阻力做仓位管理，"
+                    "避免在缺乏量能确认时激进追价。"
+                ),
+                "action_items": [
+                    "保持分批进出，避免一次性重仓决策",
+                    "优先观察比特币和以太坊关键支撑是否有效",
+                    "若市场继续缩量，降低交易频率，等待明确方向",
+                    "出现反弹时先看量价配合，再决定是否扩大仓位",
+                    "严格执行止损和回撤控制，避免情绪化交易",
+                ],
+            },
+            "long_term": {
+                "stance": long_term_stance,
+                "summary": (
+                    "长期仍应关注行业基本面、监管演进和主流资产资金流向，"
+                    "在情绪极端阶段保留逆向布局的耐心。"
+                ),
+                "action_items": [
+                    "采用定投或分批建仓方式平滑波动",
+                    "优先配置流动性较好、基本面更强的主流资产",
+                    "持续跟踪监管、ETF资金流和链上活跃度变化",
+                    "对高波动小币种保持更高的仓位纪律",
+                    "将组合收益目标建立在中周期而非单日波动上",
+                ],
+            },
+        }
+
+    @staticmethod
+    def _summarize_weekly_trend(weekly_ai_trend: Dict[str, Any]) -> str:
+        if not weekly_ai_trend:
+            return ""
+        market_trend = weekly_ai_trend.get("market_trend", "unknown")
+        sentiment_trend = weekly_ai_trend.get("sentiment_trend", "stable")
+        market_text = {
+            "uptrend": "周度市场保持上行结构，",
+            "downtrend": "周度市场仍处下行通道，",
+            "consolidation": "周度市场仍以盘整为主，",
+        }.get(market_trend, "")
+        sentiment_text = {
+            "improving": "情绪边际改善。",
+            "declining": "情绪继续走弱。",
+            "stable": "情绪暂无明显修复信号。",
+        }.get(sentiment_trend, "")
+        return market_text + sentiment_text

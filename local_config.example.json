@@ -1,0 +1,11 @@
+{
+  "report_output_dir": "./crypto_daily_report",
+  "coinmarketcap_api_key": "replace-me",
+  "deepseek_api_key": "replace-me",
+  "report_base_url": "http://example.comn/crypto_daily_report/",
+  "report_filename_date_format": "%Y-%m-%d",
+  "latest_report_filename": "latest.html",
+  "report_css_mode": "inline",
+  "generate_screenshots": true,
+  "report_asset_url_mode": "relative"
+}
