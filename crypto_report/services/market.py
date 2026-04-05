@@ -199,38 +199,30 @@ class MarketService:
         return empty_result
 
     def get_market_cap_history(self, days: int = 30) -> List[Dict[str, Any]]:
-        time_end = self.report_date
-        time_start = time_end - timedelta(days=days)
-        url = (
-            f"{self.config.coinmarketcap_api}/global-metrics/quotes/historical"
-            f"?convert=USD&time_start={self._format_cmc_datetime(time_start)}"
-            f"&time_end={self._format_cmc_datetime(time_end)}&interval=1d"
-        )
         try:
-            data = self.fetch_coinmarketcap_json(url, timeout=15)
-            quotes = (data.get("data") or {}).get("quotes", [])
+            trend_data = self.storage.load().get("market_cap", {})
+            dates = sorted(trend_data.keys())
             result = []
-            for item in quotes:
-                usd = (item.get("quote") or {}).get("USD", {})
-                market_cap = usd.get("total_market_cap")
-                volume_24h = usd.get("total_volume_24h")
-                timestamp = item.get("timestamp")
-                if market_cap is None or volume_24h is None or timestamp is None:
+            for date_key in dates[-days:]:
+                item = trend_data.get(date_key) or {}
+                market_cap = item.get("value")
+                volume_24h = item.get("volume_24h")
+                if market_cap is None or volume_24h is None:
                     continue
                 result.append(
                     {
-                        "timestamp": timestamp,
+                        "timestamp": f"{date_key}T00:00:00",
                         "market_cap": float(market_cap),
                         "volume_24h": float(volume_24h),
                     }
                 )
             if result:
-                self.last_market_history_source = "coinmarketcap_historical"
-            return result
-        except HTTPRequestError as exc:
-            self.logger.warning("CoinMarketCap 市值历史请求失败: %s", exc)
+                self.last_market_history_source = "local_trend_cache"
+                return result
+            self.last_market_history_source = "default_empty"
+            return []
         except Exception as exc:
-            self.logger.warning("CoinMarketCap 市值历史获取失败: %s", exc)
+            self.logger.warning("本地市值历史数据读取失败: %s", exc)
         self.last_market_history_source = "default_empty"
         return []
 

@@ -1,10 +1,36 @@
 from __future__ import annotations
 
 import html
+from urllib.parse import quote
 from typing import Any, Dict, List
 
 from ..helpers import format_large_number
 from .common import build_svg_sparkline
+
+
+def _build_local_icon_data_uri(symbol: str) -> str:
+    safe_symbol = (symbol or "?").upper()[:2]
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
+        "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>"
+        "<stop offset='0%' stop-color='#3b82f6'/>"
+        "<stop offset='100%' stop-color='#22c55e'/>"
+        "</linearGradient></defs>"
+        "<circle cx='12' cy='12' r='11' fill='url(#g)'/>"
+        "<text x='12' y='15' text-anchor='middle' font-size='8' font-family='Arial, sans-serif' "
+        "fill='white' font-weight='700'>"
+        f"{html.escape(safe_symbol)}"
+        "</text></svg>"
+    )
+    return f"data:image/svg+xml;utf8,{quote(svg)}"
+
+
+def _build_local_icon_html(symbol: str) -> str:
+    icon_uri = _build_local_icon_data_uri(symbol)
+    return (
+        f'<img src="{icon_uri}" alt="{html.escape(symbol)}" '
+        'style="width: 18px; height: 18px; margin-right: 8px; vertical-align: text-bottom;">'
+    )
 
 
 def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
@@ -20,13 +46,7 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
             float(crypto.get("current_price", 0)) * 1.01,
         ]
         sparkline = build_svg_sparkline(spark_values)
-        image_html = ""
-        image = str(crypto.get("image", "")).strip()
-        if image:
-            image_html = (
-                f'<img src="{html.escape(image, quote=True)}" alt="{symbol}" '
-                'style="width: 22px; height: 22px; margin-right: 8px; vertical-align: text-bottom;">'
-            )
+        image_html = _build_local_icon_html(str(crypto.get("symbol", "")))
         change_class = "green" if change >= 0 else "red"
         cards.append(
             f"""
@@ -123,20 +143,13 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
 
 
 def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
-    show_icons = bool(cryptos) and all(str(crypto.get("image", "")).strip() for crypto in cryptos)
     rows = []
     for crypto in cryptos:
         change_24h = crypto["price_change_percentage_24h"]
         change_7d = crypto["price_change_percentage_7d"]
         name = html.escape(str(crypto["name"]))
         symbol = html.escape(str(crypto["symbol"]))
-        icon = ""
-        if show_icons:
-            image_url = html.escape(str(crypto.get("image", "")), quote=True)
-            icon = (
-                f'<img src="{image_url}" alt="{symbol}" '
-                'style="width: 18px; height: 18px; margin-right: 8px; vertical-align: text-bottom;">'
-            )
+        icon = _build_local_icon_html(str(crypto.get("symbol", "")))
         change_24h_color = "green" if change_24h >= 0 else "red"
         change_7d_color = "green" if change_7d >= 0 else "red"
         price = f"${crypto['current_price']:,.2f}"
