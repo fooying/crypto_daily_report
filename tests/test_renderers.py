@@ -86,6 +86,24 @@ class RendererTests(unittest.TestCase):
         self.assertIn('Solana', html)
         self.assertNotIn('Tether', html)
 
+    def test_market_leadership_section_hides_when_data_is_insufficient(self) -> None:
+        html = generate_market_leadership_section(
+            [
+                {
+                    'name': 'Bitcoin',
+                    'symbol': 'BTC',
+                    'market_cap': 1_200_000_000_000,
+                    'total_volume': 60_000_000_000,
+                    'price_change_percentage_24h': 2.5,
+                    'price_change_percentage_7d': 6.5,
+                }
+            ],
+            {
+                'total_market_cap': 2_500_000_000_000,
+            },
+        )
+        self.assertEqual('', html)
+
     def test_crypto_table_rows_use_local_icons_and_handle_missing_values(self) -> None:
         from crypto_report.renderers import generate_crypto_table_rows
 
@@ -239,6 +257,17 @@ class RendererTests(unittest.TestCase):
         self.assertIn('公链生态', html)
         self.assertIn('Meme', html)
         self.assertNotIn('USDT', html)
+
+    def test_sector_overview_section_hides_when_sectors_too_few(self) -> None:
+        html = generate_sector_overview_section(
+            [
+                {'symbol': 'BTC', 'market_cap': 100.0, 'total_volume': 10.0, 'price_change_percentage_24h': 1.0},
+                {'symbol': 'ETH', 'market_cap': 80.0, 'total_volume': 12.0, 'price_change_percentage_24h': 2.0},
+                {'symbol': 'USDT', 'market_cap': 120.0, 'total_volume': 90.0, 'price_change_percentage_24h': 0.0},
+                {'symbol': 'USDC', 'market_cap': 50.0, 'total_volume': 20.0, 'price_change_percentage_24h': 0.0},
+            ]
+        )
+        self.assertEqual('', html)
 
     def test_market_pulse_section_contains_summary(self) -> None:
         html = generate_market_pulse_section(

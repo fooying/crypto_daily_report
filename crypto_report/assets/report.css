@@ -469,6 +469,10 @@ body {
   vertical-align: top;
 }
 
+.crypto-table td strong {
+  font-weight: 700;
+}
+
 .crypto-icon {
   width: 18px;
   height: 18px;
@@ -502,6 +506,7 @@ body {
   color: var(--text-secondary);
   line-height: 1.45;
   font-weight: 400;
+  letter-spacing: 0;
 }
 
 /* ===== News ===== */

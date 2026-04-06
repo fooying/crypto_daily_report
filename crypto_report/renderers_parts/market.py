@@ -117,7 +117,7 @@ def generate_market_leadership_section(
     market_overview: Dict[str, Any],
 ) -> str:
     candidates = _select_non_stable_cryptos(cryptos)
-    if not candidates:
+    if len(candidates) < 3:
         return ""
 
     def turnover_ratio(item: Dict[str, Any]) -> float:
@@ -144,6 +144,8 @@ def generate_market_leadership_section(
         )[:3]
     )
     total_market_cap = _safe_float(market_overview.get("total_market_cap"), 0.0)
+    if total_market_cap <= 0:
+        return ""
     concentration = top3_market_cap / total_market_cap * 100 if total_market_cap else 0.0
     cards = [
         (
@@ -196,7 +198,7 @@ def generate_market_leadership_section(
 
 def generate_sector_overview_section(cryptos: List[Dict[str, Any]]) -> str:
     candidates = _select_non_stable_cryptos(cryptos)
-    if len(candidates) < 3:
+    if len(candidates) < 4:
         return ""
 
     sector_map: Dict[str, Dict[str, Any]] = {}
@@ -230,6 +232,8 @@ def generate_sector_overview_section(cryptos: List[Dict[str, Any]]) -> str:
         key=lambda item: (len(item[1]["items"]) >= 1, item[1]["avg_change_24h"]),
         reverse=True,
     )
+    if len(ranked) < 2:
+        return ""
     cards = []
     for sector, bucket in ranked[:4]:
         leader = bucket["leader"] or {}
