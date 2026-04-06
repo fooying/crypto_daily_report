@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import os
+import re
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -50,6 +51,17 @@ logger = get_logger(__name__)
 
 class CryptoReportGenerator:
     """Coordinates data fetching, analysis, rendering, and output."""
+
+    STABLECOIN_SYMBOLS = {
+        "USDT",
+        "USDC",
+        "DAI",
+        "FDUSD",
+        "TUSD",
+        "USDE",
+        "USDD",
+        "PYUSD",
+    }
 
     def __init__(
         self,
@@ -134,13 +146,21 @@ class CryptoReportGenerator:
 
     def _build_report_context(self) -> ReportContext:
         sentiment = self.sentiment
+        top_cryptos = self.top_cryptos or []
+        top_focus_assets = [
+            crypto
+            for crypto in top_cryptos
+            if str(crypto.get("symbol", "")).upper() not in self.STABLECOIN_SYMBOLS
+        ][:5]
+        market_cap_history = self.market_cap_history or []
+        technical_context = self.technical_context or {}
         return {
             "report_time": self.report_date.strftime("%Y-%m-%d %H:%M"),
             "market_overview": self.market_overview,
-            "top_cryptos": self.top_cryptos or self.get_top_cryptocurrencies(10),
-            "top_focus_assets": (self.top_cryptos or self.get_top_cryptocurrencies(10))[:5],
-            "market_cap_history": self.market_cap_history or self.get_market_cap_history(30),
-            "technical_context": self.technical_context or self.get_technical_context(),
+            "top_cryptos": top_cryptos,
+            "top_focus_assets": top_focus_assets,
+            "market_cap_history": market_cap_history,
+            "technical_context": technical_context,
             "news": self.crypto_news,
             "sentiment": sentiment,
             "daily_change_meta": build_change_meta(sentiment.get("daily_change")),
@@ -254,10 +274,73 @@ class CryptoReportGenerator:
 
     def _sync_report_assets(self):
         if self.config.should_inline_css():
+            self.config.report_icon_cache_dir.mkdir(parents=True, exist_ok=True)
             return
         target_stylesheet = Path(self.report_dir) / self.report_stylesheet_name
+        self.config.report_icon_cache_dir.mkdir(parents=True, exist_ok=True)
         if self.config.report_stylesheet_file.exists():
             shutil.copy2(self.config.report_stylesheet_file, target_stylesheet)
+
+    @staticmethod
+    def _build_icon_slug(crypto: Dict[str, Any]) -> str:
+        raw_value = str(
+            crypto.get("id")
+            or crypto.get("symbol")
+            or crypto.get("name")
+            or "coin"
+        ).strip().lower()
+        slug = re.sub(r"[^a-z0-9_-]+", "-", raw_value).strip("-")
+        return slug or "coin"
+
+    @staticmethod
+    def _guess_icon_extension(image_url: str, content_type: str) -> str:
+        suffix = Path(image_url.split("?", 1)[0]).suffix.lower()
+        if suffix in {".png", ".svg", ".webp", ".jpg", ".jpeg", ".gif"}:
+            return suffix
+        content_type = (content_type or "").lower()
+        if "image/svg" in content_type:
+            return ".svg"
+        if "image/webp" in content_type:
+            return ".webp"
+        if "image/jpeg" in content_type:
+            return ".jpg"
+        if "image/gif" in content_type:
+            return ".gif"
+        return ".png"
+
+    def _cache_crypto_icon(self, crypto: Dict[str, Any]) -> None:
+        image_url = str(crypto.get("image", "") or "").strip()
+        if not image_url or not image_url.startswith(("http://", "https://")):
+            return
+
+        icon_dir = self.config.report_icon_cache_dir
+        icon_dir.mkdir(parents=True, exist_ok=True)
+        icon_slug = self._build_icon_slug(crypto)
+        existing_files = sorted(icon_dir.glob(f"{icon_slug}.*"))
+        if existing_files:
+            crypto["image"] = f"{self.config.report_icon_cache_dirname}/{existing_files[0].name}"
+            return
+
+        try:
+            response = self.http.fetch_response(
+                image_url,
+                timeout=15,
+                headers={"Accept": "image/*,*/*;q=0.8"},
+            )
+            extension = self._guess_icon_extension(
+                image_url,
+                response.headers.get("Content-Type", ""),
+            )
+            target_file = icon_dir / f"{icon_slug}{extension}"
+            target_file.write_bytes(response.content)
+            crypto["image"] = f"{self.config.report_icon_cache_dirname}/{target_file.name}"
+        except Exception as exc:
+            logger.warning("币种图标缓存失败(%s): %s", image_url, exc)
+            crypto["image"] = ""
+
+    def _prepare_crypto_assets(self) -> None:
+        for crypto in self.top_cryptos:
+            self._cache_crypto_icon(crypto)
 
     def _load_inline_styles(self) -> str:
         if not self.config.should_inline_css():
@@ -411,6 +494,7 @@ class CryptoReportGenerator:
         try:
             os.makedirs(self.report_dir, exist_ok=True)
             self._sync_report_assets()
+            self._prepare_crypto_assets()
             html_content = self.generate_html_report()
             filename = self.config.build_report_filename(self.report_date)
             filepath = os.path.join(self.report_dir, filename)
@@ -452,11 +536,10 @@ class CryptoReportGenerator:
                 try:
                     file_date = self._extract_report_date_from_filename(filename)
                     if file_date < cutoff_date:
-                        os.remove(filepath)
-                        deleted_count += 1
+                        if self._remove_file_if_exists(filepath):
+                            deleted_count += 1
                         png_file = filepath.replace(".html", ".png")
-                        if os.path.exists(png_file):
-                            os.remove(png_file)
+                        if self._remove_file_if_exists(png_file):
                             deleted_count += 1
                     else:
                         kept_count += 1
@@ -471,8 +554,8 @@ class CryptoReportGenerator:
                     continue
                 try:
                     if self._extract_report_date_from_filename(filename) < cutoff_date:
-                        os.remove(filepath)
-                        deleted_count += 1
+                        if self._remove_file_if_exists(filepath):
+                            deleted_count += 1
                 except (ValueError, IndexError):
                     logger.warning(f"跳过无法解析的截图: {filename}")
 
@@ -481,6 +564,14 @@ class CryptoReportGenerator:
         except Exception as exc:
             logger.exception(f"清理旧报告失败: {exc}")
             print(f"⚠️  清理旧报告时出错: {exc}")
+
+    @staticmethod
+    def _remove_file_if_exists(filepath: str) -> bool:
+        try:
+            os.remove(filepath)
+            return True
+        except FileNotFoundError:
+            return False
 
     def generate_screenshot(self, html_path: str):
         try:

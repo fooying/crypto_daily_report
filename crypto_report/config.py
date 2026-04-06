@@ -27,6 +27,7 @@ class ScriptConfig:
     latest_report_filename: str = "latest.html"
     report_stylesheet_filename: str = "report.css"
     report_template_filename: str = "report.html.j2"
+    report_icon_cache_dirname: str = "assets/coin-icons"
     report_asset_url_mode: str = "relative"
     report_css_mode: str = "external"
     report_title: str = "数字货币每日分析报告"
@@ -87,6 +88,10 @@ class ScriptConfig:
     @property
     def report_template_file(self) -> Path:
         return self.base_dir / "crypto_report" / "templates" / self.report_template_filename
+
+    @property
+    def report_icon_cache_dir(self) -> Path:
+        return self.report_dir / self.report_icon_cache_dirname
 
     @property
     def trend_data_file(self) -> Path:

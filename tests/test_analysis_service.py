@@ -118,6 +118,36 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertIn('current_interpretation', result['sentiment_deep_analysis'])
         self.assertIn('overall_points', result['financial_analyst'])
 
+    def test_get_ai_analysis_accepts_wrapped_json_content(self) -> None:
+        self.http.post_json.return_value = {
+            'choices': [
+                {
+                    'message': {
+                        'content': (
+                            '下面是结果\\n```json\\n'
+                            '{"market_overview":"AI市场综述",'
+                            '"technical_analysis":"AI技术分析",'
+                            '"risk_assessment":"AI风险评估",'
+                            '"trading_signals":["信号1","信号2"],'
+                            '"sentiment_deep_analysis":{"current_interpretation":"AI情绪解读","weekly_trend":"AI周趋势","historical_comparison":"AI历史对比","market_impact":"AI市场影响","investor_behavior":"AI投资者行为","trading_advice":"AI交易建议"},'
+                            '"financial_analyst":{"overall_points":["点1","点2","点3","点4","点5"],"short_term":{"stance":"谨慎","summary":"AI短期","action_items":["a","b"]},"long_term":{"stance":"机会","summary":"AI长期","action_items":["c","d"]}}}'
+                            '\\n```\\n备注'
+                        )
+                    }
+                }
+            ]
+        }
+
+        result = self.service.get_ai_analysis(
+            self.fear_greed_index,
+            self.crypto_news,
+            self.market_overview,
+            self.technical_context,
+        )
+
+        self.assertEqual(result['market_overview'], 'AI市场综述')
+        self.assertEqual(result['financial_analyst']['long_term']['summary'], 'AI长期')
+
 
 if __name__ == '__main__':
     unittest.main()

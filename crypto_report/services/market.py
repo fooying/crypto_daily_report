@@ -325,13 +325,14 @@ class MarketService:
         def primary():
             url = (
                 f"{self.config.coingecko_api}/coins/markets?vs_currency=usd&order=market_cap_desc"
-                f"&per_page={limit}&page=1&sparkline=false&price_change_percentage=7d"
+                f"&per_page={limit}&page=1&sparkline=true&price_change_percentage=7d"
             )
             coins = self.fetch_json(url, timeout=15)
             result = []
             for coin in coins:
                 result.append(
                     {
+                        "id": coin.get("id"),
                         "name": coin.get("name", ""),
                         "symbol": coin.get("symbol", "").upper(),
                         "current_price": coin.get("current_price", 0),
@@ -342,6 +343,7 @@ class MarketService:
                         "total_volume": coin.get("total_volume", 0),
                         "circulating_supply": coin.get("circulating_supply", 0),
                         "image": coin.get("image", ""),
+                        "sparkline_7d": (coin.get("sparkline_in_7d") or {}).get("price", []),
                     }
                 )
             return result

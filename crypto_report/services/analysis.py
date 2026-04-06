@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List
 
 
@@ -239,7 +240,7 @@ class AIAnalysisService:
 
     @staticmethod
     def _normalize_ai_output(content: str) -> Dict[str, Any]:
-        data = json.loads(content)
+        data = json.loads(AIAnalysisService._extract_json_payload(content))
         required_fields = {
             "market_overview",
             "technical_analysis",
@@ -263,6 +264,46 @@ class AIAnalysisService:
         if not isinstance(data["financial_analyst"], dict):
             raise ValueError("DeepSeek financial_analyst 不是对象")
         return data
+
+    @staticmethod
+    def _extract_json_payload(content: str) -> str:
+        text = str(content or "").strip()
+        if not text:
+            raise ValueError("DeepSeek 返回内容为空")
+
+        fenced_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, flags=re.DOTALL)
+        if fenced_match:
+            return fenced_match.group(1)
+
+        if text.startswith("{") and text.endswith("}"):
+            return text
+
+        start = text.find("{")
+        if start == -1:
+            raise ValueError("DeepSeek 返回内容中未找到 JSON 对象")
+
+        depth = 0
+        in_string = False
+        escape = False
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escape:
+                    escape = False
+                elif char == "\\":
+                    escape = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:index + 1]
+        raise ValueError("DeepSeek 返回 JSON 不完整")
 
     def _generate_deepseek_analysis(
         self,

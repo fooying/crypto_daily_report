@@ -1,35 +1,25 @@
 from __future__ import annotations
 
 import html
-from urllib.parse import quote
 from typing import Any, Dict, List
 
 from ..helpers import format_large_number
 from .common import build_svg_sparkline
 
 
-def _build_local_icon_data_uri(symbol: str) -> str:
-    safe_symbol = (symbol or "?").upper()[:2]
-    svg = (
-        "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
-        "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>"
-        "<stop offset='0%' stop-color='#3b82f6'/>"
-        "<stop offset='100%' stop-color='#22c55e'/>"
-        "</linearGradient></defs>"
-        "<circle cx='12' cy='12' r='11' fill='url(#g)'/>"
-        "<text x='12' y='15' text-anchor='middle' font-size='8' font-family='Arial, sans-serif' "
-        "fill='white' font-weight='700'>"
-        f"{html.escape(safe_symbol)}"
-        "</text></svg>"
-    )
-    return f"data:image/svg+xml;utf8,{quote(svg)}"
-
-
-def _build_local_icon_html(symbol: str) -> str:
-    icon_uri = _build_local_icon_data_uri(symbol)
+def _build_fallback_icon_html(symbol: str) -> str:
     return (
-        f'<img src="{icon_uri}" alt="{html.escape(symbol)}" '
-        'style="width: 18px; height: 18px; margin-right: 8px; vertical-align: text-bottom;">'
+        '<span class="crypto-icon-fallback" '
+        f'aria-label="{html.escape(symbol)}"></span>'
+    )
+
+
+def _build_icon_html(image_src: str, symbol: str) -> str:
+    if not image_src:
+        return _build_fallback_icon_html(symbol)
+    return (
+        f'<img src="{html.escape(image_src)}" alt="{html.escape(symbol)}" '
+        'class="crypto-icon" loading="lazy">'
     )
 
 
@@ -49,21 +39,29 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
         name = html.escape(str(crypto.get("name", "")))
         price = f"${_safe_float(crypto.get('current_price', 0)):,.2f}"
         change = _safe_float(crypto.get("price_change_percentage_24h", 0))
-        spark_values = crypto.get("sparkline_7d") or [
-            _safe_float(crypto.get("current_price", 0)) * 0.98,
-            _safe_float(crypto.get("current_price", 0)),
-            _safe_float(crypto.get("current_price", 0)) * 1.01,
+        raw_spark_values = crypto.get("sparkline_7d") or []
+        spark_values = [
+            _safe_float(value)
+            for value in raw_spark_values
+            if value is not None
         ]
-        sparkline = build_svg_sparkline(spark_values)
-        image_html = _build_local_icon_html(str(crypto.get("symbol", "")))
+        sparkline = ""
+        if len(spark_values) >= 4:
+            sparkline = build_svg_sparkline(spark_values)
+        image_html = _build_icon_html(str(crypto.get("image", "")), str(crypto.get("symbol", "")))
         change_class = "green" if change >= 0 else "red"
+        sparkline_html = (
+            f'<div class="focus-asset-sparkline">{sparkline}</div>'
+            if sparkline
+            else ""
+        )
         cards.append(
             f"""
             <div class="focus-asset-card">
                 <div class="focus-asset-header"><strong>{image_html}{name}</strong> <span>({symbol})</span></div>
                 <div class="focus-asset-price">{price}</div>
                 <div class="focus-asset-change {change_class}">{change:+.2f}%</div>
-                <div class="focus-asset-sparkline">{sparkline}</div>
+                {sparkline_html}
             </div>
             """
         )
@@ -82,20 +80,42 @@ def generate_market_pulse_section(
     market_cap_history: List[Dict[str, Any]],
 ) -> str:
     history = market_cap_history[-30:]
-    market_values = [float(item.get("market_cap", 0)) for item in history if item.get("market_cap") is not None]
-    volume_values = [float(item.get("volume_24h", 0)) for item in history if item.get("volume_24h") is not None]
-    market_chart = build_svg_sparkline(market_values, width=640, height=220)
-    volume_chart = build_svg_sparkline(volume_values, width=640, height=80)
-    period_text = "30天" if len(history) >= 20 else "7天"
+    market_values = [
+        float(item.get("market_cap", 0))
+        for item in history
+        if item.get("market_cap") is not None
+    ]
+    volume_values = [
+        float(item.get("volume_24h", 0))
+        for item in history
+        if item.get("volume_24h") is not None
+    ]
+    history_days = len(history)
+    period_text = f"近{history_days}天" if history_days else "暂无历史数据"
+    market_chart = ""
+    volume_chart = ""
+    if len(market_values) >= 4:
+        market_chart = build_svg_sparkline(market_values, width=640, height=180)
+    if len(volume_values) >= 4:
+        volume_chart = build_svg_sparkline(volume_values, width=640, height=72)
+
+    market_chart_html = (
+        market_chart
+        if market_chart
+        else '<div class="market-pulse-empty">历史样本不足，暂不展示总市值趋势曲线</div>'
+    )
+    volume_chart_html = (
+        volume_chart
+        if volume_chart
+        else '<div class="market-pulse-empty">历史样本不足，暂不展示交易量趋势曲线</div>'
+    )
     latest_market_cap = format_large_number(float(market_overview.get("total_market_cap", 0)))
     latest_volume = format_large_number(float(market_overview.get("total_volume", 0)))
     return f"""
     <div class="section">
         <h2>市场脉搏</h2>
-        <div class="market-pulse-toolbar">
-            <span class="pulse-chip pulse-chip-active">总览</span>
-            <span class="pulse-chip">明细</span>
-            <span class="pulse-chip pulse-chip-active">{period_text}</span>
+        <div class="market-pulse-meta">
+            汇总展示 {period_text} 的总市值与 24 小时交易量变化，当前已累计 {history_days} 个采样日。
         </div>
         <div class="market-pulse-summary">
             <div><span>市值</span><strong>{latest_market_cap}</strong></div>
@@ -105,10 +125,18 @@ def generate_market_pulse_section(
             <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
         </div>
         <div class="market-pulse-chart">
-            {market_chart}
+            <div class="market-pulse-chart-header">
+                <h3>总市值走势</h3>
+                <span>{period_text}</span>
+            </div>
+            {market_chart_html}
         </div>
         <div class="market-pulse-volume">
-            {volume_chart}
+            <div class="market-pulse-chart-header">
+                <h3>24小时交易量走势</h3>
+                <span>{period_text}</span>
+            </div>
+            {volume_chart_html}
         </div>
     </div>
     """
@@ -158,7 +186,7 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
         change_7d = _safe_float(crypto.get("price_change_percentage_7d"), 0.0)
         name = html.escape(str(crypto["name"]))
         symbol = html.escape(str(crypto["symbol"]))
-        icon = _build_local_icon_html(str(crypto.get("symbol", "")))
+        icon = _build_icon_html(str(crypto.get("image", "")), str(crypto.get("symbol", "")))
         change_24h_color = "green" if change_24h >= 0 else "red"
         change_7d_color = "green" if change_7d >= 0 else "red"
         price = f"${_safe_float(crypto.get('current_price'), 0.0):,.2f}"

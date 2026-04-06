@@ -42,7 +42,7 @@ class RendererTests(unittest.TestCase):
                     'price_change_percentage_24h': None,
                     'price_change_percentage_7d': 2.0,
                     'total_volume': 100.0,
-                    'image': 'https://example.com/btc.png',
+                    'image': 'assets/coin-icons/bitcoin.png',
                 },
                 {
                     'name': 'Ethereum',
@@ -57,7 +57,8 @@ class RendererTests(unittest.TestCase):
                 },
             ]
         )
-        self.assertIn('data:image/svg+xml;utf8,', html)
+        self.assertIn('assets/coin-icons/bitcoin.png', html)
+        self.assertIn('crypto-icon-fallback', html)
         self.assertIn('+0.00%', html)
         self.assertIn('$0', html)
 
@@ -130,13 +131,30 @@ class RendererTests(unittest.TestCase):
                     'symbol': 'BTC',
                     'current_price': 100.0,
                     'price_change_percentage_24h': 1.5,
-                    'image': 'https://example.com/btc.png',
-                    'sparkline_7d': [90, 95, 100],
+                    'image': 'assets/coin-icons/bitcoin.png',
+                    'sparkline_7d': [90, 92, 95, 100],
                 }
             ]
         )
         self.assertIn('主流币速览', html)
         self.assertIn('Bitcoin', html)
+        self.assertIn('assets/coin-icons/bitcoin.png', html)
+        self.assertIn('focus-asset-sparkline', html)
+
+    def test_top_focus_assets_section_hides_missing_sparkline(self) -> None:
+        html = generate_top_focus_assets_section(
+            [
+                {
+                    'name': 'Bitcoin',
+                    'symbol': 'BTC',
+                    'current_price': 100.0,
+                    'price_change_percentage_24h': 1.5,
+                    'image': 'assets/coin-icons/bitcoin.png',
+                    'sparkline_7d': [],
+                }
+            ]
+        )
+        self.assertNotIn('focus-asset-sparkline', html)
 
     def test_market_pulse_section_contains_summary(self) -> None:
         html = generate_market_pulse_section(
@@ -153,6 +171,8 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('市场脉搏', html)
         self.assertIn('BTC主导率', html)
+        self.assertIn('历史样本不足', html)
+        self.assertNotIn('总览', html)
 
     def test_technical_context_section_contains_asset_metrics(self) -> None:
         html = generate_technical_context_section(

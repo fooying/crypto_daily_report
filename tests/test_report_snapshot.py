@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 import tempfile
+from unittest.mock import Mock
 
 from crypto_report.generator import CryptoReportGenerator
 from crypto_report.config import ScriptConfig
@@ -157,6 +158,94 @@ class ReportSnapshotTests(unittest.TestCase):
         self.assertIn('<style>', html)
         self.assertIn('.header {', html)
         self.assertNotIn('<link rel="stylesheet"', html)
+
+    def test_cleanup_old_reports_ignores_png_deleted_in_html_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_dir = Path(tmpdir) / 'reports'
+            report_dir.mkdir(parents=True, exist_ok=True)
+            html_file = report_dir / '2026-03-06.html'
+            png_file = report_dir / '2026-03-06.png'
+            latest_file = report_dir / 'latest.html'
+            html_file.write_text('<html></html>', encoding='utf-8')
+            png_file.write_text('png', encoding='utf-8')
+            latest_file.write_text('<html></html>', encoding='utf-8')
+
+            cfg = ScriptConfig(
+                base_dir=Path('.').resolve(),
+                generate_screenshots=False,
+                deepseek_api_key='replace-me',
+                report_output_dir=report_dir,
+            )
+            obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+
+            obj.cleanup_old_reports(days_to_keep=30)
+
+            self.assertFalse(html_file.exists())
+            self.assertFalse(png_file.exists())
+            self.assertTrue(latest_file.exists())
+
+    def test_prepare_crypto_assets_downloads_and_reuses_local_icon(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report_dir = Path(tmpdir) / 'reports'
+            cfg = ScriptConfig(
+                base_dir=Path('.').resolve(),
+                generate_screenshots=False,
+                deepseek_api_key='replace-me',
+                report_output_dir=report_dir,
+            )
+            obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+            response = Mock()
+            response.content = b'png-bytes'
+            response.headers = {'Content-Type': 'image/png'}
+            obj.http.fetch_response = Mock(return_value=response)
+            obj.top_cryptos = [
+                {
+                    'id': 'bitcoin',
+                    'symbol': 'BTC',
+                    'name': 'Bitcoin',
+                    'image': 'https://example.com/bitcoin.png',
+                }
+            ]
+
+            obj._prepare_crypto_assets()
+            first_image = obj.top_cryptos[0]['image']
+            self.assertEqual(first_image, 'assets/coin-icons/bitcoin.png')
+            self.assertTrue((report_dir / first_image).exists())
+            obj.http.fetch_response.reset_mock()
+
+            obj.top_cryptos[0]['image'] = 'https://example.com/bitcoin.png'
+            obj._prepare_crypto_assets()
+            self.assertEqual(obj.top_cryptos[0]['image'], 'assets/coin-icons/bitcoin.png')
+            obj.http.fetch_response.assert_not_called()
+
+    def test_build_report_context_excludes_stablecoins_from_focus_assets(self) -> None:
+        cfg = ScriptConfig(
+            base_dir=Path('.').resolve(),
+            generate_screenshots=False,
+            deepseek_api_key='replace-me',
+        )
+        obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+        obj.sentiment = {'value': 50, 'daily_change': 0, 'weekly_change': 0, 'monthly_change': 0}
+        obj.crypto_news = []
+        obj.market_overview = {}
+        obj.market_cap_history = []
+        obj.technical_context = {}
+        obj.top_cryptos = [
+            {'symbol': 'BTC', 'name': 'Bitcoin'},
+            {'symbol': 'USDT', 'name': 'Tether'},
+            {'symbol': 'ETH', 'name': 'Ethereum'},
+            {'symbol': 'BNB', 'name': 'BNB'},
+            {'symbol': 'USDC', 'name': 'USD Coin'},
+            {'symbol': 'XRP', 'name': 'XRP'},
+        ]
+        obj.analysis_service.get_ai_analysis = lambda *args, **kwargs: {}
+
+        context = obj._build_report_context()
+
+        symbols = [item['symbol'] for item in context['top_focus_assets']]
+        self.assertNotIn('USDT', symbols)
+        self.assertNotIn('USDC', symbols)
+        self.assertEqual(symbols, ['BTC', 'ETH', 'BNB', 'XRP'])
 
 
 if __name__ == "__main__":
