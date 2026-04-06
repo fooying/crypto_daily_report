@@ -9,6 +9,8 @@ class MarketOverview(TypedDict):
     active_cryptocurrencies: int
     market_cap_percentage: Dict[str, float]
     market_cap_change_percentage_24h_usd: float
+    alt_market_cap_percentage: float
+    volume_to_market_cap_ratio: float
 
 
 class WeeklyTrend(TypedDict, total=False):

@@ -22,11 +22,15 @@ class RendererTests(unittest.TestCase):
                 'active_cryptocurrencies': 100,
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
                 'market_cap_change_percentage_24h_usd': 1.23,
+                'alt_market_cap_percentage': 30.0,
+                'volume_to_market_cap_ratio': 50.0,
             }
         )
         self.assertIn('总市值', html)
         self.assertIn('1.23% (24h)', html)
         self.assertIn('50.0%', html)
+        self.assertIn('山寨币占比', html)
+        self.assertIn('成交额 / 市值', html)
 
     def test_crypto_table_rows_use_local_icons_and_handle_missing_values(self) -> None:
         from crypto_report.renderers import generate_crypto_table_rows
@@ -42,6 +46,10 @@ class RendererTests(unittest.TestCase):
                     'price_change_percentage_24h': None,
                     'price_change_percentage_7d': 2.0,
                     'total_volume': 100.0,
+                    'circulating_supply': 21_000_000,
+                    'fully_diluted_valuation': 1200.0,
+                    'high_24h': 110.0,
+                    'low_24h': 90.0,
                     'image': 'assets/coin-icons/bitcoin.png',
                 },
                 {
@@ -61,6 +69,9 @@ class RendererTests(unittest.TestCase):
         self.assertIn('crypto-icon-fallback', html)
         self.assertIn('+0.00%', html)
         self.assertIn('$0', html)
+        self.assertIn('FDV', html)
+        self.assertIn('24h 区间', html)
+        self.assertIn('成交 / 市值', html)
 
     def test_ai_analysis_section_escapes_risk_text(self) -> None:
         html = generate_ai_analysis_section(
@@ -163,6 +174,8 @@ class RendererTests(unittest.TestCase):
                 'total_volume': 500_000_000,
                 'active_cryptocurrencies': 100,
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
+                'alt_market_cap_percentage': 30.0,
+                'volume_to_market_cap_ratio': 50.0,
             },
             [
                 {'market_cap': 900_000_000, 'volume_24h': 450_000_000},
@@ -182,6 +195,8 @@ class RendererTests(unittest.TestCase):
                 'total_volume': 500_000_000,
                 'active_cryptocurrencies': 100,
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
+                'alt_market_cap_percentage': 30.0,
+                'volume_to_market_cap_ratio': 50.0,
             },
             [
                 {'market_cap': 850_000_000, 'volume_24h': 420_000_000},

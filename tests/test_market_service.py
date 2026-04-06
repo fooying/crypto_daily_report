@@ -63,6 +63,8 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(result['total_market_cap'], 2_500_000_000_000)
         self.assertEqual(result['total_volume'], 120_000_000_000)
         self.assertEqual(result['market_cap_change_percentage_24h_usd'], 1.56)
+        self.assertAlmostEqual(result['alt_market_cap_percentage'], 29.4)
+        self.assertAlmostEqual(result['volume_to_market_cap_ratio'], 4.8)
         self.assertEqual(self.http.fetch_json.call_count, 2)
         self.assertEqual(self.service.last_market_overview_source, 'coinmarketcap_backup')
         fallback_headers = self.http.fetch_json.call_args_list[1].kwargs['headers']
@@ -110,6 +112,7 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(result[0]['price_change_percentage_24h'], 2.1)
         self.assertEqual(result[0]['price_change_percentage_7d'], 4.2)
         self.assertEqual(result[0]['total_volume'], 35_000_000_000)
+        self.assertEqual(result[0]['circulating_supply'], 19_800_000)
         self.assertEqual(
             result[0]['image'],
             'https://s2.coinmarketcap.com/static/img/coins/64x64/1.png',

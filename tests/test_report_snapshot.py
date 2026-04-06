@@ -40,12 +40,15 @@ class ReportSnapshotTests(unittest.TestCase):
                 'active_cryptocurrencies': 100,
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
                 'market_cap_change_percentage_24h_usd': 1.23,
+                'alt_market_cap_percentage': 30.0,
+                'volume_to_market_cap_ratio': 50.0,
             }
             obj.top_cryptos = [{
                 'name': 'Bitcoin', 'symbol': 'BTC', 'current_price': 1.0, 'market_cap': 2.0,
                 'market_cap_rank': 1, 'price_change_percentage_24h': 1.0,
                 'price_change_percentage_7d': 2.0, 'total_volume': 3.0,
-                'circulating_supply': 4.0, 'image': ''
+                'circulating_supply': 4.0, 'fully_diluted_valuation': 5.0,
+                'high_24h': 1.1, 'low_24h': 0.9, 'image': ''
             }]
             obj.market_cap_history = [
                 {'timestamp': '2026-03-01T00:00:00.000Z', 'market_cap': 1.0, 'volume_24h': 2.0},
@@ -112,12 +115,15 @@ class ReportSnapshotTests(unittest.TestCase):
             'active_cryptocurrencies': 100,
             'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
             'market_cap_change_percentage_24h_usd': 1.23,
+            'alt_market_cap_percentage': 30.0,
+            'volume_to_market_cap_ratio': 50.0,
         }
         obj.top_cryptos = [{
             'name': 'Bitcoin', 'symbol': 'BTC', 'current_price': 1.0, 'market_cap': 2.0,
             'market_cap_rank': 1, 'price_change_percentage_24h': 1.0,
             'price_change_percentage_7d': 2.0, 'total_volume': 3.0,
-            'circulating_supply': 4.0, 'image': ''
+            'circulating_supply': 4.0, 'fully_diluted_valuation': 5.0,
+            'high_24h': 1.1, 'low_24h': 0.9, 'image': ''
         }]
         obj.market_cap_history = [
             {'timestamp': '2026-03-01T00:00:00.000Z', 'market_cap': 1.0, 'volume_24h': 2.0},

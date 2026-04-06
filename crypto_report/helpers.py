@@ -13,6 +13,8 @@ def build_default_market_overview() -> Dict[str, Any]:
         "active_cryptocurrencies": 0,
         "market_cap_percentage": {},
         "market_cap_change_percentage_24h_usd": 0,
+        "alt_market_cap_percentage": 0,
+        "volume_to_market_cap_ratio": 0,
     }
 
 

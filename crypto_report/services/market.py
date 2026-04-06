@@ -84,14 +84,20 @@ class MarketService:
         metrics = data.get("data", {}) or {}
         btc_dominance = metrics.get("btc_dominance", 0.0)
         eth_dominance = metrics.get("eth_dominance", 0.0)
+        total_market_cap = metrics.get("quote", {}).get("USD", {}).get("total_market_cap", 0)
+        total_volume = metrics.get("quote", {}).get("USD", {}).get("total_volume_24h", 0)
         return {
-            "total_market_cap": metrics.get("quote", {}).get("USD", {}).get("total_market_cap", 0),
-            "total_volume": metrics.get("quote", {}).get("USD", {}).get("total_volume_24h", 0),
+            "total_market_cap": total_market_cap,
+            "total_volume": total_volume,
             "active_cryptocurrencies": metrics.get("active_cryptocurrencies", 0),
             "market_cap_percentage": {
                 "btc": btc_dominance,
                 "eth": eth_dominance,
             },
+            "alt_market_cap_percentage": max(0.0, 100.0 - btc_dominance - eth_dominance),
+            "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
+            if total_market_cap
+            else 0,
             "market_cap_change_percentage_24h_usd": metrics.get(
                 "quote", {}
             ).get("USD", {}).get("total_market_cap_yesterday_percentage_change", 0),
@@ -113,6 +119,9 @@ class MarketService:
                     "price_change_percentage_7d": quote.get("percent_change_7d", 0),
                     "total_volume": quote.get("volume_24h", 0),
                     "circulating_supply": coin.get("circulating_supply", 0),
+                    "fully_diluted_valuation": quote.get("fully_diluted_market_cap", 0),
+                    "high_24h": quote.get("high_24h", 0),
+                    "low_24h": quote.get("low_24h", 0),
                     "image": "",
                 }
             )
@@ -290,11 +299,19 @@ class MarketService:
             if "data" not in data:
                 raise ValueError("global 接口缺少 data 字段")
             market_data = data["data"]
+            total_market_cap = market_data.get("total_market_cap", {}).get("usd", 0)
+            total_volume = market_data.get("total_volume", {}).get("usd", 0)
+            btc_dominance = market_data.get("market_cap_percentage", {}).get("btc", 0)
+            eth_dominance = market_data.get("market_cap_percentage", {}).get("eth", 0)
             result: MarketOverview = {
-                "total_market_cap": market_data.get("total_market_cap", {}).get("usd", 0),
-                "total_volume": market_data.get("total_volume", {}).get("usd", 0),
+                "total_market_cap": total_market_cap,
+                "total_volume": total_volume,
                 "active_cryptocurrencies": market_data.get("active_cryptocurrencies", 0),
                 "market_cap_percentage": market_data.get("market_cap_percentage", {}),
+                "alt_market_cap_percentage": max(0.0, 100.0 - btc_dominance - eth_dominance),
+                "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
+                if total_market_cap
+                else 0,
                 "market_cap_change_percentage_24h_usd": market_data.get(
                     "market_cap_change_percentage_24h_usd", 0
                 ),
@@ -342,6 +359,9 @@ class MarketService:
                         "price_change_percentage_7d": coin.get("price_change_percentage_7d_in_currency", 0),
                         "total_volume": coin.get("total_volume", 0),
                         "circulating_supply": coin.get("circulating_supply", 0),
+                        "fully_diluted_valuation": coin.get("fully_diluted_valuation", 0),
+                        "high_24h": coin.get("high_24h", 0),
+                        "low_24h": coin.get("low_24h", 0),
                         "image": coin.get("image", ""),
                         "sparkline_7d": (coin.get("sparkline_in_7d") or {}).get("price", []),
                     }

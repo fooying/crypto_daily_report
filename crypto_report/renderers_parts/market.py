@@ -194,16 +194,37 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
         price = f"${_safe_float(crypto.get('current_price'), 0.0):,.2f}"
         market_cap = format_large_number(_safe_float(crypto.get("market_cap"), 0.0))
         volume = format_large_number(_safe_float(crypto.get("total_volume"), 0.0))
+        circulating_supply = _safe_float(crypto.get("circulating_supply"), 0.0)
+        fully_diluted_valuation = format_large_number(
+            _safe_float(crypto.get("fully_diluted_valuation"), 0.0)
+        )
+        high_24h = _safe_float(crypto.get("high_24h"), 0.0)
+        low_24h = _safe_float(crypto.get("low_24h"), 0.0)
+        volume_to_market_cap_ratio = (
+            _safe_float(crypto.get("total_volume"), 0.0)
+            / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9)
+            * 100
+        )
+        supply_text = f"{circulating_supply:,.0f}" if circulating_supply else "N/A"
         rows.append(
             f"""
                     <tr>
                         <td>{crypto.get('market_cap_rank', '')}</td>
-                        <td><strong>{icon}{name}</strong> ({symbol})</td>
-                        <td>{price}</td>
+                        <td>
+                            <strong>{icon}{name}</strong> ({symbol})
+                            <div class="table-subtext">流通量 {supply_text} / FDV {fully_diluted_valuation}</div>
+                        </td>
+                        <td>
+                            {price}
+                            <div class="table-subtext">24h 区间 ${low_24h:,.2f} - ${high_24h:,.2f}</div>
+                        </td>
                         <td style=\"color: {change_24h_color}\">{change_24h:+.2f}%</td>
                         <td style=\"color: {change_7d_color}\">{change_7d:+.2f}%</td>
                         <td>{market_cap}</td>
-                        <td>{volume}</td>
+                        <td>
+                            {volume}
+                            <div class="table-subtext">成交 / 市值 {volume_to_market_cap_ratio:.2f}%</div>
+                        </td>
                     </tr>
             """
         )
@@ -213,6 +234,10 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
 def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
     market_cap_change = market_overview.get("market_cap_change_percentage_24h_usd", 0)
     negative_class = "negative" if market_cap_change < 0 else ""
+    btc_dominance = market_overview.get('market_cap_percentage', {}).get('btc', 0)
+    eth_dominance = market_overview.get('market_cap_percentage', {}).get('eth', 0)
+    alt_dominance = market_overview.get('alt_market_cap_percentage', 0)
+    turnover_ratio = market_overview.get('volume_to_market_cap_ratio', 0)
     return f"""
     <div class="section">
         <h2>市场概览</h2>
@@ -230,8 +255,13 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
                 </div>
                 <div class="overview-item">
                     <div class="overview-label">比特币占比</div>
-                    <div class="overview-value">{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</div>
-                    <div class="overview-sub">以太坊：{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</div>
+                    <div class="overview-value">{btc_dominance:.1f}%</div>
+                    <div class="overview-sub">以太坊：{eth_dominance:.1f}%</div>
+                </div>
+                <div class="overview-item">
+                    <div class="overview-label">山寨币占比</div>
+                    <div class="overview-value">{alt_dominance:.1f}%</div>
+                    <div class="overview-sub">成交额 / 市值：{turnover_ratio:.2f}%</div>
                 </div>
             </div>
         </div>

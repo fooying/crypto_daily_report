@@ -133,7 +133,7 @@ body {
 
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -368,6 +368,7 @@ body {
 .crypto-table td {
   padding: 12px 10px;
   background: rgba(255, 255, 255, 0.92);
+  vertical-align: top;
 }
 
 .crypto-icon {
@@ -395,6 +396,13 @@ body {
 
 .crypto-table tr:hover td {
   background: rgba(241, 245, 249, 0.96);
+}
+
+.table-subtext {
+  margin-top: 6px;
+  font-size: 0.82em;
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 /* ===== News ===== */
