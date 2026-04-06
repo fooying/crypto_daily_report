@@ -30,7 +30,7 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
             {overall_points}
         </div>
 
-        <div class="section-subgrid">
+        <div class="section-subgrid financial-detail-grid">
             <div class="content-panel financial-panel financial-panel-short">
                 <div class="panel-title-row">
                     <h3>短期建议</h3>

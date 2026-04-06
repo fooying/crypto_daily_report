@@ -502,7 +502,7 @@ body {
 
 .table-subtext {
   margin-top: 6px;
-  font-size: 0.82em;
+  font-size: 0.8em;
   color: var(--text-secondary);
   line-height: 1.45;
   font-weight: 400;
@@ -684,9 +684,14 @@ body {
   gap: 16px;
 }
 
+.ai-detail-grid,
+.financial-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
 .ai-merged-block {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   color: var(--text-secondary);
   font-size: 0.95em;
 }
@@ -721,31 +726,34 @@ body {
 }
 
 .ai-merged-block strong {
-  font-weight: 400;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .ai-trend-summary {
   margin: 0;
   color: var(--text-secondary);
+  font-size: 0.92em;
+  padding-top: 2px;
 }
 
 .ai-sentiment-mini {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 0.85em;
   color: var(--text-secondary);
-  background: #f9fafb;
-  border: 1px solid #edf2f7;
-  border-radius: 999px;
-  padding: 6px 12px;
-  white-space: nowrap;
+  background: #f8fafc;
+  border: 1px solid #e7edf4;
+  border-radius: 12px;
+  padding: 8px 10px;
 }
 
 .ai-sentiment-metrics {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -864,7 +872,9 @@ body {
 
 .risk-level {
   font-weight: 500;
-  color: #b91c1c;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.65;
 }
 
 .signal-list {
@@ -878,9 +888,10 @@ body {
 .signal-list li {
   padding: 12px 14px;
   margin: 0;
-  background: #ffffff;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.94) 100%);
   border-radius: 12px;
   border: 1px solid #e7edf4;
+  border-left-width: 3px;
   box-shadow: none;
 }
 
@@ -906,6 +917,7 @@ body {
   font-size: 0.88em;
   color: var(--text-secondary);
   padding-left: 26px;
+  line-height: 1.5;
 }
 
 /* ===== Financial Analyst ===== */
@@ -938,7 +950,7 @@ body {
 }
 
 .stance-mini {
-  background: #f8f9fa;
+  background: #f8fafc;
   border: 1px solid #e7edf4;
   color: var(--text-secondary);
 }
@@ -953,6 +965,7 @@ body {
 .insight-list li,
 .action-list li {
   margin-bottom: 6px;
+  line-height: 1.6;
 }
 
 .insight-list.empty,

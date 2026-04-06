@@ -393,24 +393,44 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
             * 100
         )
         supply_text = f"{circulating_supply:,.0f}" if circulating_supply else "N/A"
+        name_meta_parts = []
+        if circulating_supply:
+            name_meta_parts.append(f"流通量 {supply_text}")
+        if _safe_float(crypto.get("fully_diluted_valuation"), 0.0) > 0:
+            name_meta_parts.append(f"FDV {fully_diluted_valuation}")
+        name_meta_html = (
+            f'<div class="table-subtext">{" · ".join(name_meta_parts)}</div>'
+            if name_meta_parts
+            else ""
+        )
+        price_meta_html = ""
+        if high_24h > 0 and low_24h > 0 and high_24h >= low_24h:
+            price_meta_html = (
+                f'<div class="table-subtext">24h 区间 ${low_24h:,.2f} - ${high_24h:,.2f}</div>'
+            )
+        volume_meta_html = ""
+        if _safe_float(crypto.get("market_cap"), 0.0) > 0 and _safe_float(crypto.get("total_volume"), 0.0) > 0:
+            volume_meta_html = (
+                f'<div class="table-subtext">成交 / 市值 {volume_to_market_cap_ratio:.2f}%</div>'
+            )
         rows.append(
             f"""
                     <tr>
                         <td>{crypto.get('market_cap_rank', '')}</td>
                         <td>
                             <strong>{icon}{name}</strong> ({symbol})
-                            <div class="table-subtext">流通量 {supply_text} / FDV {fully_diluted_valuation}</div>
+                            {name_meta_html}
                         </td>
                         <td>
                             {price}
-                            <div class="table-subtext">24h 区间 ${low_24h:,.2f} - ${high_24h:,.2f}</div>
+                            {price_meta_html}
                         </td>
                         <td style=\"color: {change_24h_color}\">{change_24h:+.2f}%</td>
                         <td style=\"color: {change_7d_color}\">{change_7d:+.2f}%</td>
                         <td>{market_cap}</td>
                         <td>
                             {volume}
-                            <div class="table-subtext">成交 / 市值 {volume_to_market_cap_ratio:.2f}%</div>
+                            {volume_meta_html}
                         </td>
                     </tr>
             """

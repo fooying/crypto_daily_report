@@ -123,26 +123,28 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                 </div>
             </div>
 
-            <div class="content-panel">
-                <div class="panel-title-row">
-                    <h3>风险评估</h3>
-                    <div class="ai-sentiment-mini">
-                        <span>新闻情绪</span>
-                        <div class="ai-sentiment-metrics">
-                            <span class="ai-sentiment-positive">正面 {sentiment_summary.get('positive', 0)}</span>
-                            <span class="ai-sentiment-neutral">中性 {sentiment_summary.get('neutral', 0)}</span>
-                            <span class="ai-sentiment-negative">负面 {sentiment_summary.get('negative', 0)}</span>
+            <div class="section-subgrid ai-detail-grid">
+                <div class="content-panel">
+                    <div class="panel-title-row">
+                        <h3>风险评估</h3>
+                        <div class="ai-sentiment-mini">
+                            <span>新闻情绪</span>
+                            <div class="ai-sentiment-metrics">
+                                <span class="ai-sentiment-positive">正面 {sentiment_summary.get('positive', 0)}</span>
+                                <span class="ai-sentiment-neutral">中性 {sentiment_summary.get('neutral', 0)}</span>
+                                <span class="ai-sentiment-negative">负面 {sentiment_summary.get('negative', 0)}</span>
+                            </div>
                         </div>
                     </div>
+                    <p class="risk-level">{risk_assessment}</p>
                 </div>
-                <p class="risk-level">{risk_assessment}</p>
-            </div>
 
-            <div class="content-panel">
-                <h3>交易信号</h3>
-                <ul class="signal-list">
-                    {trading_signals_html}
-                </ul>
+                <div class="content-panel">
+                    <h3>交易信号</h3>
+                    <ul class="signal-list">
+                        {trading_signals_html}
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
