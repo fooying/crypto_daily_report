@@ -1,9 +1,31 @@
 from __future__ import annotations
 
 import html
+import re
 from typing import Any, Dict, List
 
 from .common import split_non_empty_lines
+
+
+TERM_MAP = {
+    "uptrend": "上涨趋势",
+    "downtrend": "下跌趋势",
+    "consolidation": "盘整阶段",
+    "stable": "稳定",
+    "improving": "改善",
+    "declining": "走弱",
+}
+
+
+def _localize_terms(value: str) -> str:
+    text = str(value or "")
+    for source, target in TERM_MAP.items():
+        text = re.sub(rf"\b{re.escape(source)}\b", target, text, flags=re.IGNORECASE)
+    return text
+
+
+def _normalize_plain_text(value: str) -> str:
+    return re.sub(r"\s+", " ", _localize_terms(value)).strip()
 
 
 def generate_trading_signals_html(signals: List[str]) -> str:
@@ -76,10 +98,10 @@ def generate_trading_signals_html(signals: List[str]) -> str:
 
 def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_html: str) -> str:
     sentiment_summary = ai_analysis.get("sentiment_summary", {})
-    overview = html.escape(str(ai_analysis.get("market_overview", "暂无市场概况")))
-    technical_analysis = ai_analysis.get("technical_analysis", "")
-    risk_assessment = html.escape(str(ai_analysis.get("risk_assessment", "暂无风险评估")))
-    trend_raw = str(ai_analysis.get("trend_enhanced_analysis", "暂无趋势增强分析"))
+    overview = html.escape(_normalize_plain_text(str(ai_analysis.get("market_overview", "暂无市场概况"))))
+    technical_analysis = _localize_terms(str(ai_analysis.get("technical_analysis", "")))
+    risk_assessment = html.escape(_normalize_plain_text(str(ai_analysis.get("risk_assessment", "暂无风险评估"))))
+    trend_raw = _normalize_plain_text(str(ai_analysis.get("trend_enhanced_analysis", "暂无趋势增强分析")))
     trend_lines = split_non_empty_lines(trend_raw)
     trend_summary_lines = [
         line for line in trend_lines

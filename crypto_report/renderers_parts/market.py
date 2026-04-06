@@ -18,6 +18,15 @@ STABLECOIN_SYMBOLS = {
     "PYUSD",
 }
 
+SECTOR_RULES = {
+    "主流资产": {"BTC", "ETH"},
+    "公链生态": {"SOL", "ADA", "AVAX", "DOT", "TRX", "SUI", "APT", "ATOM", "NEAR"},
+    "DeFi": {"UNI", "AAVE", "LINK", "MKR", "ENA"},
+    "交易平台": {"BNB", "OKB", "CRO"},
+    "支付与跨境": {"XRP", "XLM"},
+    "Meme": {"DOGE", "SHIB", "PEPE", "BONK", "WIF"},
+}
+
 
 def _build_fallback_icon_html(symbol: str) -> str:
     return (
@@ -50,6 +59,14 @@ def _select_non_stable_cryptos(cryptos: List[Dict[str, Any]]) -> List[Dict[str, 
         for crypto in cryptos
         if str(crypto.get("symbol", "")).upper() not in STABLECOIN_SYMBOLS
     ]
+
+
+def _classify_sector(symbol: str) -> str:
+    upper_symbol = str(symbol or "").upper()
+    for sector, symbols in SECTOR_RULES.items():
+        if upper_symbol in symbols:
+            return sector
+    return "其他"
 
 
 def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
@@ -173,6 +190,70 @@ def generate_market_leadership_section(
             {''.join(card_html)}
         </div>
         <div class="leadership-meta">前 3 大币种市值合计约占整体市场 {concentration:.1f}% 。</div>
+    </div>
+    """
+
+
+def generate_sector_overview_section(cryptos: List[Dict[str, Any]]) -> str:
+    candidates = _select_non_stable_cryptos(cryptos)
+    if len(candidates) < 3:
+        return ""
+
+    sector_map: Dict[str, Dict[str, Any]] = {}
+    for crypto in candidates:
+        sector = _classify_sector(str(crypto.get("symbol", "")))
+        bucket = sector_map.setdefault(
+            sector,
+            {
+                "items": [],
+                "avg_change_24h": 0.0,
+                "total_market_cap": 0.0,
+                "leader": None,
+            },
+        )
+        bucket["items"].append(crypto)
+        bucket["total_market_cap"] += _safe_float(crypto.get("market_cap"), 0.0)
+
+    for bucket in sector_map.values():
+        items = bucket["items"]
+        bucket["avg_change_24h"] = sum(
+            _safe_float(item.get("price_change_percentage_24h"), 0.0)
+            for item in items
+        ) / len(items)
+        bucket["leader"] = max(
+            items,
+            key=lambda item: _safe_float(item.get("price_change_percentage_24h"), -9999.0),
+        )
+
+    ranked = sorted(
+        sector_map.items(),
+        key=lambda item: (len(item[1]["items"]) >= 1, item[1]["avg_change_24h"]),
+        reverse=True,
+    )
+    cards = []
+    for sector, bucket in ranked[:4]:
+        leader = bucket["leader"] or {}
+        avg_change = bucket["avg_change_24h"]
+        change_class = "green" if avg_change >= 0 else "red"
+        cards.append(
+            f"""
+            <div class="sector-card">
+                <div class="sector-header">
+                    <strong>{html.escape(sector)}</strong>
+                    <span>{len(bucket['items'])} 个币种</span>
+                </div>
+                <div class="sector-value {change_class}">{avg_change:+.2f}%</div>
+                <div class="sector-meta">代表币：{html.escape(str(leader.get('symbol', '--')))} / 市值 {format_large_number(bucket['total_market_cap'])}</div>
+            </div>
+            """
+        )
+
+    return f"""
+    <div class="section">
+        <h2>板块观察</h2>
+        <div class="sector-grid">
+            {''.join(cards)}
+        </div>
     </div>
     """
 

@@ -393,7 +393,7 @@ class AIAnalysisService:
                 "volatility_trend": volatility_trend,
                 "sentiment_trend": sentiment_trend,
                 "key_patterns": [
-                    f"市场{market_trend}，24小时变化{market_change:.2f}%",
+                    f"市场处于{self.get_market_trend_text(market_trend)}，24小时变化{market_change:.2f}%",
                     f"情绪指数{fgi_value}，周度变化{fear_greed_index.get('weekly_change')}",
                     f"月度变化{fear_greed_index.get('monthly_change')}",
                 ],
@@ -426,6 +426,15 @@ class AIAnalysisService:
             trend_analysis.append("😐 周度情绪趋势：保持稳定，无明显变化")
 
         return "\n".join(trend_analysis)
+
+    @staticmethod
+    def get_market_trend_text(market_trend: str) -> str:
+        return {
+            "uptrend": "上涨趋势",
+            "downtrend": "下跌趋势",
+            "consolidation": "盘整阶段",
+            "unknown": "未知阶段",
+        }.get(market_trend, "未知阶段")
 
     def generate_dynamic_market_overview(
         self,

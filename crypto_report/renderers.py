@@ -7,6 +7,7 @@ from .renderers_parts.market import (
     generate_market_leadership_section,
     generate_market_overview_section,
     generate_market_pulse_section,
+    generate_sector_overview_section,
     generate_technical_context_section,
     generate_top_focus_assets_section,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "generate_market_leadership_section",
     "generate_market_overview_section",
     "generate_market_pulse_section",
+    "generate_sector_overview_section",
     "generate_news_html",
     "generate_sentiment_analysis_section",
     "generate_technical_context_section",

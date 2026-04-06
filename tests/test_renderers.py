@@ -8,6 +8,7 @@ from crypto_report.renderers import (
     generate_market_leadership_section,
     generate_market_overview_section,
     generate_market_pulse_section,
+    generate_sector_overview_section,
     generate_sentiment_analysis_section,
     generate_technical_context_section,
     generate_top_focus_assets_section,
@@ -130,15 +131,17 @@ class RendererTests(unittest.TestCase):
         html = generate_ai_analysis_section(
             {
                 'market_overview': 'overview',
-                'technical_analysis': '<div>tech</div>',
+                'technical_analysis': '<div>market uptrend</div>',
                 'risk_assessment': '<risk>',
                 'sentiment_summary': {'positive': 1, 'neutral': 2, 'negative': 3},
-                'trend_enhanced_analysis': 'trend1\ntrend2',
+                'trend_enhanced_analysis': '⚖️ market consolidation',
             },
             '<li>signal</li>',
         )
         self.assertIn('&lt;risk&gt;', html)
         self.assertIn('<li>signal</li>', html)
+        self.assertIn('上涨趋势', html)
+        self.assertIn('盘整阶段', html)
 
     def test_sentiment_analysis_section_contains_summary(self) -> None:
         html = generate_sentiment_analysis_section(
@@ -219,6 +222,23 @@ class RendererTests(unittest.TestCase):
             ]
         )
         self.assertNotIn('focus-asset-sparkline', html)
+
+    def test_sector_overview_section_groups_assets(self) -> None:
+        html = generate_sector_overview_section(
+            [
+                {'symbol': 'BTC', 'market_cap': 100.0, 'total_volume': 10.0, 'price_change_percentage_24h': 1.0},
+                {'symbol': 'ETH', 'market_cap': 80.0, 'total_volume': 12.0, 'price_change_percentage_24h': 2.0},
+                {'symbol': 'SOL', 'market_cap': 60.0, 'total_volume': 15.0, 'price_change_percentage_24h': 5.0},
+                {'symbol': 'ADA', 'market_cap': 30.0, 'total_volume': 4.0, 'price_change_percentage_24h': 1.5},
+                {'symbol': 'DOGE', 'market_cap': 20.0, 'total_volume': 6.0, 'price_change_percentage_24h': 3.5},
+                {'symbol': 'USDT', 'market_cap': 120.0, 'total_volume': 90.0, 'price_change_percentage_24h': 0.0},
+            ]
+        )
+        self.assertIn('板块观察', html)
+        self.assertIn('主流资产', html)
+        self.assertIn('公链生态', html)
+        self.assertIn('Meme', html)
+        self.assertNotIn('USDT', html)
 
     def test_market_pulse_section_contains_summary(self) -> None:
         html = generate_market_pulse_section(

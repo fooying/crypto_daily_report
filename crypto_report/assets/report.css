@@ -162,11 +162,15 @@ body {
 }
 
 .overview-value {
-  font-size: 2em;
+  font-size: clamp(1.6rem, 2.7vw, 3.1rem);
   font-weight: 750;
   color: var(--text-primary);
   margin: 10px 0;
-  word-break: break-word;
+  white-space: nowrap;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  text-wrap: balance;
 }
 
 .overview-change {
@@ -395,6 +399,48 @@ body {
   margin-top: 14px;
 }
 
+/* ===== Sector Overview ===== */
+.sector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.sector-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
+  border: 1px solid #e8eef5;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.sector-header strong {
+  color: var(--text-primary);
+  font-size: 1.05em;
+}
+
+.sector-value {
+  font-size: 1.55em;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+
+.sector-meta {
+  color: var(--text-secondary);
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+
 /* ===== Crypto Table ===== */
 .crypto-table {
   border: 1px solid #e7edf4;
@@ -455,6 +501,7 @@ body {
   font-size: 0.82em;
   color: var(--text-secondary);
   line-height: 1.45;
+  font-weight: 400;
 }
 
 /* ===== News ===== */
@@ -643,12 +690,29 @@ body {
   margin: 0;
   color: var(--text-primary);
   font-weight: 500;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .ai-merged-block ul {
   margin: 0;
   padding-left: 18px;
   color: var(--text-secondary);
+}
+
+.technical-analysis {
+  color: var(--text-secondary);
+}
+
+.technical-analysis ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.technical-analysis li {
+  margin-bottom: 6px;
+  line-height: 1.6;
 }
 
 .ai-merged-block strong {
