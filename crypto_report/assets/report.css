@@ -187,7 +187,7 @@ body {
 /* ===== Focus Assets ===== */
 .focus-asset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -823,10 +823,18 @@ body {
   .signal-list {
     grid-template-columns: 1fr;
   }
+
+  .focus-asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 480px) {
   .header h1 {
     font-size: 1.6em;
+  }
+
+  .focus-asset-grid {
+    grid-template-columns: 1fr;
   }
 }

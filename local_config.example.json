@@ -3,6 +3,7 @@
   "coinmarketcap_api_key": "replace-me",
   "deepseek_api_key": "replace-me",
   "report_base_url": "http://example.comn/crypto_daily_report/",
+  "report_system_name": "数字货币每日报告生成系统",
   "report_filename_date_format": "%Y-%m-%d",
   "latest_report_filename": "latest.html",
   "report_css_mode": "inline",
