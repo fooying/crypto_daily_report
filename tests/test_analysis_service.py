@@ -95,6 +95,12 @@ class AIAnalysisServiceTests(unittest.TestCase):
         )
         self.assertEqual(result['financial_analyst']['short_term']['summary'], 'AI短期')
         self.http.post_json.assert_called_once()
+        self.assertEqual(self.http.post_json.call_args.kwargs['timeout'], 30)
+        self.assertEqual(
+            self.http.post_json.call_args.args[0],
+            'https://api.deepseek.com/chat/completions',
+        )
+        self.assertIs(self.http.post_json.call_args.args[1]['stream'], False)
 
     def test_get_ai_analysis_falls_back_when_deepseek_fails(self) -> None:
         self.http.post_json.side_effect = RuntimeError('deepseek down')

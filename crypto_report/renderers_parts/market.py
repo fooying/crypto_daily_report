@@ -33,17 +33,26 @@ def _build_local_icon_html(symbol: str) -> str:
     )
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
     cards = []
     for crypto in cryptos[:5]:
         symbol = html.escape(str(crypto.get("symbol", "")))
         name = html.escape(str(crypto.get("name", "")))
-        price = f"${float(crypto.get('current_price', 0)):,.2f}"
-        change = float(crypto.get("price_change_percentage_24h", 0))
+        price = f"${_safe_float(crypto.get('current_price', 0)):,.2f}"
+        change = _safe_float(crypto.get("price_change_percentage_24h", 0))
         spark_values = crypto.get("sparkline_7d") or [
-            float(crypto.get("current_price", 0)) * 0.98,
-            float(crypto.get("current_price", 0)),
-            float(crypto.get("current_price", 0)) * 1.01,
+            _safe_float(crypto.get("current_price", 0)) * 0.98,
+            _safe_float(crypto.get("current_price", 0)),
+            _safe_float(crypto.get("current_price", 0)) * 1.01,
         ]
         sparkline = build_svg_sparkline(spark_values)
         image_html = _build_local_icon_html(str(crypto.get("symbol", "")))
@@ -145,20 +154,20 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
 def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
     rows = []
     for crypto in cryptos:
-        change_24h = crypto["price_change_percentage_24h"]
-        change_7d = crypto["price_change_percentage_7d"]
+        change_24h = _safe_float(crypto.get("price_change_percentage_24h"), 0.0)
+        change_7d = _safe_float(crypto.get("price_change_percentage_7d"), 0.0)
         name = html.escape(str(crypto["name"]))
         symbol = html.escape(str(crypto["symbol"]))
         icon = _build_local_icon_html(str(crypto.get("symbol", "")))
         change_24h_color = "green" if change_24h >= 0 else "red"
         change_7d_color = "green" if change_7d >= 0 else "red"
-        price = f"${crypto['current_price']:,.2f}"
-        market_cap = format_large_number(crypto["market_cap"])
-        volume = format_large_number(crypto["total_volume"])
+        price = f"${_safe_float(crypto.get('current_price'), 0.0):,.2f}"
+        market_cap = format_large_number(_safe_float(crypto.get("market_cap"), 0.0))
+        volume = format_large_number(_safe_float(crypto.get("total_volume"), 0.0))
         rows.append(
             f"""
                     <tr>
-                        <td>{crypto['market_cap_rank']}</td>
+                        <td>{crypto.get('market_cap_rank', '')}</td>
                         <td><strong>{icon}{name}</strong> ({symbol})</td>
                         <td>{price}</td>
                         <td style=\"color: {change_24h_color}\">{change_24h:+.2f}%</td>

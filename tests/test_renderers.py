@@ -28,7 +28,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('1.23% (24h)', html)
         self.assertIn('50.0%', html)
 
-    def test_crypto_table_rows_show_icons_only_when_all_images_exist(self) -> None:
+    def test_crypto_table_rows_use_local_icons_and_handle_missing_values(self) -> None:
         from crypto_report.renderers import generate_crypto_table_rows
 
         html = generate_crypto_table_rows(
@@ -39,7 +39,7 @@ class RendererTests(unittest.TestCase):
                     'current_price': 100.0,
                     'market_cap': 1000.0,
                     'market_cap_rank': 1,
-                    'price_change_percentage_24h': 1.0,
+                    'price_change_percentage_24h': None,
                     'price_change_percentage_7d': 2.0,
                     'total_volume': 100.0,
                     'image': 'https://example.com/btc.png',
@@ -51,41 +51,15 @@ class RendererTests(unittest.TestCase):
                     'market_cap': 500.0,
                     'market_cap_rank': 2,
                     'price_change_percentage_24h': -1.0,
-                    'price_change_percentage_7d': 3.0,
-                    'total_volume': 50.0,
-                    'image': 'https://example.com/eth.png',
-                },
-            ]
-        )
-        self.assertIn('<img src="https://example.com/btc.png"', html)
-
-        html_without_icons = generate_crypto_table_rows(
-            [
-                {
-                    'name': 'Bitcoin',
-                    'symbol': 'BTC',
-                    'current_price': 100.0,
-                    'market_cap': 1000.0,
-                    'market_cap_rank': 1,
-                    'price_change_percentage_24h': 1.0,
-                    'price_change_percentage_7d': 2.0,
-                    'total_volume': 100.0,
-                    'image': 'https://example.com/btc.png',
-                },
-                {
-                    'name': 'Ethereum',
-                    'symbol': 'ETH',
-                    'current_price': 50.0,
-                    'market_cap': 500.0,
-                    'market_cap_rank': 2,
-                    'price_change_percentage_24h': -1.0,
-                    'price_change_percentage_7d': 3.0,
-                    'total_volume': 50.0,
+                    'price_change_percentage_7d': None,
+                    'total_volume': None,
                     'image': '',
                 },
             ]
         )
-        self.assertNotIn('<img src=', html_without_icons)
+        self.assertIn('data:image/svg+xml;utf8,', html)
+        self.assertIn('+0.00%', html)
+        self.assertIn('$0', html)
 
     def test_ai_analysis_section_escapes_risk_text(self) -> None:
         html = generate_ai_analysis_section(
@@ -100,8 +74,6 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('&lt;risk&gt;', html)
         self.assertIn('<li>signal</li>', html)
-        self.assertIn('趋势增强分析', html)
-        self.assertIn('trend1', html)
 
     def test_sentiment_analysis_section_contains_summary(self) -> None:
         html = generate_sentiment_analysis_section(

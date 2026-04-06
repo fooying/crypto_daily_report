@@ -41,6 +41,7 @@ class ScriptConfig:
     request_backoff_factor: float = 0.5
     news_request_timeout_seconds: int = 10
     article_request_timeout_seconds: int = 5
+    deepseek_request_timeout_seconds: int = 30
     max_news_items: int = 10
     max_news_detail_fetches: int = 3
     generate_screenshots: bool = True
@@ -51,7 +52,7 @@ class ScriptConfig:
     coinmarketcap_api: str = "https://pro-api.coinmarketcap.com/v1"
     coinmarketcap_api_key: str = "replace-me"
     deepseek_api_key: str = "replace-me"
-    deepseek_api_url: str = "https://api.deepseek.com/v1/chat/completions"
+    deepseek_api_url: str = "https://api.deepseek.com/chat/completions"
     user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

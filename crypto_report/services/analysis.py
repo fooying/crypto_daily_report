@@ -189,6 +189,7 @@ class AIAnalysisService:
         }
         return {
             "model": "deepseek-chat",
+            "stream": False,
             "temperature": 0.4,
             "max_tokens": 900,
             "response_format": {"type": "json_object"},
@@ -288,7 +289,7 @@ class AIAnalysisService:
             response = self.http.post_json(
                 self.config.deepseek_api_url,
                 payload,
-                timeout=self.config.request_timeout_seconds,
+                timeout=self.config.deepseek_request_timeout_seconds,
                 headers=self._deepseek_headers(),
             )
             content = self._extract_deepseek_content(response)

@@ -229,47 +229,58 @@ class MarketService:
     def get_technical_context(self) -> Dict[str, Any]:
         time_end = self.report_date
         time_start = time_end - timedelta(days=30)
-        url = (
-            f"{self.config.coinmarketcap_api}/cryptocurrency/ohlcv/historical"
-            f"?id=1,1027&convert=USD&time_start={self._format_cmc_datetime(time_start)}"
-            f"&time_end={self._format_cmc_datetime(time_end)}&interval=daily"
-        )
+
         try:
-            data = self.fetch_coinmarketcap_json(url, timeout=15)
-            raw_data = data.get("data") or {}
             context: Dict[str, Any] = {}
-            for key, label in (("1", "BTC"), ("1027", "ETH")):
-                asset = raw_data.get(key) or {}
-                quotes = asset.get("quotes") or []
-                if not quotes:
-                    continue
-                prices = []
-                volumes = []
-                for quote in quotes:
-                    usd = (quote.get("quote") or {}).get("USD", {})
-                    close = usd.get("close")
-                    volume = usd.get("volume")
-                    if close is None:
-                        continue
-                    prices.append(float(close))
-                    if volume is not None:
-                        volumes.append(float(volume))
+            range_from = int(time_start.timestamp())
+            range_to = int(time_end.timestamp())
+
+            for asset_id, label in (("bitcoin", "BTC"), ("ethereum", "ETH")):
+                url = (
+                    f"{self.config.coingecko_api}/coins/{asset_id}/market_chart/range"
+                    f"?vs_currency=usd&from={range_from}&to={range_to}"
+                )
+                data = self.fetch_json(url, timeout=15)
+                prices = data.get("prices") or []
+                volumes = data.get("total_volumes") or []
                 if not prices:
                     continue
+
+                close_prices = []
+                volume_values = []
+                for point in prices:
+                    if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                        continue
+                    close_prices.append(float(point[1]))
+
+                for point in volumes:
+                    if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                        continue
+                    volume_values.append(float(point[1]))
+
+                if not close_prices:
+                    continue
                 context[label] = {
-                    "price_change_30d": round((prices[-1] - prices[0]) / prices[0] * 100, 2),
-                    "high_30d": max(prices),
-                    "low_30d": min(prices),
-                    "latest_close": prices[-1],
-                    "avg_volume_30d": round(sum(volumes) / len(volumes), 2) if volumes else 0,
+                    "price_change_30d": round(
+                        (close_prices[-1] - close_prices[0]) / close_prices[0] * 100,
+                        2,
+                    )
+                    if close_prices[0]
+                    else 0,
+                    "high_30d": max(close_prices),
+                    "low_30d": min(close_prices),
+                    "latest_close": close_prices[-1],
+                    "avg_volume_30d": round(sum(volume_values) / len(volume_values), 2)
+                    if volume_values
+                    else 0,
                 }
             if context:
-                self.last_technical_context_source = "coinmarketcap_ohlcv"
+                self.last_technical_context_source = "coingecko_market_chart_range"
             return context
         except HTTPRequestError as exc:
-            self.logger.warning("CoinMarketCap OHLCV 历史请求失败: %s", exc)
+            self.logger.warning("CoinGecko 技术背景历史请求失败，技术背景摘要将降级为空: %s", exc)
         except Exception as exc:
-            self.logger.warning("CoinMarketCap OHLCV 历史获取失败: %s", exc)
+            self.logger.warning("CoinGecko 技术背景历史获取失败，技术背景摘要将降级为空: %s", exc)
         self.last_technical_context_source = "default_empty"
         return {}
 

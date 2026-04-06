@@ -2,6 +2,7 @@
   "report_output_dir": "./crypto_daily_report",
   "coinmarketcap_api_key": "replace-me",
   "deepseek_api_key": "replace-me",
+  "deepseek_request_timeout_seconds": 30,
   "report_base_url": "http://example.comn/crypto_daily_report/",
   "report_system_name": "数字货币每日报告生成系统",
   "report_filename_date_format": "%Y-%m-%d",

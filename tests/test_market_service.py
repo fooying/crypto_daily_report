@@ -147,46 +147,51 @@ class MarketServiceFallbackTests(unittest.TestCase):
 
         self.assertEqual(result[0]['image'], '')
 
-    def test_market_cap_history_uses_coinmarketcap_historical_quotes(self) -> None:
-        self.http.fetch_json.return_value = {
-            'data': {
-                'quotes': [
-                    {
-                        'timestamp': '2026-03-01T00:00:00.000Z',
-                        'quote': {'USD': {'total_market_cap': 1_000, 'total_volume_24h': 100}},
-                    },
-                    {
-                        'timestamp': '2026-03-02T00:00:00.000Z',
-                        'quote': {'USD': {'total_market_cap': 1_100, 'total_volume_24h': 110}},
-                    },
-                ]
+    def test_market_cap_history_uses_local_trend_cache(self) -> None:
+        self.storage.save(
+            {
+                'fear_greed_index': {},
+                'market_cap': {
+                    '2026-03-01': {'value': 1_000, 'volume_24h': 100},
+                    '2026-03-02': {'value': 1_100, 'volume_24h': 110},
+                },
+                'bitcoin_price': {},
+                'ethereum_price': {},
+                'last_updated': None,
+                'metadata': {'version': '1.0'},
             }
-        }
+        )
 
         result = self.service.get_market_cap_history(days=30)
 
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]['market_cap'], 1000.0)
         self.assertEqual(result[1]['volume_24h'], 110.0)
-        self.assertEqual(self.service.last_market_history_source, 'coinmarketcap_historical')
+        self.assertEqual(self.service.last_market_history_source, 'local_trend_cache')
 
-    def test_technical_context_uses_coinmarketcap_ohlcv_historical(self) -> None:
-        self.http.fetch_json.return_value = {
-            'data': {
-                '1': {
-                    'quotes': [
-                        {'quote': {'USD': {'close': 60000, 'volume': 10}}},
-                        {'quote': {'USD': {'close': 66000, 'volume': 20}}},
-                    ]
-                },
-                '1027': {
-                    'quotes': [
-                        {'quote': {'USD': {'close': 3000, 'volume': 30}}},
-                        {'quote': {'USD': {'close': 3300, 'volume': 60}}},
-                    ]
-                },
-            }
-        }
+    def test_technical_context_uses_coingecko_market_chart_range(self) -> None:
+        self.http.fetch_json.side_effect = [
+            {
+                'prices': [
+                    [1, 60000],
+                    [2, 66000],
+                ],
+                'total_volumes': [
+                    [1, 10],
+                    [2, 20],
+                ],
+            },
+            {
+                'prices': [
+                    [1, 3000],
+                    [2, 3300],
+                ],
+                'total_volumes': [
+                    [1, 30],
+                    [2, 60],
+                ],
+            },
+        ]
 
         result = self.service.get_technical_context()
 
@@ -194,7 +199,7 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertIn('ETH', result)
         self.assertEqual(result['BTC']['price_change_30d'], 10.0)
         self.assertEqual(result['ETH']['avg_volume_30d'], 45.0)
-        self.assertEqual(self.service.last_technical_context_source, 'coinmarketcap_ohlcv')
+        self.assertEqual(self.service.last_technical_context_source, 'coingecko_market_chart_range')
 
 
 if __name__ == '__main__':
