@@ -5,6 +5,7 @@ import unittest
 from crypto_report.renderers import (
     generate_ai_analysis_section,
     generate_financial_analyst_section,
+    generate_market_leadership_section,
     generate_market_overview_section,
     generate_market_pulse_section,
     generate_sentiment_analysis_section,
@@ -31,6 +32,58 @@ class RendererTests(unittest.TestCase):
         self.assertIn('50.0%', html)
         self.assertIn('山寨币占比', html)
         self.assertIn('成交额 / 市值', html)
+
+    def test_market_leadership_section_contains_highlights(self) -> None:
+        html = generate_market_leadership_section(
+            [
+                {
+                    'name': 'Bitcoin',
+                    'symbol': 'BTC',
+                    'image': 'assets/coin-icons/bitcoin.png',
+                    'market_cap': 1_200_000_000_000,
+                    'total_volume': 60_000_000_000,
+                    'price_change_percentage_24h': 2.5,
+                    'price_change_percentage_7d': 6.5,
+                },
+                {
+                    'name': 'Ethereum',
+                    'symbol': 'ETH',
+                    'image': '',
+                    'market_cap': 500_000_000_000,
+                    'total_volume': 40_000_000_000,
+                    'price_change_percentage_24h': 4.0,
+                    'price_change_percentage_7d': 5.0,
+                },
+                {
+                    'name': 'Solana',
+                    'symbol': 'SOL',
+                    'image': '',
+                    'market_cap': 80_000_000_000,
+                    'total_volume': 16_000_000_000,
+                    'price_change_percentage_24h': 3.2,
+                    'price_change_percentage_7d': 12.0,
+                },
+                {
+                    'name': 'Tether',
+                    'symbol': 'USDT',
+                    'image': '',
+                    'market_cap': 100_000_000_000,
+                    'total_volume': 90_000_000_000,
+                    'price_change_percentage_24h': 0.0,
+                    'price_change_percentage_7d': 0.0,
+                },
+            ],
+            {
+                'total_market_cap': 2_500_000_000_000,
+            },
+        )
+        self.assertIn('市场风向', html)
+        self.assertIn('24h 领涨', html)
+        self.assertIn('7天 强势', html)
+        self.assertIn('流动性最强', html)
+        self.assertIn('Ethereum', html)
+        self.assertIn('Solana', html)
+        self.assertNotIn('Tether', html)
 
     def test_crypto_table_rows_use_local_icons_and_handle_missing_values(self) -> None:
         from crypto_report.renderers import generate_crypto_table_rows

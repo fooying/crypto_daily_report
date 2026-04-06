@@ -343,6 +343,58 @@ body {
   margin-bottom: 6px;
 }
 
+/* ===== Market Leadership ===== */
+.leadership-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.leadership-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
+  border: 1px solid #e8eef5;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.leadership-label {
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+
+.leadership-asset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.leadership-asset span {
+  color: var(--text-secondary);
+  font-size: 0.92em;
+}
+
+.leadership-value {
+  font-size: 1.5em;
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+
+.leadership-note,
+.leadership-meta {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.leadership-meta {
+  margin-top: 14px;
+}
+
 /* ===== Crypto Table ===== */
 .crypto-table {
   border: 1px solid #e7edf4;

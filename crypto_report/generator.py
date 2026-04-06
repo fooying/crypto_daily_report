@@ -28,6 +28,7 @@ from .renderers import (
     generate_ai_analysis_section,
     generate_crypto_table_rows,
     generate_financial_analyst_section,
+    generate_market_leadership_section,
     generate_technical_context_section,
     generate_top_focus_assets_section,
     generate_market_pulse_section,
@@ -456,6 +457,10 @@ class CryptoReportGenerator:
             ),
             technical_context_section=generate_technical_context_section(
                 context["technical_context"]
+            ),
+            market_leadership_section=generate_market_leadership_section(
+                context["top_cryptos"],
+                context["market_overview"],
             ),
             crypto_table_rows=generate_crypto_table_rows(context["top_cryptos"]),
             news_html=generate_news_html(context["news"]),

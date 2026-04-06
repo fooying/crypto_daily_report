@@ -7,6 +7,18 @@ from ..helpers import format_large_number
 from .common import build_svg_sparkline
 
 
+STABLECOIN_SYMBOLS = {
+    "USDT",
+    "USDC",
+    "DAI",
+    "FDUSD",
+    "TUSD",
+    "USDE",
+    "USDD",
+    "PYUSD",
+}
+
+
 def _build_fallback_icon_html(symbol: str) -> str:
     return (
         '<span class="crypto-icon-fallback" '
@@ -30,6 +42,14 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _select_non_stable_cryptos(cryptos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [
+        crypto
+        for crypto in cryptos
+        if str(crypto.get("symbol", "")).upper() not in STABLECOIN_SYMBOLS
+    ]
 
 
 def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
@@ -71,6 +91,88 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
         <div class="focus-asset-grid">
             {''.join(cards)}
         </div>
+    </div>
+    """
+
+
+def generate_market_leadership_section(
+    cryptos: List[Dict[str, Any]],
+    market_overview: Dict[str, Any],
+) -> str:
+    candidates = _select_non_stable_cryptos(cryptos)
+    if not candidates:
+        return ""
+
+    def turnover_ratio(item: Dict[str, Any]) -> float:
+        market_cap = _safe_float(item.get("market_cap"), 0.0)
+        if market_cap <= 0:
+            return 0.0
+        return _safe_float(item.get("total_volume"), 0.0) / market_cap * 100
+
+    strongest_24h = max(
+        candidates,
+        key=lambda item: _safe_float(item.get("price_change_percentage_24h"), -9999.0),
+    )
+    strongest_7d = max(
+        candidates,
+        key=lambda item: _safe_float(item.get("price_change_percentage_7d"), -9999.0),
+    )
+    highest_turnover = max(candidates, key=turnover_ratio)
+    top3_market_cap = sum(
+        _safe_float(item.get("market_cap"), 0.0)
+        for item in sorted(
+            candidates,
+            key=lambda item: _safe_float(item.get("market_cap"), 0.0),
+            reverse=True,
+        )[:3]
+    )
+    total_market_cap = _safe_float(market_overview.get("total_market_cap"), 0.0)
+    concentration = top3_market_cap / total_market_cap * 100 if total_market_cap else 0.0
+    cards = [
+        (
+            "24h 领涨",
+            strongest_24h,
+            f"{_safe_float(strongest_24h.get('price_change_percentage_24h'), 0.0):+.2f}%",
+            "短线涨幅领先",
+        ),
+        (
+            "7天 强势",
+            strongest_7d,
+            f"{_safe_float(strongest_7d.get('price_change_percentage_7d'), 0.0):+.2f}%",
+            "周度相对强势",
+        ),
+        (
+            "流动性最强",
+            highest_turnover,
+            f"{turnover_ratio(highest_turnover):.2f}%",
+            "成交 / 市值最高",
+        ),
+    ]
+    card_html = []
+    for label, crypto, value_text, note in cards:
+        change_24h = _safe_float(crypto.get("price_change_percentage_24h"), 0.0)
+        change_class = "green" if change_24h >= 0 else "red"
+        symbol = html.escape(str(crypto.get("symbol", "")))
+        name = html.escape(str(crypto.get("name", "")))
+        image_html = _build_icon_html(str(crypto.get("image", "")), symbol)
+        card_html.append(
+            f"""
+            <div class="leadership-card">
+                <div class="leadership-label">{label}</div>
+                <div class="leadership-asset">{image_html}<strong>{name}</strong><span>{symbol}</span></div>
+                <div class="leadership-value {change_class}">{value_text}</div>
+                <div class="leadership-note">{note}</div>
+            </div>
+            """
+        )
+
+    return f"""
+    <div class="section">
+        <h2>市场风向</h2>
+        <div class="leadership-grid">
+            {''.join(card_html)}
+        </div>
+        <div class="leadership-meta">前 3 大币种市值合计约占整体市场 {concentration:.1f}% 。</div>
     </div>
     """
 
