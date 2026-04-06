@@ -99,23 +99,38 @@ def generate_market_pulse_section(
     if len(volume_values) >= 4:
         volume_chart = build_svg_sparkline(volume_values, width=640, height=72)
 
-    market_chart_html = (
-        market_chart
-        if market_chart
-        else '<div class="market-pulse-empty">历史样本不足，暂不展示总市值趋势曲线</div>'
-    )
-    volume_chart_html = (
-        volume_chart
-        if volume_chart
-        else '<div class="market-pulse-empty">历史样本不足，暂不展示交易量趋势曲线</div>'
-    )
+    chart_sections = []
+    if market_chart:
+        chart_sections.append(
+            f"""
+        <div class="market-pulse-chart">
+            <div class="market-pulse-chart-header">
+                <h3>总市值走势</h3>
+                <span>{period_text}</span>
+            </div>
+            {market_chart}
+        </div>
+        """
+        )
+    if volume_chart:
+        chart_sections.append(
+            f"""
+        <div class="market-pulse-volume">
+            <div class="market-pulse-chart-header">
+                <h3>24小时交易量走势</h3>
+                <span>{period_text}</span>
+            </div>
+            {volume_chart}
+        </div>
+        """
+        )
     latest_market_cap = format_large_number(float(market_overview.get("total_market_cap", 0)))
     latest_volume = format_large_number(float(market_overview.get("total_volume", 0)))
     return f"""
     <div class="section">
         <h2>市场脉搏</h2>
         <div class="market-pulse-meta">
-            汇总展示 {period_text} 的总市值与 24 小时交易量变化，当前已累计 {history_days} 个采样日。
+            展示近 {history_days} 天的总市值与 24 小时交易量变化。
         </div>
         <div class="market-pulse-summary">
             <div><span>市值</span><strong>{latest_market_cap}</strong></div>
@@ -124,20 +139,7 @@ def generate_market_pulse_section(
             <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
             <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
         </div>
-        <div class="market-pulse-chart">
-            <div class="market-pulse-chart-header">
-                <h3>总市值走势</h3>
-                <span>{period_text}</span>
-            </div>
-            {market_chart_html}
-        </div>
-        <div class="market-pulse-volume">
-            <div class="market-pulse-chart-header">
-                <h3>24小时交易量走势</h3>
-                <span>{period_text}</span>
-            </div>
-            {volume_chart_html}
-        </div>
+        {''.join(chart_sections)}
     </div>
     """
 

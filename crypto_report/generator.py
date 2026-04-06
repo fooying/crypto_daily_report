@@ -147,6 +147,7 @@ class CryptoReportGenerator:
     def _build_report_context(self) -> ReportContext:
         sentiment = self.sentiment
         top_cryptos = self.top_cryptos or []
+        display_news = (self.crypto_news or [])[: self.config.max_news_display_items]
         top_focus_assets = [
             crypto
             for crypto in top_cryptos
@@ -161,7 +162,7 @@ class CryptoReportGenerator:
             "top_focus_assets": top_focus_assets,
             "market_cap_history": market_cap_history,
             "technical_context": technical_context,
-            "news": self.crypto_news,
+            "news": display_news,
             "sentiment": sentiment,
             "daily_change_meta": build_change_meta(sentiment.get("daily_change")),
             "weekly_change_meta": build_change_meta(sentiment.get("weekly_change")),

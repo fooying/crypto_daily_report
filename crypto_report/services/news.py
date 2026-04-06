@@ -44,6 +44,23 @@ class NewsService:
             return fallback_time
         return fallback_time
 
+    @staticmethod
+    def _normalize_news_key(item: NewsItem) -> tuple[str, str]:
+        title = re.sub(r"\s+", " ", str(item.get("title", "")).strip().lower())
+        url = str(item.get("url", "")).strip().lower()
+        return title, url
+
+    def deduplicate_news(self, items: List[NewsItem]) -> List[NewsItem]:
+        unique_items: List[NewsItem] = []
+        seen_keys = set()
+        for item in items:
+            key = self._normalize_news_key(item)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unique_items.append(item)
+        return unique_items
+
     def classify_news_sentiment(self, title: str, summary: str) -> str:
         positive_keywords = [
             "涨", "上涨", "突破", "创新高", "利好", "增长", "复苏", "反弹", "盈利", "收益",
@@ -144,7 +161,7 @@ class NewsService:
 
         news_items: List[NewsItem] = []
         detail_fetch_count = 0
-        for article in articles[: self.config.max_news_items]:
+        for article in articles[: self.config.max_news_analysis_items]:
             try:
                 title_elem = article.find(["h2", "h3", "h4", "span"], class_=re.compile(r"title|headline"))
                 if not title_elem:
@@ -192,7 +209,7 @@ class NewsService:
         soup = BeautifulSoup(html, "html.parser")
         news_items: List[NewsItem] = []
         articles = soup.find_all("a", href=lambda value: value and "/zh/news/" in value)
-        for article in articles[: self.config.max_news_items]:
+        for article in articles[: self.config.max_news_analysis_items]:
             title_elem = article.find(["h3", "h4"]) or article
             title = title_elem.get_text(strip=True)
             if title and len(title) > 10:
@@ -246,18 +263,20 @@ class NewsService:
                 timeout=self.config.news_request_timeout_seconds,
                 headers=headers,
             )
-            news_items = self.parse_primary_news_html(html, listing_url=url)
+            news_items = self.deduplicate_news(self.parse_primary_news_html(html, listing_url=url))
             self.last_source_used = "cointelegraph_primary"
-            if len(news_items) < self.config.max_news_items:
+            if len(news_items) < self.config.max_news_analysis_items:
                 self.logger.warning(
                     f"从CoinTelegraph只找到{len(news_items)}条新闻，使用备用数据"
                 )
-                backup_news = self.get_backup_news()[: self.config.max_news_items - len(news_items)]
+                backup_news = self.get_backup_news()[
+                    : self.config.max_news_analysis_items - len(news_items)
+                ]
                 if backup_news:
-                    news_items.extend(backup_news)
+                    news_items = self.deduplicate_news(news_items + backup_news)
                     self.last_source_used = "mixed_primary_backup"
             self.logger.info(f"成功获取{len(news_items)}条新闻，时间范围: {self.news_date_range}")
-            return news_items[: self.config.max_news_items]
+            return news_items[: self.config.max_news_analysis_items]
         except HTTPRequestError as exc:
             self.logger.warning("CoinTelegraph 新闻源请求失败，尝试 CoinMarketCap 备用源: %s", exc)
         except Exception as exc:

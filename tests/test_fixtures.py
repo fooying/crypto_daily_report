@@ -88,6 +88,17 @@ class RealFixtureTests(unittest.TestCase):
         self.assertEqual(items[0]['source'], 'CoinMarketCap')
         self.assertEqual(self.news_service.last_source_used, 'coinmarketcap_backup')
 
+    def test_news_service_deduplicates_items(self) -> None:
+        items = [
+            {'title': 'Same Title', 'url': 'https://example.com/a'},
+            {'title': 'Same   Title', 'url': 'https://example.com/a'},
+            {'title': 'Another Title', 'url': 'https://example.com/b'},
+        ]
+
+        deduped = self.news_service.deduplicate_news(items)
+
+        self.assertEqual(len(deduped), 2)
+
     def test_parse_fear_greed_fixture(self) -> None:
         payload = json.loads((self.fixture_dir / 'alternative_fng_limit7.json').read_text(encoding='utf-8'))
         result = self.market_service.parse_fear_greed_response(payload, limit=7)

@@ -247,6 +247,32 @@ class ReportSnapshotTests(unittest.TestCase):
         self.assertNotIn('USDC', symbols)
         self.assertEqual(symbols, ['BTC', 'ETH', 'BNB', 'XRP'])
 
+    def test_build_report_context_limits_display_news_only(self) -> None:
+        cfg = ScriptConfig(
+            base_dir=Path('.').resolve(),
+            generate_screenshots=False,
+            deepseek_api_key='replace-me',
+            max_news_display_items=2,
+            max_news_analysis_items=5,
+        )
+        obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+        obj.sentiment = {'value': 50, 'daily_change': 0, 'weekly_change': 0, 'monthly_change': 0}
+        obj.market_overview = {}
+        obj.market_cap_history = []
+        obj.technical_context = {}
+        obj.top_cryptos = []
+        obj.crypto_news = [
+            {'title': 'n1', 'summary': 's1', 'sentiment': '中性', 'time': 't1', 'url': 'u1', 'source': 'A'},
+            {'title': 'n2', 'summary': 's2', 'sentiment': '中性', 'time': 't2', 'url': 'u2', 'source': 'A'},
+            {'title': 'n3', 'summary': 's3', 'sentiment': '中性', 'time': 't3', 'url': 'u3', 'source': 'A'},
+        ]
+        obj.analysis_service.get_ai_analysis = lambda *args, **kwargs: {}
+
+        context = obj._build_report_context()
+
+        self.assertEqual(len(context['news']), 2)
+        self.assertEqual(len(obj.crypto_news), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

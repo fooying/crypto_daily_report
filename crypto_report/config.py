@@ -43,7 +43,8 @@ class ScriptConfig:
     news_request_timeout_seconds: int = 10
     article_request_timeout_seconds: int = 5
     deepseek_request_timeout_seconds: int = 30
-    max_news_items: int = 10
+    max_news_display_items: int = 10
+    max_news_analysis_items: int = 30
     max_news_detail_fetches: int = 3
     generate_screenshots: bool = True
     screenshot_backend: str = "auto"

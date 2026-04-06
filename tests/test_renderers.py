@@ -171,8 +171,28 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('市场脉搏', html)
         self.assertIn('BTC主导率', html)
-        self.assertIn('历史样本不足', html)
-        self.assertNotIn('总览', html)
+        self.assertNotIn('总市值走势', html)
+        self.assertNotIn('24小时交易量走势', html)
+        self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
+
+    def test_market_pulse_section_shows_charts_when_history_is_enough(self) -> None:
+        html = generate_market_pulse_section(
+            {
+                'total_market_cap': 1_000_000_000,
+                'total_volume': 500_000_000,
+                'active_cryptocurrencies': 100,
+                'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
+            },
+            [
+                {'market_cap': 850_000_000, 'volume_24h': 420_000_000},
+                {'market_cap': 900_000_000, 'volume_24h': 450_000_000},
+                {'market_cap': 950_000_000, 'volume_24h': 470_000_000},
+                {'market_cap': 1_000_000_000, 'volume_24h': 500_000_000},
+            ],
+        )
+        self.assertIn('总市值走势', html)
+        self.assertIn('24小时交易量走势', html)
+        self.assertIn('<svg', html)
 
     def test_technical_context_section_contains_asset_metrics(self) -> None:
         html = generate_technical_context_section(
