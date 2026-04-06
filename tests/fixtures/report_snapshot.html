@@ -43,21 +43,28 @@
     
     
     <div class="section">
-        <h2>市场脉搏</h2>
-        <div class="market-pulse-meta">
-            展示近 2 天的总市值与 24 小时交易量变化。
-        </div>
-        <div class="market-pulse-summary">
-            <div><span>市值</span><strong>$1.00B (十亿)</strong></div>
-            <div><span>交易量</span><strong>$500.00M (百万)</strong></div>
-            <div><span>BTC主导率</span><strong>50.0%</strong></div>
-            <div><span>ETH主导率</span><strong>20.0%</strong></div>
-            <div><span>活跃币种</span><strong>100</strong></div>
-        </div>
-        
+        <h2>市场动向</h2>
+        <div class="market-insights-wrap">
+            
+            <div class="content-panel market-insight-panel market-insight-panel-wide">
+                <h3>市场脉搏</h3>
+                
+    <div class="market-pulse-meta">
+        展示近 2 天的总市值与 24 小时交易量变化。
+    </div>
+    <div class="market-pulse-summary">
+        <div><span>市场24h涨跌</span><strong class="green">+1.23%</strong></div>
+        <div><span>成交 / 市值</span><strong>50.00%</strong></div>
+        <div><span>BTC主导率</span><strong>50.0%</strong></div>
+        <div><span>ETH主导率</span><strong>20.0%</strong></div>
+        <div><span>活跃币种</span><strong>100</strong></div>
     </div>
     
     
+            </div>
+            
+        </div>
+    </div>
     
     
     <div class="section">
@@ -78,24 +85,33 @@
         </div>
     </div>
     
-    
+
     <div class="section">
-        <h2>主流币速览</h2>
+        <h2>主要加密货币表现</h2>
+        
+    <div class="focus-assets-block">
+        <h3>主流币速览</h3>
         <div class="focus-asset-grid">
             
             <div class="focus-asset-card">
                 <div class="focus-asset-header"><strong><span class="crypto-icon-fallback" aria-label="BTC"></span>Bitcoin</strong> <span>(BTC)</span></div>
                 <div class="focus-asset-price">$1.00</div>
-                <div class="focus-asset-change green">+1.00%</div>
+                <div class="focus-asset-change-row">
+                    <div class="focus-asset-change green">24h +1.00%</div>
+                    <div class="focus-asset-change green">7d +2.00%</div>
+                </div>
+                <div class="focus-asset-meta">
+                    <span>市值 $2</span>
+                    <span>成交量 $3</span>
+                    <span>24h 区间 $0.90 - $1.10</span>
+                    <span>流通量 4</span>
+                </div>
                 
             </div>
             
         </div>
     </div>
     
-
-    <div class="section">
-        <h2>主要加密货币表现</h2>
         <div class="crypto-table">
             <table>
                 <thead>
@@ -111,25 +127,6 @@
                 </thead>
                 <tbody>
                     
-                    <tr>
-                        <td>1</td>
-                        <td>
-                            <strong><span class="crypto-icon-fallback" aria-label="BTC"></span>Bitcoin</strong> (BTC)
-                            <div class="table-subtext">流通量 4 · FDV $5</div>
-                        </td>
-                        <td>
-                            $1.00
-                            <div class="table-subtext">24h 区间 $0.90 - $1.10</div>
-                        </td>
-                        <td style="color: green">+1.00%</td>
-                        <td style="color: green">+2.00%</td>
-                        <td>$2</td>
-                        <td>
-                            $3
-                            <div class="table-subtext">成交 / 市值 150.00%</div>
-                        </td>
-                    </tr>
-            
                 </tbody>
             </table>
         </div>
@@ -240,26 +237,25 @@
                 </div>
             </div>
 
-            <div class="section-subgrid ai-detail-grid">
-                <div class="content-panel">
-                    <div class="panel-title-row">
-                        <h3>风险评估</h3>
-                        <div class="ai-sentiment-mini">
-                            <span>新闻情绪</span>
-                            <div class="ai-sentiment-metrics">
-                                <span class="ai-sentiment-positive">正面 0</span>
-                                <span class="ai-sentiment-neutral">中性 1</span>
-                                <span class="ai-sentiment-negative">负面 0</span>
-                            </div>
+            <div class="content-panel">
+                <div class="panel-title-row">
+                    <h3>风险评估</h3>
+                    <div class="ai-sentiment-mini">
+                        <span>新闻情绪</span>
+                        <div class="ai-sentiment-metrics">
+                            <span class="ai-sentiment-positive">正面 0</span>
+                            <span class="ai-sentiment-neutral">中性 1</span>
+                            <span class="ai-sentiment-negative">负面 0</span>
                         </div>
                     </div>
-                    <p class="risk-level">中低风险 - 市场情绪平衡，可采取均衡配置</p>
                 </div>
+                <p class="risk-level">中低风险 - 市场情绪平衡，可采取均衡配置</p>
+            </div>
 
-                <div class="content-panel">
-                    <h3>交易信号</h3>
-                    <ul class="signal-list">
-                        
+            <div class="content-panel">
+                <h3>交易信号</h3>
+                <ul class="signal-list">
+                    
                 <li class="signal-neutral">
                     <div class="signal-title-row">
                         <span class="signal-icon">🔄</span>
@@ -284,8 +280,7 @@
                     <div class="signal-desc">根据市场变化及时调整策略</div>
                 </li>
             
-                    </ul>
-                </div>
+                </ul>
             </div>
         </div>
     </div>

@@ -28,6 +28,7 @@ from .renderers import (
     generate_ai_analysis_section,
     generate_crypto_table_rows,
     generate_financial_analyst_section,
+    generate_market_insights_section,
     generate_market_leadership_section,
     generate_technical_context_section,
     generate_sector_overview_section,
@@ -155,12 +156,21 @@ class CryptoReportGenerator:
             for crypto in top_cryptos
             if str(crypto.get("symbol", "")).upper() not in self.STABLECOIN_SYMBOLS
         ][:5]
+        top_focus_symbols = {
+            str(crypto.get("symbol", "")).upper()
+            for crypto in top_focus_assets
+        }
+        table_cryptos = [
+            crypto
+            for crypto in top_cryptos
+            if str(crypto.get("symbol", "")).upper() not in top_focus_symbols
+        ]
         market_cap_history = self.market_cap_history or []
         technical_context = self.technical_context or {}
         return {
             "report_time": self.report_date.strftime("%Y-%m-%d %H:%M"),
             "market_overview": self.market_overview,
-            "top_cryptos": top_cryptos,
+            "top_cryptos": table_cryptos,
             "top_focus_assets": top_focus_assets,
             "market_cap_history": market_cap_history,
             "technical_context": technical_context,
@@ -452,6 +462,11 @@ class CryptoReportGenerator:
             stylesheet_href=self.config.build_asset_href(self.report_stylesheet_name),
             market_overview_section=generate_market_overview_section(context["market_overview"]),
             top_focus_assets_section=generate_top_focus_assets_section(context["top_focus_assets"]),
+            market_insights_section=generate_market_insights_section(
+                context["market_overview"],
+                context["market_cap_history"],
+                context["top_cryptos"],
+            ),
             market_pulse_section=generate_market_pulse_section(
                 context["market_overview"],
                 context["market_cap_history"],
@@ -463,9 +478,7 @@ class CryptoReportGenerator:
                 context["top_cryptos"],
                 context["market_overview"],
             ),
-            sector_overview_section=generate_sector_overview_section(
-                context["top_cryptos"],
-            ),
+            sector_overview_section=generate_sector_overview_section(context["top_cryptos"]),
             crypto_table_rows=generate_crypto_table_rows(context["top_cryptos"]),
             news_html=generate_news_html(context["news"]),
             news_date_range=self.news_date_range,

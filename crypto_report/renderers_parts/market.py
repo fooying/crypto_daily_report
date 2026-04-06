@@ -70,12 +70,20 @@ def _classify_sector(symbol: str) -> str:
 
 
 def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
+    if not cryptos:
+        return ""
     cards = []
     for crypto in cryptos[:5]:
         symbol = html.escape(str(crypto.get("symbol", "")))
         name = html.escape(str(crypto.get("name", "")))
         price = f"${_safe_float(crypto.get('current_price', 0)):,.2f}"
         change = _safe_float(crypto.get("price_change_percentage_24h", 0))
+        change_7d = _safe_float(crypto.get("price_change_percentage_7d", 0))
+        market_cap = format_large_number(_safe_float(crypto.get("market_cap"), 0.0))
+        volume = format_large_number(_safe_float(crypto.get("total_volume"), 0.0))
+        high_24h = _safe_float(crypto.get("high_24h"), 0.0)
+        low_24h = _safe_float(crypto.get("low_24h"), 0.0)
+        circulating_supply = _safe_float(crypto.get("circulating_supply"), 0.0)
         raw_spark_values = crypto.get("sparkline_7d") or []
         spark_values = [
             _safe_float(value)
@@ -97,14 +105,23 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
             <div class="focus-asset-card">
                 <div class="focus-asset-header"><strong>{image_html}{name}</strong> <span>({symbol})</span></div>
                 <div class="focus-asset-price">{price}</div>
-                <div class="focus-asset-change {change_class}">{change:+.2f}%</div>
+                <div class="focus-asset-change-row">
+                    <div class="focus-asset-change {change_class}">24h {change:+.2f}%</div>
+                    <div class="focus-asset-change {'green' if change_7d >= 0 else 'red'}">7d {change_7d:+.2f}%</div>
+                </div>
+                <div class="focus-asset-meta">
+                    <span>市值 {market_cap}</span>
+                    <span>成交量 {volume}</span>
+                    {f'<span>24h 区间 ${low_24h:,.2f} - ${high_24h:,.2f}</span>' if high_24h > 0 and low_24h > 0 else ''}
+                    {f'<span>流通量 {circulating_supply:,.0f}</span>' if circulating_supply > 0 else ''}
+                </div>
                 {sparkline_html}
             </div>
             """
         )
     return f"""
-    <div class="section">
-        <h2>主流币速览</h2>
+    <div class="focus-assets-block">
+        <h3>主流币速览</h3>
         <div class="focus-asset-grid">
             {''.join(cards)}
         </div>
@@ -113,6 +130,21 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
 
 
 def generate_market_leadership_section(
+    cryptos: List[Dict[str, Any]],
+    market_overview: Dict[str, Any],
+) -> str:
+    body = _generate_market_leadership_body(cryptos, market_overview)
+    if not body:
+        return ""
+    return f"""
+    <div class="section">
+        <h2>市场风向</h2>
+        {body}
+    </div>
+    """
+
+
+def _generate_market_leadership_body(
     cryptos: List[Dict[str, Any]],
     market_overview: Dict[str, Any],
 ) -> str:
@@ -186,17 +218,26 @@ def generate_market_leadership_section(
         )
 
     return f"""
-    <div class="section">
-        <h2>市场风向</h2>
-        <div class="leadership-grid">
-            {''.join(card_html)}
-        </div>
-        <div class="leadership-meta">前 3 大币种市值合计约占整体市场 {concentration:.1f}% 。</div>
+    <div class="leadership-grid">
+        {''.join(card_html)}
     </div>
+    <div class="leadership-meta">前 3 大币种市值合计约占整体市场 {concentration:.1f}% 。</div>
     """
 
 
 def generate_sector_overview_section(cryptos: List[Dict[str, Any]]) -> str:
+    body = _generate_sector_overview_body(cryptos)
+    if not body:
+        return ""
+    return f"""
+    <div class="section">
+        <h2>板块观察</h2>
+        {body}
+    </div>
+    """
+
+
+def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
     candidates = _select_non_stable_cryptos(cryptos)
     if len(candidates) < 4:
         return ""
@@ -253,16 +294,26 @@ def generate_sector_overview_section(cryptos: List[Dict[str, Any]]) -> str:
         )
 
     return f"""
-    <div class="section">
-        <h2>板块观察</h2>
-        <div class="sector-grid">
-            {''.join(cards)}
-        </div>
+    <div class="sector-grid">
+        {''.join(cards)}
     </div>
     """
 
 
 def generate_market_pulse_section(
+    market_overview: Dict[str, Any],
+    market_cap_history: List[Dict[str, Any]],
+) -> str:
+    body = _generate_market_pulse_body(market_overview, market_cap_history)
+    return f"""
+    <div class="section">
+        <h2>市场脉搏</h2>
+        {body}
+    </div>
+    """
+
+
+def _generate_market_pulse_body(
     market_overview: Dict[str, Any],
     market_cap_history: List[Dict[str, Any]],
 ) -> str:
@@ -311,22 +362,57 @@ def generate_market_pulse_section(
         </div>
         """
         )
-    latest_market_cap = format_large_number(float(market_overview.get("total_market_cap", 0)))
-    latest_volume = format_large_number(float(market_overview.get("total_volume", 0)))
+    market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
+    turnover_ratio = _safe_float(market_overview.get("volume_to_market_cap_ratio"), 0.0)
+    market_change_class = "green" if market_change >= 0 else "red"
+    return f"""
+    <div class="market-pulse-meta">
+        展示近 {history_days} 天的总市值与 24 小时交易量变化。
+    </div>
+    <div class="market-pulse-summary">
+        <div><span>市场24h涨跌</span><strong class="{market_change_class}">{market_change:+.2f}%</strong></div>
+        <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
+        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong></div>
+        <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
+        <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
+    </div>
+    {''.join(chart_sections)}
+    """
+
+
+def generate_market_insights_section(
+    market_overview: Dict[str, Any],
+    market_cap_history: List[Dict[str, Any]],
+    cryptos: List[Dict[str, Any]],
+) -> str:
+    pulse_body = _generate_market_pulse_body(market_overview, market_cap_history)
+    leadership_body = _generate_market_leadership_body(cryptos, market_overview)
+    sector_body = _generate_sector_overview_body(cryptos)
+    panels = []
+    for title, body, extra_class in (
+        ("市场脉搏", pulse_body, "market-insight-panel-wide"),
+        ("市场风向", leadership_body, ""),
+        ("板块观察", sector_body, ""),
+    ):
+        if not body:
+            continue
+        panel_class = f"content-panel market-insight-panel {extra_class}".strip()
+        panels.append(
+            f"""
+            <div class="{panel_class}">
+                <h3>{title}</h3>
+                {body}
+            </div>
+            """
+        )
+    if not panels:
+        return ""
     return f"""
     <div class="section">
-        <h2>市场脉搏</h2>
-        <div class="market-pulse-meta">
-            展示近 {history_days} 天的总市值与 24 小时交易量变化。
+        <h2>市场动向</h2>
+        <div class="market-insights-wrap">
+            {''.join(panels)}
         </div>
-        <div class="market-pulse-summary">
-            <div><span>市值</span><strong>{latest_market_cap}</strong></div>
-            <div><span>交易量</span><strong>{latest_volume}</strong></div>
-            <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong></div>
-            <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
-            <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
-        </div>
-        {''.join(chart_sections)}
     </div>
     """
 
