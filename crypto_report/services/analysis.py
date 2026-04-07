@@ -20,6 +20,8 @@ class AIAnalysisService:
         crypto_news: List[Dict[str, Any]],
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any] | None = None,
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         sentiment_counts, news_keywords, news_tag_summary, news_event_summary = self._collect_news_features(crypto_news)
         event_watchlist = self.build_event_watchlist(crypto_news)
@@ -36,6 +38,8 @@ class AIAnalysisService:
             fear_greed_index,
             market_overview,
             technical_context or {},
+            macro_context or {},
+            defi_overview or {},
             sentiment_counts,
             news_keywords,
             news_tag_summary,
@@ -50,6 +54,8 @@ class AIAnalysisService:
             crypto_news,
             market_overview,
             technical_context or {},
+            macro_context or {},
+            defi_overview or {},
             sentiment_counts,
             weekly_ai_trend,
         )
@@ -172,6 +178,8 @@ class AIAnalysisService:
         fear_greed_index: Dict[str, Any],
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any],
+        macro_context: Dict[str, Any],
+        defi_overview: Dict[str, Any],
         sentiment_counts: Dict[str, int],
         news_keywords: List[str],
         news_tag_summary: Dict[str, int],
@@ -192,6 +200,8 @@ class AIAnalysisService:
             sentiment_counts,
             news_tag_summary,
             weekly_ai_trend,
+            macro_context,
+            defi_overview,
         )
         news_focus_summary = self.summarize_news_focus(news_tag_summary)
         analysis = {
@@ -201,19 +211,27 @@ class AIAnalysisService:
                 sentiment_counts,
                 news_focus_summary,
                 weekly_ai_trend,
+                macro_context,
+                defi_overview,
             ),
             "technical_analysis": self.generate_dynamic_technical_analysis(
                 fgi_value,
                 technical_context,
                 weekly_ai_trend,
+                macro_context,
+                defi_overview,
             ),
             "risk_assessment": self.generate_dynamic_risk_assessment(
                 fgi_value,
                 sentiment_counts,
+                macro_context,
+                defi_overview,
             ),
             "trading_signals": self.generate_dynamic_trading_signals(
                 fgi_value,
                 news_keywords,
+                macro_context,
+                defi_overview,
             ),
             "sentiment_summary": sentiment_counts,
             "sentiment_composite": sentiment_composite,
@@ -331,6 +349,8 @@ class AIAnalysisService:
         crypto_news: List[Dict[str, Any]],
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any],
+        macro_context: Dict[str, Any],
+        defi_overview: Dict[str, Any],
         sentiment_counts: Dict[str, int],
         weekly_ai_trend: Dict[str, Any],
     ) -> Dict[str, Any]:
@@ -365,6 +385,8 @@ class AIAnalysisService:
             },
             "news_sentiment_summary": sentiment_counts,
             "technical_context": technical_context,
+            "macro_context": macro_context,
+            "defi_overview": defi_overview,
             "weekly_trend": weekly_ai_trend,
             "top_news": news_digest,
         }
@@ -491,6 +513,8 @@ class AIAnalysisService:
         crypto_news: List[Dict[str, Any]],
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any],
+        macro_context: Dict[str, Any],
+        defi_overview: Dict[str, Any],
         sentiment_counts: Dict[str, int],
         weekly_ai_trend: Dict[str, Any],
     ) -> Dict[str, Any]:
@@ -504,6 +528,8 @@ class AIAnalysisService:
                 crypto_news,
                 market_overview,
                 technical_context,
+                macro_context,
+                defi_overview,
                 sentiment_counts,
                 weekly_ai_trend,
             )
@@ -623,6 +649,8 @@ class AIAnalysisService:
         sentiment_counts: Dict[str, int],
         news_focus_summary: str = "",
         weekly_trend: Dict[str, Any] | None = None,
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> str:
         market_cap_change = market_data.get("market_cap_change_percentage_24h_usd", 0)
         btc_dominance = market_data.get("market_cap_percentage", {}).get("btc", 50)
@@ -657,6 +685,12 @@ class AIAnalysisService:
                 parts.append("新闻情绪相对平衡，多空消息交织。")
         if news_focus_summary:
             parts.append(news_focus_summary)
+        macro_summary = self._summarize_macro_context(macro_context or {})
+        if macro_summary:
+            parts.append(macro_summary)
+        defi_summary = self._summarize_defi_context(defi_overview or {})
+        if defi_summary:
+            parts.append(defi_summary)
 
         if weekly_trend:
             market_trend = weekly_trend.get("market_trend", "unknown")
@@ -678,6 +712,8 @@ class AIAnalysisService:
         fgi_value: int,
         technical_context: Dict[str, Any] | None = None,
         weekly_trend: Dict[str, Any] | None = None,
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> str:
         technical_context = technical_context or {}
         btc_context = technical_context.get("BTC", {})
@@ -761,6 +797,25 @@ class AIAnalysisService:
                     'border-radius: 5px; font-size: 0.9em;">'
                     f'<strong>🔍 周度技术观察：</strong> {patterns[0]}</div>'
                 )
+        macro_context = macro_context or {}
+        strongest_macro = (macro_context.get("assets") or [{}])[0]
+        if strongest_macro.get("label") and strongest_macro.get("correlation_30d") is not None:
+            analysis += (
+                '<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; '
+                'border-radius: 5px; font-size: 0.9em;">'
+                f"<strong>🌐 宏观联动：</strong> BTC 与{strongest_macro['label']}近30天相关性为"
+                f" {float(strongest_macro['correlation_30d']):+.2f}，需关注外部市场共振风险。</div>"
+            )
+        defi_overview = defi_overview or {}
+        top_protocols = defi_overview.get("top_protocols") or []
+        if top_protocols:
+            protocol = top_protocols[0]
+            analysis += (
+                '<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; '
+                'border-radius: 5px; font-size: 0.9em;">'
+                f"<strong>🏦 DeFi 观察：</strong> {protocol.get('name', '头部协议')} 维持较高 TVL，"
+                f"说明链上流动性尚未明显衰竭。</div>"
+            )
         return summary_html + analysis
 
     @staticmethod
@@ -818,19 +873,32 @@ class AIAnalysisService:
         self,
         fgi_value: int,
         sentiment_counts: Dict[str, int],
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> str:
         negative_news = sentiment_counts.get("negative", 0)
         total_news = sum(sentiment_counts.values())
         sentiment_bucket = self.sentiment_service.get_sentiment_bucket(fgi_value)
         sentiment_profile = self.sentiment_service.get_sentiment_profile(fgi_value)
-        if sentiment_bucket == "extreme_fear" and negative_news <= total_news * 0.5:
-            return sentiment_profile["risk_assessment_light"]
-        return sentiment_profile["risk_assessment"]
+        risk_text = (
+            sentiment_profile["risk_assessment_light"]
+            if sentiment_bucket == "extreme_fear" and negative_news <= total_news * 0.5
+            else sentiment_profile["risk_assessment"]
+        )
+        macro_context = macro_context or {}
+        if any(abs(float(item.get("correlation_30d", 0.0))) >= 0.5 for item in (macro_context.get("assets") or [])):
+            risk_text += " 当前 BTC 与外部风险资产联动增强，需防范宏观市场波动传导。"
+        defi_overview = defi_overview or {}
+        if not (defi_overview.get("top_protocols") or []):
+            risk_text += " 链上流动性样本有限，DeFi 风险评估需保持保守。"
+        return risk_text
 
     def generate_dynamic_trading_signals(
         self,
         fgi_value: int,
         news_keywords: List[str],
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> List[str]:
         sentiment_profile = self.sentiment_service.get_sentiment_profile(fgi_value)
         signals = list(sentiment_profile.get("base_signals", []))
@@ -840,6 +908,19 @@ class AIAnalysisService:
             signals.append("政策敏感：监管消息可能引发市场波动，需密切关注")
         if "技术" in news_keywords:
             signals.append("技术驱动：技术进展可能带来结构性机会")
+        macro_context = macro_context or {}
+        assets = macro_context.get("assets") or []
+        if assets:
+            dominant_link = max(assets, key=lambda item: abs(float(item.get("correlation_30d", 0.0))))
+            signals.append(
+                f"关注宏观联动：BTC 与{dominant_link.get('label', '外部市场')}相关性较高，注意外盘风险传导"
+            )
+        defi_overview = defi_overview or {}
+        protocols = defi_overview.get("top_protocols") or []
+        if protocols:
+            signals.append(
+                f"链上资金观察：关注 {protocols[0].get('name', '头部协议')} TVL 变化，判断风险偏好是否延续"
+            )
         return signals[:5]
 
     def build_sentiment_deep_analysis(
@@ -908,6 +989,8 @@ class AIAnalysisService:
         sentiment_counts: Dict[str, int],
         news_tag_summary: Dict[str, int],
         weekly_ai_trend: Dict[str, Any],
+        macro_context: Dict[str, Any] | None = None,
+        defi_overview: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         value = sentiment_analysis.get("value", 50)
         classification = sentiment_analysis.get("classification", "中性")
@@ -927,6 +1010,12 @@ class AIAnalysisService:
                 f"{self._summarize_weekly_trend(weekly_ai_trend)}"
             ),
         ]
+        macro_summary = self._summarize_macro_context(macro_context or {})
+        if macro_summary:
+            overall_points.append(macro_summary)
+        defi_summary = self._summarize_defi_context(defi_overview or {})
+        if defi_summary:
+            overall_points.append(defi_summary)
 
         short_term_stance = "谨慎" if value <= 40 else "中性偏谨慎" if value <= 60 else "中性偏积极"
         long_term_stance = "潜在机会" if value <= 40 else "中性布局"
@@ -962,6 +1051,45 @@ class AIAnalysisService:
                 ],
             },
         }
+
+    @staticmethod
+    def _summarize_macro_context(macro_context: Dict[str, Any]) -> str:
+        assets = macro_context.get("assets") or []
+        if not assets:
+            return ""
+        strongest = max(
+            assets,
+            key=lambda item: abs(float(item.get("correlation_30d", 0.0))),
+        )
+        correlation = float(strongest.get("correlation_30d", 0.0))
+        if abs(correlation) >= 0.5:
+            return (
+                f"宏观层面，BTC 与{strongest.get('label', '外部市场')}的30天相关性达到"
+                f"{correlation:+.2f}，短线需关注传统市场波动外溢。"
+            )
+        return (
+            f"宏观层面，BTC 与{strongest.get('label', '外部市场')}的30天相关性为"
+            f"{correlation:+.2f}，当前联动性仍处可控区间。"
+        )
+
+    @staticmethod
+    def _summarize_defi_context(defi_overview: Dict[str, Any]) -> str:
+        top_chains = defi_overview.get("top_chains") or []
+        top_protocols = defi_overview.get("top_protocols") or []
+        if not top_chains and not top_protocols:
+            return ""
+        chain_part = ""
+        if top_chains:
+            chain_part = (
+                f"DeFi 资金仍主要集中在{top_chains[0].get('name', '头部链')}，"
+                f"占比约 {float(top_chains[0].get('share_pct', 0.0)):.1f}%"
+            )
+        protocol_part = ""
+        if top_protocols:
+            protocol_part = (
+                f"，头部协议 {top_protocols[0].get('name', 'Unknown')} 维持较高 TVL"
+            )
+        return chain_part + protocol_part + "。"
 
     @staticmethod
     def _summarize_weekly_trend(weekly_ai_trend: Dict[str, Any]) -> str:

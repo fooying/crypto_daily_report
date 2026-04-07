@@ -15,6 +15,7 @@ BACKUP_NEWS_URL = "https://coinmarketcap.com/zh/headlines/news/"
 FEAR_GREED_API_URL = "https://api.alternative.me/fng/"
 FEAR_GREED_SOURCE_URL = "https://alternative.me/crypto/fear-and-greed-index/"
 DEFILLAMA_CHAINS_API_URL = "https://api.llama.fi/v2/chains"
+DEFILLAMA_PROTOCOLS_API_URL = "https://api.llama.fi/protocols"
 YAHOO_CHART_API_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 
 

@@ -216,15 +216,22 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(self.service.last_macro_context_source, 'coingecko_yahoo')
 
     def test_get_defi_overview_uses_defillama_chains(self) -> None:
-        self.http.fetch_json.return_value = [
-            {'name': 'Ethereum', 'tvl': 60_000_000_000, 'change_1d': 1.2, 'change_7d': 4.1},
-            {'name': 'Solana', 'tvl': 10_000_000_000, 'change_1d': -0.4, 'change_7d': 6.5},
+        self.http.fetch_json.side_effect = [
+            [
+                {'name': 'Ethereum', 'tvl': 60_000_000_000, 'change_1d': 1.2, 'change_7d': 4.1},
+                {'name': 'Solana', 'tvl': 10_000_000_000, 'change_1d': -0.4, 'change_7d': 6.5},
+            ],
+            [
+                {'name': 'Aave', 'category': 'Lending', 'chain': 'Ethereum', 'tvl': 20_000_000_000, 'change_7d': 3.1},
+                {'name': 'Uniswap', 'category': 'DEX', 'chain': 'Ethereum', 'tvl': 8_000_000_000, 'change_7d': 1.2},
+            ],
         ]
 
         result = self.service.get_defi_overview()
 
         self.assertEqual(result['top_chains'][0]['name'], 'Ethereum')
         self.assertAlmostEqual(result['top_chains'][0]['share_pct'], 85.7, places=1)
+        self.assertEqual(result['top_protocols'][0]['name'], 'Aave')
         self.assertIn('summary', result)
         self.assertEqual(self.service.last_defi_overview_source, 'defillama_chains')
 

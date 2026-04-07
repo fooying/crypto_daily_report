@@ -653,7 +653,8 @@ def generate_macro_context_section(macro_context: Dict[str, Any]) -> str:
 
 def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
     top_chains = defi_overview.get("top_chains") or []
-    if not top_chains:
+    top_protocols = defi_overview.get("top_protocols") or []
+    if not top_chains and not top_protocols:
         return ""
     chain_cards = []
     for item in top_chains:
@@ -685,8 +686,38 @@ def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
         <div class="defi-grid">
             {''.join(chain_cards)}
         </div>
+        {_render_defi_protocols(top_protocols)}
     </div>
     """
+
+
+def _render_defi_protocols(top_protocols: List[Dict[str, Any]]) -> str:
+    if not top_protocols:
+        return ""
+    rows = []
+    for item in top_protocols:
+        change_7d = item.get("change_7d")
+        change_class = "green" if change_7d is not None and float(change_7d) >= 0 else "red"
+        change_text = f"{float(change_7d):+.2f}%" if change_7d is not None else "样本不足"
+        rows.append(
+            f"""
+            <div class="defi-protocol-card">
+                <div class="defi-protocol-title">{html.escape(str(item.get('name', '')))}</div>
+                <div class="defi-protocol-meta">
+                    <span>{html.escape(str(item.get('category', 'Other')))}</span>
+                    <span>{html.escape(str(item.get('chain', 'Multi-Chain')))}</span>
+                </div>
+                <div class="defi-protocol-value">{format_large_number(_safe_float(item.get('tvl'), 0.0))}</div>
+                <div class="defi-protocol-change {change_class}">7d {change_text}</div>
+            </div>
+            """
+        )
+    return (
+        '<div class="defi-protocols-wrap">'
+        '<h3>头部协议跟踪</h3>'
+        f'<div class="defi-protocol-grid">{"".join(rows)}</div>'
+        '</div>'
+    )
 
 
 def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:

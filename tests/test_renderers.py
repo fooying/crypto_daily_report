@@ -5,6 +5,7 @@ import unittest
 from crypto_report.renderers import (
     generate_ai_analysis_section,
     generate_defi_overview_section,
+    generate_event_calendar_section,
     generate_financial_analyst_section,
     generate_macro_context_section,
     generate_market_leadership_section,
@@ -448,11 +449,38 @@ class RendererTests(unittest.TestCase):
                         'change_7d': 4.2,
                     }
                 ],
+                'top_protocols': [
+                    {
+                        'name': 'Aave',
+                        'category': 'Lending',
+                        'chain': 'Ethereum',
+                        'tvl': 20_000_000_000,
+                        'change_7d': 3.1,
+                    }
+                ]
             }
         )
         self.assertIn('DeFi生态概览', html)
         self.assertIn('Ethereum', html)
         self.assertIn('总 TVL', html)
+        self.assertIn('头部协议跟踪', html)
+        self.assertIn('Aave', html)
+
+    def test_event_calendar_section_renders_items(self) -> None:
+        html = generate_event_calendar_section(
+            [
+                {
+                    'theme': '机构资金',
+                    'title': '比特币 ETF 资金回流',
+                    'time': '2026-04-07 09:00',
+                    'impact': '高影响',
+                    'source': 'UnitTest',
+                }
+            ]
+        )
+        self.assertIn('事件日历', html)
+        self.assertIn('机构资金', html)
+        self.assertIn('持续跟踪', html)
 
     def test_news_html_renders_tags(self) -> None:
         from crypto_report.renderers import generate_news_html

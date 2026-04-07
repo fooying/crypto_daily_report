@@ -29,6 +29,7 @@ from .renderers import (
     generate_ai_analysis_section,
     generate_crypto_table_rows,
     generate_defi_overview_section,
+    generate_event_calendar_section,
     generate_financial_analyst_section,
     generate_macro_context_section,
     generate_market_insights_section,
@@ -421,6 +422,8 @@ class CryptoReportGenerator:
             self.crypto_news,
             self.market_overview,
             self.technical_context,
+            self.macro_context,
+            self.defi_overview,
         )
 
     def _analyze_ai_weekly_trend(self) -> Dict[str, Any]:
@@ -532,6 +535,9 @@ class CryptoReportGenerator:
                 ai_analysis.get("news_tag_summary"),
                 ai_analysis.get("news_event_summary"),
                 ai_analysis.get("event_watchlist"),
+            ),
+            event_calendar_section=generate_event_calendar_section(
+                ai_analysis.get("event_watchlist", []),
             ),
             news_date_range=self.news_date_range,
             sentiment_section=self._generate_sentiment_analysis_section(

@@ -546,6 +546,55 @@ body {
   margin-bottom: 8px;
 }
 
+.defi-protocols-wrap {
+  margin-top: 18px;
+}
+
+.defi-protocols-wrap h3 {
+  margin: 0 0 12px;
+  font-size: 1.02em;
+  color: var(--text-primary);
+}
+
+.defi-protocol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.defi-protocol-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
+  border: 1px solid #e8eef5;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.defi-protocol-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.defi-protocol-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8em;
+}
+
+.defi-protocol-value {
+  font-size: 1.1em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.defi-protocol-change {
+  font-size: 0.86em;
+  font-weight: 600;
+}
+
 /* ===== Market Leadership ===== */
 .leadership-grid {
   display: grid;
@@ -1317,6 +1366,70 @@ body {
   margin-top: 6px;
   color: var(--text-secondary);
   font-size: 0.82em;
+}
+
+.calendar-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.calendar-item {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
+  border: 1px solid #e8eef5;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-time {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.calendar-theme-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.calendar-theme,
+.calendar-impact {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.78em;
+  font-weight: 700;
+}
+
+.calendar-theme {
+  border: 1px solid #dbe6f1;
+  background: #f8fafc;
+  color: var(--text-secondary);
+}
+
+.calendar-impact {
+  border: 1px solid #dcfce7;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.calendar-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.calendar-meta {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 0.84em;
 }
 
 .news-summary-tag {

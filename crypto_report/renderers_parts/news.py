@@ -116,6 +116,36 @@ def _render_event_watchlist(event_watchlist: List[Dict[str, Any]]) -> str:
     )
 
 
+def generate_event_calendar_section(event_watchlist: List[Dict[str, Any]]) -> str:
+    if not event_watchlist:
+        return ""
+    rows = []
+    for item in event_watchlist:
+        impact = html.escape(str(item.get("impact", "") or "一般"))
+        theme = html.escape(str(item.get("theme", "") or "事件跟踪"))
+        title = html.escape(str(item.get("title", "") or ""))
+        time_text = html.escape(str(item.get("time", "") or ""))
+        source = html.escape(str(item.get("source", "") or ""))
+        rows.append(
+            '<div class="calendar-item">'
+            f'<div class="calendar-time">{time_text}</div>'
+            '<div class="calendar-content">'
+            f'<div class="calendar-theme-row"><span class="calendar-theme">{theme}</span><span class="calendar-impact">{impact}</span></div>'
+            f'<div class="calendar-title">{title}</div>'
+            f'<div class="calendar-meta">持续跟踪 | 来源 {source}</div>'
+            '</div>'
+            '</div>'
+        )
+    return (
+        '<div class="section">'
+        '<h2>事件日历</h2>'
+        '<div class="calendar-wrap">'
+        f'{"".join(rows)}'
+        '</div>'
+        '</div>'
+    )
+
+
 def generate_news_html(
     news: List[Dict[str, Any]],
     news_tag_summary: Dict[str, int] | None = None,

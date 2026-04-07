@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 from ..config import (
     DEFILLAMA_CHAINS_API_URL,
+    DEFILLAMA_PROTOCOLS_API_URL,
     FEAR_GREED_API_URL,
     FEAR_GREED_SOURCE_URL,
     YAHOO_CHART_API_URL,
@@ -356,6 +357,15 @@ class MarketService:
                 f"更适合作为当前宏观联动的观察锚点。"
             )
             self.last_macro_context_source = "coingecko_yahoo"
+            self.storage.update_cached_snapshot(
+                "macro_context_cache",
+                {
+                    "btc": btc_snapshot,
+                    "assets": snapshots,
+                    "summary": summary,
+                },
+                source=self.last_macro_context_source,
+            )
             return {
                 "btc": btc_snapshot,
                 "assets": snapshots,
@@ -365,6 +375,11 @@ class MarketService:
             self.logger.warning("宏观关联数据获取失败: %s", exc)
         except Exception as exc:
             self.logger.warning("宏观关联分析生成失败: %s", exc)
+        cached = self.storage.get_cached_snapshot("macro_context_cache")
+        payload = cached.get("payload") or {}
+        if payload:
+            self.last_macro_context_source = "local_cache"
+            return payload
         self.last_macro_context_source = "default_empty"
         return {}
 
@@ -385,6 +400,33 @@ class MarketService:
             if not eligible:
                 self.last_defi_overview_source = "default_empty"
                 return {}
+
+            protocols = self.fetch_json(
+                DEFILLAMA_PROTOCOLS_API_URL,
+                timeout=self.config.defi_request_timeout_seconds,
+            )
+            top_protocols = []
+            if isinstance(protocols, list):
+                filtered_protocols = [
+                    item
+                    for item in protocols
+                    if isinstance(item, dict) and float(item.get("tvl") or 0.0) > 0
+                ]
+                for item in sorted(
+                    filtered_protocols,
+                    key=lambda row: float(row.get("tvl") or 0.0),
+                    reverse=True,
+                )[:5]:
+                    top_protocols.append(
+                        {
+                            "name": str(item.get("name") or "Unknown"),
+                            "category": str(item.get("category") or "Other"),
+                            "chain": str(item.get("chain") or "Multi-Chain"),
+                            "tvl": float(item.get("tvl") or 0.0),
+                            "change_1d": float(item["change_1d"]) if item.get("change_1d") is not None else None,
+                            "change_7d": float(item["change_7d"]) if item.get("change_7d") is not None else None,
+                        }
+                    )
 
             total_tvl = sum(float(item.get("tvl") or 0.0) for item in eligible)
             top_chains = sorted(
@@ -410,17 +452,29 @@ class MarketService:
                 "可结合链级别资金迁移观察风险偏好的扩散方向。"
             )
             self.last_defi_overview_source = "defillama_chains"
-            return {
+            payload = {
                 "total_tvl": total_tvl,
                 "change_1d": None,
                 "change_7d": None,
                 "top_chains": chain_rows,
+                "top_protocols": top_protocols,
                 "summary": summary,
             }
+            self.storage.update_cached_snapshot(
+                "defi_overview_cache",
+                payload,
+                source=self.last_defi_overview_source,
+            )
+            return payload
         except HTTPRequestError as exc:
             self.logger.warning("DeFi 概览数据获取失败: %s", exc)
         except Exception as exc:
             self.logger.warning("DeFi 概览生成失败: %s", exc)
+        cached = self.storage.get_cached_snapshot("defi_overview_cache")
+        payload = cached.get("payload") or {}
+        if payload:
+            self.last_defi_overview_source = "local_cache"
+            return payload
         self.last_defi_overview_source = "default_empty"
         return {}
 

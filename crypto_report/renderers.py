@@ -14,13 +14,14 @@ from .renderers_parts.market import (
     generate_technical_context_section,
     generate_top_focus_assets_section,
 )
-from .renderers_parts.news import generate_news_html
+from .renderers_parts.news import generate_event_calendar_section, generate_news_html
 from .renderers_parts.sentiment import generate_sentiment_analysis_section
 
 __all__ = [
     "generate_ai_analysis_section",
     "generate_crypto_table_rows",
     "generate_defi_overview_section",
+    "generate_event_calendar_section",
     "generate_financial_analyst_section",
     "generate_macro_context_section",
     "generate_market_insights_section",

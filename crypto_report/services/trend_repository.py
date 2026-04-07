@@ -27,6 +27,8 @@ class TrendRepository:
             "market_cap": {},
             "bitcoin_price": {},
             "ethereum_price": {},
+            "macro_context_cache": {},
+            "defi_overview_cache": {},
             "last_updated": None,
             "metadata": {
                 "version": "1.0",
@@ -126,6 +128,20 @@ class TrendRepository:
         self._trim_history(trend_data[key])
         self.save(trend_data)
         return trend_data
+
+    def update_cached_snapshot(self, key: str, payload: Dict[str, Any], source: str) -> Dict[str, Any]:
+        trend_data = self.load()
+        trend_data[key] = {
+            "payload": payload,
+            "timestamp": str(int(time.time())),
+            "source": source,
+            "date": self.report_date.strftime("%Y-%m-%d"),
+        }
+        self.save(trend_data)
+        return trend_data
+
+    def get_cached_snapshot(self, key: str) -> Dict[str, Any]:
+        return self.load().get(key, {}) or {}
 
     @staticmethod
     def _price_storage_key(symbol: str) -> str:

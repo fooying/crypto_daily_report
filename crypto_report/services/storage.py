@@ -41,6 +41,12 @@ class TrendStorage:
     def update_price_trend(self, symbol: str, price: float, change_24h: float) -> Dict[str, Any]:
         return self.repository.update_price_trend(symbol, price, change_24h)
 
+    def update_cached_snapshot(self, key: str, payload: Dict[str, Any], source: str) -> Dict[str, Any]:
+        return self.repository.update_cached_snapshot(key, payload, source)
+
+    def get_cached_snapshot(self, key: str) -> Dict[str, Any]:
+        return self.repository.get_cached_snapshot(key)
+
     def calculate_weekly_change_from_trend(self, current_value: int) -> Optional[int]:
         return self.analytics.calculate_weekly_change_from_trend(current_value)
 

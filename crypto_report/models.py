@@ -100,6 +100,7 @@ class DeFiOverview(TypedDict, total=False):
     change_1d: float | None
     change_7d: float | None
     top_chains: List[DeFiChainSnapshot]
+    top_protocols: List[Dict[str, Any]]
     summary: str
 
 
