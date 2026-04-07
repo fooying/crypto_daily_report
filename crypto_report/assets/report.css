@@ -669,7 +669,7 @@ body {
 .sentiment-dashboard {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-  gap: 24px;
+  gap: 20px;
   margin-bottom: 24px;
 }
 
@@ -680,40 +680,42 @@ body {
   border: 1px solid #e7edf4;
   border-radius: 18px;
   box-shadow: var(--shadow-sm);
-  padding: 24px;
+  padding: 22px;
 }
 
 .sentiment-score-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .sentiment-gauge {
   text-align: center;
-  padding: 6px;
+  padding: 4px 6px;
   border: 0;
   box-shadow: none;
   background: transparent;
 }
 
 .gauge-title {
-  font-size: 1em;
+  font-size: 0.96em;
   color: var(--text-secondary);
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .gauge-value {
-  font-size: 3.6em;
+  font-size: clamp(3rem, 4.8vw, 3.6rem);
   font-weight: 800;
-  margin: 16px 0 8px;
+  line-height: 1;
+  margin: 14px 0 10px;
 }
 
 .gauge-classification {
-  font-size: 1.2em;
+  font-size: 1.12em;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .sentiment-level-risk { color: #b91c1c; }
@@ -723,21 +725,21 @@ body {
 .sentiment-level-warm { color: #7c2d12; }
 
 .sentiment-gauge-composite .gauge-value {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .composite-summary-card {
   margin: 0 auto;
-  max-width: 300px;
+  max-width: 290px;
   color: var(--text-secondary);
-  line-height: 1.6;
-  font-size: 0.92em;
+  line-height: 1.55;
+  font-size: 0.9em;
 }
 
 .sentiment-bar {
-  width: 80%;
+  width: 84%;
   height: 12px;
-  margin: 0 auto;
+  margin: 6px auto 0;
   background: #e5e7eb;
   border-radius: 999px;
   overflow: hidden;
@@ -749,38 +751,41 @@ body {
 }
 
 .trends-title {
-  font-size: 1.1em;
+  font-size: 1.05em;
   color: var(--text-primary);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   font-weight: 700;
 }
 
 .trend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .trend-card {
   background: #ffffff;
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px 14px;
   text-align: center;
   border: 1px solid #e7edf4;
   box-shadow: none;
+  min-height: 136px;
+  display: grid;
+  align-content: center;
 }
 
 .trend-period {
-  font-size: 0.9em;
+  font-size: 0.88em;
   color: #6c757d;
   margin-bottom: 6px;
   font-weight: 600;
 }
 
 .trend-value {
-  font-size: 1.6em;
+  font-size: 1.8em;
   font-weight: 800;
-  margin: 6px 0;
+  margin: 8px 0 10px;
 }
 
 .trend-positive { color: #10b981; }
@@ -788,7 +793,7 @@ body {
 .trend-neutral { color: #64748b; }
 
 .trend-note {
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 0.85em;
   color: var(--text-secondary);
 }
@@ -1010,9 +1015,9 @@ body {
 
 .news-tag-summary {
   display: grid;
-  gap: 10px;
-  padding: 0 0 16px;
-  margin-bottom: 10px;
+  gap: 12px;
+  padding: 0 0 18px;
+  margin-bottom: 14px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -1043,12 +1048,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 5px 10px;
   border-radius: 999px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   color: var(--text-primary);
-  font-size: 0.85em;
+  font-size: 0.83em;
 }
 
 .news-summary-tag-label {
@@ -1061,15 +1066,15 @@ body {
 
 .sentiment-driver-list-wrapper {
   display: grid;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 12px;
   padding-top: 10px;
   border-top: 1px dashed #dbe4ee;
   text-align: left;
 }
 
 .sentiment-driver-title {
-  font-size: 0.88em;
+  font-size: 0.84em;
   color: var(--text-secondary);
   font-weight: 600;
 }
@@ -1078,12 +1083,12 @@ body {
   margin: 0;
   padding-left: 18px;
   color: var(--text-secondary);
-  font-size: 0.9em;
-  line-height: 1.6;
+  font-size: 0.86em;
+  line-height: 1.55;
 }
 
 .sentiment-driver-list li {
-  margin: 0;
+  margin: 0 0 2px;
 }
 
 /* ===== AI Analysis ===== */
@@ -1102,7 +1107,9 @@ body {
 .ai-risk-focus {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #dbe4ee;
 }
 
 .ai-risk-focus-label {
@@ -1251,6 +1258,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .trend-grid {
+    grid-template-columns: 1fr;
+  }
+
   .focus-asset-grid {
     grid-template-columns: 1fr;
   }
@@ -1284,6 +1295,10 @@ body {
   .news-title-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .trend-card {
+    min-height: auto;
   }
 }
 
