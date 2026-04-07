@@ -1035,6 +1035,7 @@ body {
   margin-bottom: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
+  margin-top:30px;
 }
 
 .trend-grid {
@@ -1046,7 +1047,7 @@ body {
 .trend-card {
   background: #ffffff;
   border-radius: 12px;
-  padding: 16px 14px;
+  padding: 10px 14px;
   text-align: center;
   border: 1px solid #e7edf4;
   box-shadow: none;
