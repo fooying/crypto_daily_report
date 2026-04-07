@@ -153,6 +153,7 @@ class RendererTests(unittest.TestCase):
                 'technical_analysis': '<div>market uptrend</div>',
                 'risk_assessment': '<risk>',
                 'sentiment_summary': {'positive': 1, 'neutral': 2, 'negative': 3},
+                'news_tag_summary': {'监管': 2, 'ETF/机构': 1},
                 'trend_enhanced_analysis': '⚖️ market consolidation',
             },
             '<li>signal</li>',
@@ -161,6 +162,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('<li>signal</li>', html)
         self.assertIn('上涨趋势', html)
         self.assertIn('盘整阶段', html)
+        self.assertIn('对应主题', html)
 
     def test_sentiment_analysis_section_contains_summary(self) -> None:
         html = generate_sentiment_analysis_section(
@@ -205,6 +207,8 @@ class RendererTests(unittest.TestCase):
         self.assertIn('综合市场情绪分', html)
         self.assertIn('风险偏好回升', html)
         self.assertIn('驱动因子', html)
+        self.assertIn('综合情绪分', html)
+        self.assertIn('综合分来源', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
         html = generate_financial_analyst_section(
@@ -315,6 +319,7 @@ class RendererTests(unittest.TestCase):
                 {'market_cap': 900_000_000, 'volume_24h': 450_000_000},
                 {'market_cap': 1_000_000_000, 'volume_24h': 500_000_000},
             ],
+            {'label': '偏防御', 'summary': '情绪修复尚不稳固，适合控制仓位。'},
         )
         self.assertIn('市场脉搏', html)
         self.assertIn('BTC主导率', html)
@@ -322,6 +327,8 @@ class RendererTests(unittest.TestCase):
         self.assertNotIn('总市值走势', html)
         self.assertNotIn('24小时交易量走势', html)
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
+        self.assertIn('市场状态', html)
+        self.assertIn('偏防御', html)
 
     def test_market_pulse_section_shows_charts_when_history_is_enough(self) -> None:
         html = generate_market_pulse_section(

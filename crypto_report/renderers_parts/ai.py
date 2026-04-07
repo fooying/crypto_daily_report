@@ -98,6 +98,7 @@ def generate_trading_signals_html(signals: List[str]) -> str:
 
 def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_html: str) -> str:
     sentiment_summary = ai_analysis.get("sentiment_summary", {})
+    news_tag_summary = ai_analysis.get("news_tag_summary", {})
     overview = html.escape(_normalize_plain_text(str(ai_analysis.get("market_overview", "暂无市场概况"))))
     technical_analysis = _localize_terms(str(ai_analysis.get("technical_analysis", "")))
     risk_assessment = html.escape(_normalize_plain_text(str(ai_analysis.get("risk_assessment", "暂无风险评估"))))
@@ -111,6 +112,31 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
     trend_summary_html = ""
     if trend_summary:
         trend_summary_html = f'<p class="ai-trend-summary">{html.escape(trend_summary)}</p>'
+    risk_tags = [
+        (tag, count)
+        for tag, count in sorted(
+            news_tag_summary.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
+        if tag in {"监管", "安全事件", "交易所", "ETF/机构", "技术升级"}
+    ][:3]
+    risk_focus_html = ""
+    if risk_tags:
+        risk_focus_items = "".join(
+            (
+                '<span class="news-summary-tag">'
+                f'<span class="news-summary-tag-label">{html.escape(str(tag))}</span>'
+                f'<span class="news-summary-tag-count">{count}</span>'
+                "</span>"
+            )
+            for tag, count in risk_tags
+        )
+        risk_focus_html = (
+            '<div class="ai-risk-focus">'
+            '<span class="ai-risk-focus-label">对应主题</span>'
+            f'<div class="news-tag-summary-list">{risk_focus_items}</div>'
+            "</div>"
+        )
     return f"""
     <div class="section">
         <h2>AI智能分析</h2>
@@ -136,6 +162,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                     </div>
                 </div>
                 <p class="risk-level">{risk_assessment}</p>
+                {risk_focus_html}
             </div>
 
             <div class="content-panel">

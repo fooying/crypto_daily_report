@@ -478,10 +478,12 @@ class CryptoReportGenerator:
                 context["market_overview"],
                 context["market_cap_history"],
                 context["all_top_cryptos"],
+                ai_analysis.get("sentiment_composite"),
             ),
             market_pulse_section=generate_market_pulse_section(
                 context["market_overview"],
                 context["market_cap_history"],
+                ai_analysis.get("sentiment_composite"),
             ),
             technical_context_section=generate_technical_context_section(
                 context["technical_context"]

@@ -58,6 +58,7 @@
         <div><span>BTC主导率</span><strong>50.0%</strong><small>日变 +0.50pct / 周变 -1.20pct</small></div>
         <div><span>ETH主导率</span><strong>20.0%</strong></div>
         <div><span>活跃币种</span><strong>100</strong></div>
+        <div class="market-pulse-state"><span>市场状态</span><strong>中性平衡</strong><small>多空信号相对均衡，市场仍在寻找下一阶段方向。</small></div>
     </div>
     
     
@@ -160,6 +161,7 @@
         <h2>市场情绪指数分析</h2>
 
         <div class="sentiment-dashboard">
+            <div class="sentiment-score-pair">
                 <div class="sentiment-gauge">
                     <div class="gauge-title">加密货币恐惧贪婪指数</div>
                     <div class="gauge-value">50</div>
@@ -170,9 +172,18 @@
                     </div>
                 </div>
 
+                <div class="sentiment-gauge sentiment-gauge-composite">
+                    <div class="gauge-title">综合市场情绪分</div>
+                    <div class="gauge-value">48</div>
+                    <div class="gauge-classification sentiment-level-neutral">中性平衡</div>
+                    <div class="composite-summary-card">多空信号相对均衡，市场仍在寻找下一阶段方向。</div>
+                    <div class="sentiment-driver-list-wrapper"><div class="sentiment-driver-title">驱动因子</div><ul class="sentiment-driver-list"><li>恐惧贪婪指数为50，情绪仍处于常态区间。</li><li>总市值24小时变化+1.23%，方向性仍待确认。</li><li>新闻情绪相对均衡（正面0，负面0）。</li></ul></div>
+                </div>
+            </div>
+
             <div class="sentiment-trends">
                 <div class="trends-title">
-                    <span>指数变化趋势</span>
+                    <span>恐惧贪婪指数变化趋势</span>
                 </div>
 
                 <div class="trend-grid">
@@ -193,24 +204,16 @@
                         <div class="trend-value trend-positive">+3</div>
                         <div class="trend-change">过去30天</div>
                     </div>
-
-                    <div class="trend-card trend-card-emphasis">
-                        <div class="trend-period">综合市场情绪分</div>
-                        <div class="trend-value trend-neutral">48</div>
-                        <div class="trend-change">中性平衡</div>
-                    </div>
                 </div>
 
                 <div class="trend-note">趋势统计基于 2026-04-03 09:30 生成。</div>
-                <div class="trend-note trend-note-strong">多空信号相对均衡，市场仍在寻找下一阶段方向。</div>
-                <div class="sentiment-driver-list-wrapper"><div class="sentiment-driver-title">驱动因子</div><ul class="sentiment-driver-list"><li>恐惧贪婪指数为50，情绪仍处于常态区间。</li><li>总市值24小时变化+1.23%，方向性仍待确认。</li><li>新闻情绪相对均衡（正面0，负面0）。</li></ul></div>
             </div>
         </div>
 
         <div class="sentiment-details">
             <h3>指数说明</h3>
             <div class="source-info">
-                <div class="compact-summary"><div class="compact-line"><span>快速判断</span><span>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</span></div><div class="compact-line"><span>数据来源</span><a href="https://example.com" target="_blank">test</a></div></div>
+                <div class="compact-summary"><div class="compact-line"><span>快速判断</span><span>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</span></div><div class="compact-line"><span>综合情绪分</span><span>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</span></div><div class="compact-line"><span>数据来源</span><a href="https://example.com" target="_blank">test</a></div><div class="compact-line"><span>综合分来源</span><span>恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化</span></div></div>
                 <details>
                     <summary class="sentiment-details-summary">查看完整指数说明</summary>
                     <p>该指数结合市场数据、社交媒体情绪、波动率和交易量等多维度数据，综合反映加密货币市场情绪。</p>
@@ -263,6 +266,7 @@
                     </div>
                 </div>
                 <p class="risk-level">中低风险 - 市场情绪平衡，可采取均衡配置</p>
+                <div class="ai-risk-focus"><span class="ai-risk-focus-label">对应主题</span><div class="news-tag-summary-list"><span class="news-summary-tag"><span class="news-summary-tag-label">监管</span><span class="news-summary-tag-count">1</span></span></div></div>
             </div>
 
             <div class="content-panel">

@@ -302,8 +302,13 @@ def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
 def generate_market_pulse_section(
     market_overview: Dict[str, Any],
     market_cap_history: List[Dict[str, Any]],
+    sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
-    body = _generate_market_pulse_body(market_overview, market_cap_history)
+    body = _generate_market_pulse_body(
+        market_overview,
+        market_cap_history,
+        sentiment_composite=sentiment_composite,
+    )
     return f"""
     <div class="section">
         <h2>市场脉搏</h2>
@@ -315,6 +320,7 @@ def generate_market_pulse_section(
 def _generate_market_pulse_body(
     market_overview: Dict[str, Any],
     market_cap_history: List[Dict[str, Any]],
+    sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
     history = market_cap_history[-30:]
     market_values = [
@@ -376,6 +382,17 @@ def _generate_market_pulse_body(
         if btc_dom_note_parts
         else ""
     )
+    composite = sentiment_composite or {}
+    composite_label = str(composite.get("label", "") or "").strip()
+    composite_summary = str(composite.get("summary", "") or "").strip()
+    pulse_state_html = ""
+    if composite_label or composite_summary:
+        pulse_state_html = (
+            '<div class="market-pulse-state">'
+            f'<span>市场状态</span><strong>{html.escape(composite_label or "中性平衡")}</strong>'
+            f'<small>{html.escape(composite_summary)}</small>'
+            "</div>"
+        )
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -386,6 +403,7 @@ def _generate_market_pulse_body(
         <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong>{btc_dom_note_html}</div>
         <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
+        {pulse_state_html}
     </div>
     {''.join(chart_sections)}
     """
@@ -395,8 +413,13 @@ def generate_market_insights_section(
     market_overview: Dict[str, Any],
     market_cap_history: List[Dict[str, Any]],
     cryptos: List[Dict[str, Any]],
+    sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
-    pulse_body = _generate_market_pulse_body(market_overview, market_cap_history)
+    pulse_body = _generate_market_pulse_body(
+        market_overview,
+        market_cap_history,
+        sentiment_composite=sentiment_composite,
+    )
     leadership_body = _generate_market_leadership_body(cryptos, market_overview)
     sector_body = _generate_sector_overview_body(cryptos)
     panels = []

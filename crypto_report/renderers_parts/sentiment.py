@@ -6,6 +6,18 @@ from typing import Any, Dict
 from .common import render_key_value_list
 
 
+def _get_composite_level(score: int) -> tuple[str, str]:
+    if score <= 25:
+        return "极度防御", "sentiment-level-risk"
+    if score <= 45:
+        return "偏防御", "sentiment-level-caution"
+    if score <= 60:
+        return "中性平衡", "sentiment-level-neutral"
+    if score <= 75:
+        return "风险偏好回升", "sentiment-level-positive"
+    return "偏热", "sentiment-level-warm"
+
+
 def generate_sentiment_analysis_section(
     sentiment: Dict[str, Any],
     report_time: str,
@@ -42,7 +54,8 @@ def generate_sentiment_analysis_section(
     recommendation = html.escape(str(deep_analysis.get("trading_advice", sentiment.get("recommendation", ""))))
     composite = sentiment_composite or {}
     composite_score = int(composite.get("score", sentiment.get("value", 0)) or 0)
-    composite_label = html.escape(str(composite.get("label", sentiment.get("classification", "中性"))))
+    default_label, composite_level_class = _get_composite_level(composite_score)
+    composite_label = html.escape(str(composite.get("label", default_label)))
     composite_summary = html.escape(str(composite.get("summary", "")))
     composite_drivers = composite.get("drivers") or []
     composite_drivers_html = ""
@@ -63,8 +76,12 @@ def generate_sentiment_analysis_section(
         '<div class="compact-summary">'
         '<div class="compact-line"><span>快速判断</span>'
         "<span>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</span></div>"
+        '<div class="compact-line"><span>综合情绪分</span>'
+        "<span>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</span></div>"
         f'<div class="compact-line"><span>数据来源</span>'
         f'<a href="{source_url}" target="_blank">{source_name}</a></div>'
+        '<div class="compact-line"><span>综合分来源</span>'
+        "<span>恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化</span></div>"
         "</div>"
     )
     deep_analysis_items = render_key_value_list(
@@ -84,6 +101,7 @@ def generate_sentiment_analysis_section(
         <h2>市场情绪指数分析</h2>
 
         <div class="sentiment-dashboard">
+            <div class="sentiment-score-pair">
                 <div class="sentiment-gauge">
                     <div class="gauge-title">加密货币恐惧贪婪指数</div>
                     <div class="gauge-value">{sentiment.get('value', 0)}</div>
@@ -94,9 +112,18 @@ def generate_sentiment_analysis_section(
                     </div>
                 </div>
 
+                <div class="sentiment-gauge sentiment-gauge-composite">
+                    <div class="gauge-title">综合市场情绪分</div>
+                    <div class="gauge-value">{composite_score}</div>
+                    <div class="gauge-classification {composite_level_class}">{composite_label}</div>
+                    <div class="composite-summary-card">{composite_summary}</div>
+                    {composite_drivers_html}
+                </div>
+            </div>
+
             <div class="sentiment-trends">
                 <div class="trends-title">
-                    <span>指数变化趋势</span>
+                    <span>恐惧贪婪指数变化趋势</span>
                 </div>
 
                 <div class="trend-grid">
@@ -117,17 +144,9 @@ def generate_sentiment_analysis_section(
                         <div class="trend-value {monthly_change_class}">{html.escape(monthly_change_str)}</div>
                         <div class="trend-change">过去30天</div>
                     </div>
-
-                    <div class="trend-card trend-card-emphasis">
-                        <div class="trend-period">综合市场情绪分</div>
-                        <div class="trend-value trend-neutral">{composite_score}</div>
-                        <div class="trend-change">{composite_label}</div>
-                    </div>
                 </div>
 
                 <div class="trend-note">趋势统计基于 {html.escape(report_time)} 生成。</div>
-                <div class="trend-note trend-note-strong">{composite_summary}</div>
-                {composite_drivers_html}
             </div>
         </div>
 
