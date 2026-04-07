@@ -44,6 +44,21 @@ def generate_sentiment_analysis_section(
     composite_score = int(composite.get("score", sentiment.get("value", 0)) or 0)
     composite_label = html.escape(str(composite.get("label", sentiment.get("classification", "中性"))))
     composite_summary = html.escape(str(composite.get("summary", "")))
+    composite_drivers = composite.get("drivers") or []
+    composite_drivers_html = ""
+    if composite_drivers:
+        driver_items = "".join(
+            f"<li>{html.escape(str(item))}</li>"
+            for item in composite_drivers[:3]
+            if str(item).strip()
+        )
+        if driver_items:
+            composite_drivers_html = (
+                '<div class="sentiment-driver-list-wrapper">'
+                '<div class="sentiment-driver-title">驱动因子</div>'
+                f'<ul class="sentiment-driver-list">{driver_items}</ul>'
+                "</div>"
+            )
     summary_items = (
         '<div class="compact-summary">'
         '<div class="compact-line"><span>快速判断</span>'
@@ -112,6 +127,7 @@ def generate_sentiment_analysis_section(
 
                 <div class="trend-note">趋势统计基于 {html.escape(report_time)} 生成。</div>
                 <div class="trend-note trend-note-strong">{composite_summary}</div>
+                {composite_drivers_html}
             </div>
         </div>
 

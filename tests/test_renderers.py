@@ -194,6 +194,7 @@ class RendererTests(unittest.TestCase):
                 'score': 61,
                 'label': '风险偏好回升',
                 'summary': '情绪和盘面同步改善，可关注量价是否继续确认。',
+                'drivers': ['恐惧贪婪指数为50，情绪仍处于常态区间。', '新闻面以正面/中性为主。'],
             },
         )
         self.assertIn('市场情绪指数分析', html)
@@ -203,6 +204,7 @@ class RendererTests(unittest.TestCase):
         self.assertNotIn('更新时间：</strong> 2026-04-03 10:00:00', html)
         self.assertIn('综合市场情绪分', html)
         self.assertIn('风险偏好回升', html)
+        self.assertIn('驱动因子', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
         html = generate_financial_analyst_section(
@@ -229,11 +231,13 @@ class RendererTests(unittest.TestCase):
                     'tags': ['监管', 'ETF/机构'],
                 }
             ],
-            {'监管': 3, 'ETF/机构': 2},
+            {'监管': 3, 'ETF/机构': 2, '技术升级': 1},
         )
         self.assertIn('新闻标签摘要', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
+        self.assertIn('风险事件', html)
+        self.assertIn('资金动向', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
         html = generate_top_focus_assets_section(
