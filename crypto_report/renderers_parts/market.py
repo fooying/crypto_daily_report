@@ -525,12 +525,22 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
 
 
 def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
-    market_cap_change = market_overview.get("market_cap_change_percentage_24h_usd", 0)
-    negative_class = "negative" if market_cap_change < 0 else ""
     btc_dominance = market_overview.get('market_cap_percentage', {}).get('btc', 0)
     eth_dominance = market_overview.get('market_cap_percentage', {}).get('eth', 0)
     alt_dominance = market_overview.get('alt_market_cap_percentage', 0)
     turnover_ratio = market_overview.get('volume_to_market_cap_ratio', 0)
+    total_market_cap = _safe_float(market_overview.get('total_market_cap', 0))
+    total_volume = _safe_float(market_overview.get('total_volume', 0))
+
+    def unit_label(value: float) -> str:
+        if value >= 1_000_000_000_000:
+            return "单位：万亿"
+        if value >= 1_000_000_000:
+            return "单位：十亿"
+        if value >= 1_000_000:
+            return "单位：百万"
+        return "单位：美元"
+
     return f"""
     <div class="section">
         <h2>市场概览</h2>
@@ -538,13 +548,13 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
             <div class="overview-grid">
                 <div class="overview-item">
                     <div class="overview-label">总市值</div>
-                    <div class="overview-value">{format_large_number(market_overview.get('total_market_cap', 0))}</div>
-                    <div class="overview-change {negative_class}">{market_cap_change:+.2f}% (24h)</div>
+                    <div class="overview-value">{format_large_number(total_market_cap).split(' ')[0]}</div>
+                    <div class="overview-sub">{unit_label(total_market_cap)}</div>
                 </div>
                 <div class="overview-item">
                     <div class="overview-label">24小时交易量</div>
-                    <div class="overview-value">{format_large_number(market_overview.get('total_volume', 0))}</div>
-                    <div class="overview-sub">活跃币种：{market_overview.get('active_cryptocurrencies', 0):,}</div>
+                    <div class="overview-value">{format_large_number(total_volume).split(' ')[0]}</div>
+                    <div class="overview-sub">{unit_label(total_volume)}</div>
                 </div>
                 <div class="overview-item">
                     <div class="overview-label">比特币占比</div>

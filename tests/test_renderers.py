@@ -29,7 +29,7 @@ class RendererTests(unittest.TestCase):
             }
         )
         self.assertIn('总市值', html)
-        self.assertIn('1.23% (24h)', html)
+        self.assertIn('单位：十亿', html)
         self.assertIn('50.0%', html)
         self.assertIn('山寨币占比', html)
         self.assertIn('成交额 / 市值', html)
