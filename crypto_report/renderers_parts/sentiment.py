@@ -18,7 +18,9 @@ def generate_sentiment_analysis_section(
     sentiment_bar_color: str,
     sentiment_updated_at: str,
     deep_analysis: Dict[str, str],
+    sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
+    del sentiment_updated_at
     source_url = html.escape(
         str(sentiment.get("url", "https://www.binance.com/zh-CN/square/fear-and-greed-index")),
         quote=True,
@@ -38,6 +40,10 @@ def generate_sentiment_analysis_section(
     market_impact = html.escape(str(deep_analysis.get("market_impact", "")))
     investor_behavior = html.escape(str(deep_analysis.get("investor_behavior", "")))
     recommendation = html.escape(str(deep_analysis.get("trading_advice", sentiment.get("recommendation", ""))))
+    composite = sentiment_composite or {}
+    composite_score = int(composite.get("score", sentiment.get("value", 0)) or 0)
+    composite_label = html.escape(str(composite.get("label", sentiment.get("classification", "中性"))))
+    composite_summary = html.escape(str(composite.get("summary", "")))
     summary_items = (
         '<div class="compact-summary">'
         '<div class="compact-line"><span>快速判断</span>'
@@ -96,9 +102,16 @@ def generate_sentiment_analysis_section(
                         <div class="trend-value {monthly_change_class}">{html.escape(monthly_change_str)}</div>
                         <div class="trend-change">过去30天</div>
                     </div>
+
+                    <div class="trend-card trend-card-emphasis">
+                        <div class="trend-period">综合市场情绪分</div>
+                        <div class="trend-value trend-neutral">{composite_score}</div>
+                        <div class="trend-change">{composite_label}</div>
+                    </div>
                 </div>
 
                 <div class="trend-note">趋势统计基于 {html.escape(report_time)} 生成。</div>
+                <div class="trend-note trend-note-strong">{composite_summary}</div>
             </div>
         </div>
 

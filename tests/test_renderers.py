@@ -12,6 +12,7 @@ from crypto_report.renderers import (
     generate_sentiment_analysis_section,
     generate_technical_context_section,
     generate_top_focus_assets_section,
+    generate_news_html,
 )
 
 
@@ -189,12 +190,19 @@ class RendererTests(unittest.TestCase):
                 'weekly_trend': 'custom trend',
                 'trading_advice': 'custom advice',
             },
+            sentiment_composite={
+                'score': 61,
+                'label': '风险偏好回升',
+                'summary': '情绪和盘面同步改善，可关注量价是否继续确认。',
+            },
         )
         self.assertIn('市场情绪指数分析', html)
         self.assertIn('history', html)
         self.assertIn('impact', html)
         self.assertIn('查看完整指数说明', html)
         self.assertNotIn('更新时间：</strong> 2026-04-03 10:00:00', html)
+        self.assertIn('综合市场情绪分', html)
+        self.assertIn('风险偏好回升', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
         html = generate_financial_analyst_section(
@@ -207,6 +215,25 @@ class RendererTests(unittest.TestCase):
         self.assertIn('金融分析师视角', html)
         self.assertIn('短期总结', html)
         self.assertIn('长期总结', html)
+
+    def test_news_html_renders_tag_summary(self) -> None:
+        html = generate_news_html(
+            [
+                {
+                    'title': '测试新闻',
+                    'summary': '测试摘要',
+                    'sentiment': '中性',
+                    'time': '2026-04-03 10:00',
+                    'url': 'https://example.com',
+                    'source': 'UnitTest',
+                    'tags': ['监管', 'ETF/机构'],
+                }
+            ],
+            {'监管': 3, 'ETF/机构': 2},
+        )
+        self.assertIn('新闻标签摘要', html)
+        self.assertIn('监管', html)
+        self.assertIn('3', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
         html = generate_top_focus_assets_section(

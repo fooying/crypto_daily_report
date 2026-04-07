@@ -279,6 +279,7 @@ class CryptoReportGenerator:
         weekly_change_class: str,
         monthly_change_class: str,
         deep_analysis: Dict[str, str],
+        sentiment_composite: Dict[str, Any] | None = None,
     ) -> str:
         sentiment_value = int(sentiment.get("value", 0))
         return generate_sentiment_analysis_section(
@@ -293,6 +294,7 @@ class CryptoReportGenerator:
             sentiment_bar_color=get_sentiment_color(sentiment_value),
             sentiment_updated_at=report_time,
             deep_analysis=deep_analysis,
+            sentiment_composite=sentiment_composite,
         )
 
     def _sync_report_assets(self):
@@ -490,7 +492,10 @@ class CryptoReportGenerator:
             ),
             sector_overview_section=generate_sector_overview_section(context["top_cryptos"]),
             crypto_table_rows=generate_crypto_table_rows(context["top_cryptos"]),
-            news_html=generate_news_html(context["news"]),
+            news_html=generate_news_html(
+                context["news"],
+                ai_analysis.get("news_tag_summary"),
+            ),
             news_date_range=self.news_date_range,
             sentiment_section=self._generate_sentiment_analysis_section(
                 sentiment=sentiment,
@@ -512,6 +517,7 @@ class CryptoReportGenerator:
                     "weekly_trend": sentiment.get("trend_analysis", ""),
                     "trading_advice": sentiment.get("recommendation", ""),
                 }),
+                sentiment_composite=ai_analysis.get("sentiment_composite"),
             ),
             ai_analysis_section=self._generate_ai_analysis_section(ai_analysis),
             financial_analyst_section=generate_financial_analyst_section(

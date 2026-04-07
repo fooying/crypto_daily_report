@@ -864,6 +864,16 @@ body {
   line-height: 1.5;
 }
 
+.trend-card-emphasis {
+  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fb 100%);
+  border-color: #dbe7f3;
+}
+
+.trend-note-strong {
+  margin-top: 8px;
+  color: var(--text-primary);
+}
+
 .compact-summary,
 .analysis-grid,
 .sentiment-breakdown {
@@ -958,6 +968,46 @@ body {
   color: var(--info-color);
   text-decoration: none;
   font-weight: 600;
+}
+
+.news-tag-summary {
+  display: grid;
+  gap: 10px;
+  padding: 0 0 16px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.news-tag-summary-title {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.news-tag-summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.news-summary-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: var(--text-primary);
+  font-size: 0.85em;
+}
+
+.news-summary-tag-label {
+  color: var(--text-secondary);
+}
+
+.news-summary-tag-count {
+  font-weight: 700;
 }
 
 /* ===== AI Analysis ===== */

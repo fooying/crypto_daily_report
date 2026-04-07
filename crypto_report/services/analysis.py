@@ -21,10 +21,15 @@ class AIAnalysisService:
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
-        sentiment_counts, news_keywords = self._collect_news_features(crypto_news)
+        sentiment_counts, news_keywords, news_tag_summary = self._collect_news_features(crypto_news)
         weekly_ai_trend = self.analyze_ai_weekly_trend(
             fear_greed_index,
             market_overview,
+        )
+        sentiment_composite = self.build_sentiment_composite(
+            fear_greed_index,
+            market_overview,
+            sentiment_counts,
         )
         fallback = self._build_rule_based_analysis(
             fear_greed_index,
@@ -32,7 +37,9 @@ class AIAnalysisService:
             technical_context or {},
             sentiment_counts,
             news_keywords,
+            news_tag_summary,
             weekly_ai_trend,
+            sentiment_composite,
         )
 
         ai_result = self._generate_deepseek_analysis(
@@ -49,6 +56,8 @@ class AIAnalysisService:
         analysis = dict(fallback)
         analysis.update(ai_result)
         analysis["sentiment_summary"] = sentiment_counts
+        analysis["news_tag_summary"] = news_tag_summary
+        analysis["sentiment_composite"] = sentiment_composite
         if weekly_ai_trend:
             analysis["weekly_trend"] = weekly_ai_trend
             analysis.setdefault(
@@ -60,9 +69,10 @@ class AIAnalysisService:
     @staticmethod
     def _collect_news_features(
         crypto_news: List[Dict[str, Any]],
-    ) -> tuple[Dict[str, int], List[str]]:
+    ) -> tuple[Dict[str, int], List[str], Dict[str, int]]:
         sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
         news_keywords: List[str] = []
+        news_tag_summary: Dict[str, int] = {}
         for item in crypto_news:
             sentiment = item.get("sentiment", "")
             if "利好" in sentiment or "积极" in sentiment:
@@ -83,8 +93,12 @@ class AIAnalysisService:
             elif "DeFi" in title or "Layer2" in title:
                 news_keywords.append("技术")
             for tag in tags:
-                news_keywords.append(str(tag))
-        return sentiment_counts, news_keywords
+                tag_text = str(tag).strip()
+                if not tag_text:
+                    continue
+                news_keywords.append(tag_text)
+                news_tag_summary[tag_text] = news_tag_summary.get(tag_text, 0) + 1
+        return sentiment_counts, news_keywords, news_tag_summary
 
     def _build_rule_based_analysis(
         self,
@@ -93,7 +107,9 @@ class AIAnalysisService:
         technical_context: Dict[str, Any],
         sentiment_counts: Dict[str, int],
         news_keywords: List[str],
+        news_tag_summary: Dict[str, int],
         weekly_ai_trend: Dict[str, Any],
+        sentiment_composite: Dict[str, Any],
     ) -> Dict[str, Any]:
         fgi_value = fear_greed_index.get("value", 50)
         sentiment_analysis = self.sentiment_service.get_sentiment_analysis(fear_greed_index)
@@ -128,6 +144,8 @@ class AIAnalysisService:
                 news_keywords,
             ),
             "sentiment_summary": sentiment_counts,
+            "sentiment_composite": sentiment_composite,
+            "news_tag_summary": news_tag_summary,
             "sentiment_deep_analysis": sentiment_deep_analysis,
             "financial_analyst": financial_analyst,
         }
@@ -146,6 +164,91 @@ class AIAnalysisService:
         return {
             "Authorization": f"Bearer {self.config.deepseek_api_key}",
             "Content-Type": "application/json",
+        }
+
+    @staticmethod
+    def _clamp(value: float, lower: float, upper: float) -> float:
+        return max(lower, min(upper, value))
+
+    def build_sentiment_composite(
+        self,
+        fear_greed_index: Dict[str, Any],
+        market_overview: Dict[str, Any],
+        sentiment_counts: Dict[str, int],
+    ) -> Dict[str, Any]:
+        fgi_value = int(fear_greed_index.get("value", 50) or 50)
+        market_change = float(market_overview.get("market_cap_change_percentage_24h_usd", 0) or 0)
+        btc_dominance_daily_change = market_overview.get("btc_dominance_daily_change")
+        total_news = sum(sentiment_counts.values())
+        if total_news > 0:
+            news_score = (
+                (
+                    sentiment_counts.get("positive", 0)
+                    + sentiment_counts.get("neutral", 0) * 0.5
+                ) / total_news
+            ) * 100
+        else:
+            news_score = 50.0
+
+        market_score = self._clamp(50 + market_change * 8, 0, 100)
+        score = fgi_value * 0.5 + news_score * 0.3 + market_score * 0.2
+
+        drivers: List[str] = []
+        if fgi_value <= 25:
+            drivers.append(f"恐惧贪婪指数处于低位（{fgi_value}），市场情绪偏防御。")
+        elif fgi_value >= 70:
+            drivers.append(f"恐惧贪婪指数回升至{fgi_value}，风险偏好明显修复。")
+        else:
+            drivers.append(f"恐惧贪婪指数为{fgi_value}，情绪仍处于常态区间。")
+
+        if market_change >= 2:
+            drivers.append(f"总市值24小时上涨{market_change:.2f}%，短线资金偏积极。")
+        elif market_change <= -2:
+            drivers.append(f"总市值24小时下跌{abs(market_change):.2f}%，盘面仍偏谨慎。")
+        else:
+            drivers.append(f"总市值24小时变化{market_change:+.2f}%，方向性仍待确认。")
+
+        if total_news > 0:
+            positive = sentiment_counts.get("positive", 0)
+            negative = sentiment_counts.get("negative", 0)
+            if positive > negative:
+                drivers.append(f"新闻面以正面/中性为主（正面{positive}，负面{negative}）。")
+            elif negative > positive:
+                drivers.append(f"新闻面偏谨慎（负面{negative}，正面{positive}）。")
+            else:
+                drivers.append(f"新闻情绪相对均衡（正面{positive}，负面{negative}）。")
+
+        if isinstance(btc_dominance_daily_change, (int, float)):
+            dominance_change = float(btc_dominance_daily_change)
+            if dominance_change >= 0.3:
+                score -= min(6.0, dominance_change * 8)
+                drivers.append(f"BTC主导率日升{dominance_change:+.2f}pct，资金偏向防御主线。")
+            elif dominance_change <= -0.3:
+                score += min(6.0, abs(dominance_change) * 8)
+                drivers.append(f"BTC主导率日降{dominance_change:+.2f}pct，风险偏好向山寨扩散。")
+
+        final_score = int(round(self._clamp(score, 0, 100)))
+        if final_score <= 25:
+            label = "极度防御"
+            summary = "综合信号偏弱，短线仍以防守和等待确认为主。"
+        elif final_score <= 45:
+            label = "偏防御"
+            summary = "情绪修复尚不稳固，适合控制仓位、优先观察主流资产。"
+        elif final_score <= 60:
+            label = "中性平衡"
+            summary = "多空信号相对均衡，市场仍在寻找下一阶段方向。"
+        elif final_score <= 75:
+            label = "风险偏好回升"
+            summary = "情绪和盘面同步改善，可关注量价是否继续确认。"
+        else:
+            label = "偏热"
+            summary = "风险偏好较强，但需警惕情绪过热后的回撤。"
+
+        return {
+            "score": final_score,
+            "label": label,
+            "summary": summary,
+            "drivers": drivers[:4],
         }
 
     def _build_deepseek_payload(

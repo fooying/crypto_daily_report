@@ -4,8 +4,33 @@ import html
 from typing import Any, Dict, List
 
 
-def generate_news_html(news: List[Dict[str, Any]]) -> str:
+def generate_news_html(
+    news: List[Dict[str, Any]],
+    news_tag_summary: Dict[str, int] | None = None,
+) -> str:
     news_html = ""
+    summary_html = ""
+    if news_tag_summary:
+        top_tags = sorted(
+            news_tag_summary.items(),
+            key=lambda item: (-item[1], item[0]),
+        )[:5]
+        if top_tags:
+            tags_html = "".join(
+                (
+                    '<span class="news-summary-tag">'
+                    f'<span class="news-summary-tag-label">{html.escape(str(tag))}</span>'
+                    f'<span class="news-summary-tag-count">{count}</span>'
+                    "</span>"
+                )
+                for tag, count in top_tags
+            )
+            summary_html = (
+                '<div class="news-tag-summary">'
+                '<div class="news-tag-summary-title">新闻标签摘要</div>'
+                f'<div class="news-tag-summary-list">{tags_html}</div>'
+                "</div>"
+            )
     for i, item in enumerate(news, 1):
         title = html.escape(str(item.get("title", "")))
         summary = html.escape(str(item.get("summary", "")))
@@ -35,4 +60,4 @@ def generate_news_html(news: List[Dict[str, Any]]) -> str:
                 </div>
             </div>
             """
-    return news_html
+    return summary_html + news_html

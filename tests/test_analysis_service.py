@@ -117,6 +117,8 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertGreater(len(result['trading_signals']), 0)
         self.assertIn('current_interpretation', result['sentiment_deep_analysis'])
         self.assertIn('overall_points', result['financial_analyst'])
+        self.assertIn('sentiment_composite', result)
+        self.assertIn('news_tag_summary', result)
 
     def test_get_ai_analysis_accepts_wrapped_json_content(self) -> None:
         self.http.post_json.return_value = {
@@ -147,6 +149,44 @@ class AIAnalysisServiceTests(unittest.TestCase):
 
         self.assertEqual(result['market_overview'], 'AI市场综述')
         self.assertEqual(result['financial_analyst']['long_term']['summary'], 'AI长期')
+
+    def test_collect_news_features_includes_tag_summary(self) -> None:
+        sentiment_counts, keywords, tag_summary = self.service._collect_news_features(
+            [
+                {
+                    'title': '监管与 ETF 同步推进',
+                    'summary': '机构继续关注',
+                    'sentiment': '积极',
+                    'tags': ['监管', 'ETF/机构'],
+                },
+                {
+                    'title': '交易所安全事件引发讨论',
+                    'summary': '社区保持谨慎',
+                    'sentiment': '谨慎',
+                    'tags': ['安全事件', '交易所'],
+                },
+            ]
+        )
+        self.assertEqual(sentiment_counts, {'positive': 1, 'neutral': 0, 'negative': 1})
+        self.assertIn('监管', keywords)
+        self.assertEqual(tag_summary['监管'], 1)
+        self.assertEqual(tag_summary['交易所'], 1)
+
+    def test_build_sentiment_composite_returns_summary(self) -> None:
+        result = self.service.build_sentiment_composite(
+            self.fear_greed_index,
+            {
+                **self.market_overview,
+                'btc_dominance_daily_change': 0.6,
+            },
+            {'positive': 3, 'neutral': 1, 'negative': 0},
+        )
+        self.assertIn('score', result)
+        self.assertIn('label', result)
+        self.assertIn('summary', result)
+        self.assertGreaterEqual(result['score'], 0)
+        self.assertLessEqual(result['score'], 100)
+        self.assertTrue(result['drivers'])
 
 
 if __name__ == '__main__':

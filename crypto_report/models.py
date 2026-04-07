@@ -65,12 +65,21 @@ class SentimentSummary(TypedDict):
     negative: int
 
 
+class SentimentComposite(TypedDict, total=False):
+    score: int
+    label: str
+    summary: str
+    drivers: List[str]
+
+
 class AIAnalysis(TypedDict, total=False):
     market_overview: str
     technical_analysis: str
     risk_assessment: str
     trading_signals: List[str]
     sentiment_summary: SentimentSummary
+    sentiment_composite: SentimentComposite
+    news_tag_summary: Dict[str, int]
     weekly_trend: WeeklyTrend
     trend_enhanced_analysis: str
     sentiment_deep_analysis: Dict[str, Any]
