@@ -314,7 +314,7 @@ body {
 
 .market-pulse-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -324,6 +324,8 @@ body {
   border: 1px solid #e8eef5;
   border-radius: 18px;
   padding: 12px 14px;
+  min-height: 88px;
+  grid-column: span 2;
 }
 
 .market-pulse-summary span {
@@ -922,6 +924,7 @@ body {
   margin-bottom: 24px;
 }
 
+.sentiment-score-panel,
 .sentiment-score-pair,
 .sentiment-gauge,
 .sentiment-trends {
@@ -932,10 +935,19 @@ body {
   padding: 22px;
 }
 
+.sentiment-score-panel {
+  display: grid;
+  gap: 0;
+}
+
 .sentiment-score-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  padding-bottom: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
 }
 
 .sentiment-gauge-divider {
@@ -954,7 +966,7 @@ body {
 
 .sentiment-gauge {
   text-align: center;
-  padding: 6px 8px;
+  padding: 10px 12px 6px;
   border: 0;
   box-shadow: none;
   background: transparent;
@@ -1414,29 +1426,32 @@ body {
   background: transparent;
 }
 
-.sentiment-reference-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.sentiment-reference-grid .sentiment-driver-list-wrapper {
+.sentiment-reference-merged {
   margin: 0;
 }
 
-.sentiment-reference-grid a,
+.sentiment-reference-block + .sentiment-reference-block {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #dbe4ee;
+}
+
+.sentiment-reference-merged a,
 .sentiment-driver-list-wrapper a {
   color: var(--info-color);
   text-decoration: none;
   font-weight: 600;
 }
 
-.sentiment-score-pair > .sentiment-driver-list-wrapper {
-  grid-column: 1 / -1;
-  margin: 4px 0 0;
+.sentiment-score-panel > .sentiment-driver-list-wrapper {
+  margin: 0;
+  padding-top: 18px;
   border-style: solid;
   border-color: #dbe7f3;
   background: linear-gradient(180deg, #f8fbff 0%, #f3f7fb 100%);
+  border-top: 1px dashed #dbe4ee;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 /* ===== AI Analysis ===== */
@@ -1622,7 +1637,7 @@ body {
 
   .sentiment-dashboard,
   .sentiment-score-pair,
-  .sentiment-reference-grid {
+  .sentiment-score-panel {
     grid-template-columns: 1fr;
   }
 
@@ -1680,6 +1695,11 @@ body {
   .sector-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .market-pulse-summary div {
+    grid-column: span 1;
+    min-height: auto;
   }
 
   .macro-grid,
@@ -1770,6 +1790,16 @@ body {
 
   .trend-card {
     min-height: auto;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1080px) {
+  .market-pulse-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .market-pulse-summary div {
+    grid-column: span 1;
   }
 }
 

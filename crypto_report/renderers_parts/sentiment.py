@@ -35,14 +35,13 @@ def generate_sentiment_analysis_section(
     del sentiment_updated_at
     raw_source_name = str(sentiment.get("source", "币安恐惧贪婪指数"))
     raw_classification = str(sentiment.get("classification", ""))
-    raw_description = str(sentiment.get("description", ""))
     source_url = html.escape(
         str(sentiment.get("url", "https://www.binance.com/zh-CN/square/fear-and-greed-index")),
         quote=True,
     )
     source_name = html.escape(raw_source_name)
     classification = html.escape(raw_classification)
-    description = html.escape(raw_description)
+    description = html.escape(str(sentiment.get("description", "")))
     current_interpretation = html.escape(
         str(deep_analysis.get("current_interpretation", description))
     )
@@ -77,19 +76,16 @@ def generate_sentiment_analysis_section(
             "</div>"
         )
 
-    composite_drivers_html = _render_driver_list(
-        "综合市场情绪分驱动因子",
-        composite_drivers[:3],
-    )
+    composite_drivers_html = _render_driver_list("综合市场情绪分驱动因子", composite_drivers[:3])
     summary_items = (
-        '<div class="sentiment-reference-grid">'
-        '<div class="sentiment-driver-list-wrapper">'
+        '<div class="sentiment-driver-list-wrapper sentiment-reference-merged">'
+        '<div class="sentiment-reference-block">'
         '<div class="sentiment-driver-title">恐惧贪婪指数</div>'
         '<ul class="sentiment-driver-list">'
         "<li>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</li>"
         f'<li>来源 <a href="{source_url}" target="_blank">{source_name}</a></li>'
         "</ul></div>"
-        '<div class="sentiment-driver-list-wrapper">'
+        '<div class="sentiment-reference-block">'
         '<div class="sentiment-driver-title">综合市场情绪分</div>'
         '<ul class="sentiment-driver-list">'
         "<li>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</li>"
@@ -120,25 +116,27 @@ def generate_sentiment_analysis_section(
         <div class="sentiment-headline">{sentiment_headline}</div>
 
         <div class="sentiment-dashboard">
-            <div class="sentiment-score-pair">
-                <div class="sentiment-gauge sentiment-gauge-divider">
-                    <div class="gauge-title">加密货币恐惧贪婪指数</div>
-                    <div class="gauge-value">{sentiment.get('value', 0)}</div>
-                    <div class="gauge-classification">{classification}</div>
+            <div class="sentiment-score-panel">
+                <div class="sentiment-score-pair">
+                    <div class="sentiment-gauge sentiment-gauge-divider">
+                        <div class="gauge-title">加密货币恐惧贪婪指数</div>
+                        <div class="gauge-value">{sentiment.get('value', 0)}</div>
+                        <div class="gauge-classification">{classification}</div>
 
-                    <div class="sentiment-bar">
-                        <div class="sentiment-bar-fill" style="width: {sentiment.get('value', 0)}%; background: {sentiment_bar_color};"></div>
+                        <div class="sentiment-bar">
+                            <div class="sentiment-bar-fill" style="width: {sentiment.get('value', 0)}%; background: {sentiment_bar_color};"></div>
+                        </div>
+                    </div>
+
+                    <div class="sentiment-gauge sentiment-gauge-composite">
+                        <div class="gauge-title">综合市场情绪分</div>
+                        <div class="gauge-value">{composite_score}</div>
+                        <div class="gauge-classification {composite_level_class}">{composite_label}</div>
+                        <div class="composite-summary-card">{composite_summary}</div>
                     </div>
                 </div>
-
-                <div class="sentiment-gauge sentiment-gauge-composite">
-                    <div class="gauge-title">综合市场情绪分</div>
-                    <div class="gauge-value">{composite_score}</div>
-                    <div class="gauge-classification {composite_level_class}">{composite_label}</div>
-                    <div class="composite-summary-card">{composite_summary}</div>
-                </div>
+                {composite_drivers_html}
             </div>
-            {composite_drivers_html}
 
             <div class="sentiment-trends">
                 <div class="trends-title">
