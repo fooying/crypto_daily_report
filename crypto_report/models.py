@@ -48,6 +48,7 @@ class NewsItem(TypedDict):
     title: str
     summary: str
     sentiment: str
+    impact: str
     time: str
     url: str
     source: str

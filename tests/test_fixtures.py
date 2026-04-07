@@ -55,6 +55,7 @@ class RealFixtureTests(unittest.TestCase):
         self.assertTrue(items[0]['url'].startswith('https://cointelegraph-cn.com/news/'))
         self.assertTrue(items[0]['time'].startswith('2026-04-03'))
         self.assertNotEqual(items[0]['summary'], '点击查看详情')
+        self.assertIn(items[0]['impact'], {'高影响', '中影响', '一般'})
 
     def test_parse_cointelegraph_detail_fixture_for_summary_fallback(self) -> None:
         self._skip_if_no_bs4()
@@ -73,6 +74,7 @@ class RealFixtureTests(unittest.TestCase):
         self.assertEqual(len(items), 3)
         self.assertEqual(items[0]['source'], 'CoinMarketCap')
         self.assertTrue(items[0]['url'].startswith('https://coinmarketcap.com/zh/news/'))
+        self.assertIn(items[0]['impact'], {'高影响', '中影响', '一般'})
 
     def test_news_service_falls_back_to_coinmarketcap_when_primary_fetch_fails(self) -> None:
         self._skip_if_no_bs4()

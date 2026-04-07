@@ -81,6 +81,7 @@ def generate_news_html(
         title = html.escape(str(item.get("title", "")))
         summary = html.escape(str(item.get("summary", "")))
         sentiment = html.escape(str(item.get("sentiment", "")))
+        impact = html.escape(str(item.get("impact", "")))
         publish_time = html.escape(str(item.get("time", "")))
         source = html.escape(str(item.get("source", "")))
         url = html.escape(str(item.get("url", "#")), quote=True)
@@ -91,11 +92,15 @@ def generate_news_html(
                 f'<span class="news-tag">{html.escape(str(tag))}</span>'
                 for tag in tags
             ) + '</div>'
+        impact_html = f'<span class="news-impact-badge">{impact}</span>' if impact else ""
         news_html += f"""
             <div class="news-item">
                 <div class="news-title-row">
                     <div class="news-title">{i}. {title}</div>
-                    <span class="news-sentiment-badge">{sentiment}</span>
+                    <div class="news-badge-group">
+                        {impact_html}
+                        <span class="news-sentiment-badge">{sentiment}</span>
+                    </div>
                 </div>
                 <p class="news-summary">{summary}</p>
                 {tags_html}

@@ -69,9 +69,51 @@ def _classify_sector(symbol: str) -> str:
     return "其他"
 
 
-def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
+def _build_strength_label(change_value: float, baseline: float) -> str:
+    diff = change_value - baseline
+    if diff >= 2.0:
+        return "强于大盘"
+    if diff <= -2.0:
+        return "弱于大盘"
+    return "跟随大盘"
+
+
+def _build_liquidity_label(turnover_ratio: float) -> str:
+    if turnover_ratio >= 12:
+        return "量能活跃"
+    if turnover_ratio >= 6:
+        return "量能平稳"
+    return "量能偏弱"
+
+
+def _build_technical_takeaway(metrics: Dict[str, Any]) -> str:
+    ma7 = metrics.get("ma7")
+    ma30 = metrics.get("ma30")
+    rsi14 = metrics.get("rsi14")
+    bollinger_status = str(metrics.get("bollinger_status", "") or "")
+    parts: List[str] = []
+    if ma7 is not None and ma30 is not None:
+        parts.append("短期强于中期均线" if float(ma7) >= float(ma30) else "短期弱于中期均线")
+    if rsi14 is not None:
+        rsi_value = float(rsi14)
+        if rsi_value < 30:
+            parts.append("RSI 接近超卖")
+        elif rsi_value > 70:
+            parts.append("RSI 偏强")
+        else:
+            parts.append("RSI 中性")
+    if bollinger_status:
+        parts.append(f"波动处于{bollinger_status}")
+    return "，".join(parts) if parts else "样本不足，暂无法形成统一结论"
+
+
+def generate_top_focus_assets_section(
+    cryptos: List[Dict[str, Any]],
+    market_overview: Dict[str, Any] | None = None,
+) -> str:
     if not cryptos:
         return ""
+    market_change = _safe_float((market_overview or {}).get("market_cap_change_percentage_24h_usd"), 0.0)
     cards = []
     for crypto in cryptos[:5]:
         symbol = html.escape(str(crypto.get("symbol", "")))
@@ -95,6 +137,13 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
             sparkline = build_svg_sparkline(spark_values)
         image_html = _build_icon_html(str(crypto.get("image", "")), str(crypto.get("symbol", "")))
         change_class = "green" if change >= 0 else "red"
+        turnover_ratio = (
+            _safe_float(crypto.get("total_volume"), 0.0)
+            / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9)
+            * 100
+        )
+        strength_label = _build_strength_label(change, market_change)
+        liquidity_label = _build_liquidity_label(turnover_ratio)
         sparkline_html = (
             f'<div class="focus-asset-sparkline">{sparkline}</div>'
             if sparkline
@@ -108,6 +157,10 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
                 <div class="focus-asset-change-row">
                     <div class="focus-asset-change {change_class}">24h {change:+.2f}%</div>
                     <div class="focus-asset-change {'green' if change_7d >= 0 else 'red'}">7d {change_7d:+.2f}%</div>
+                </div>
+                <div class="focus-asset-strength-row">
+                    <span>{html.escape(strength_label)}</span>
+                    <span>{html.escape(liquidity_label)}</span>
                 </div>
                 <div class="focus-asset-meta">
                     <span>市值 {market_cap}</span>
@@ -292,10 +345,19 @@ def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
             """
         )
 
+    strongest_sector, strongest_bucket = ranked[0]
+    weakest_sector, weakest_bucket = ranked[-1]
+    rotation_summary = (
+        f"当前板块轮动更偏向{html.escape(str(strongest_sector))}，"
+        f"其平均涨跌为{strongest_bucket['avg_change_24h']:+.2f}% ；"
+        f"{html.escape(str(weakest_sector))}相对承压（{weakest_bucket['avg_change_24h']:+.2f}%）。"
+    )
+
     return f"""
     <div class="sector-grid">
         {''.join(cards)}
     </div>
+    <div class="sector-rotation-summary">{rotation_summary}</div>
     """
 
 
@@ -476,6 +538,7 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
             f"""
             <div class="technical-context-card">
                 <div class="technical-context-header">{html.escape(str(symbol))} 30天技术摘要</div>
+                <div class="technical-context-takeaway">{html.escape(_build_technical_takeaway(metrics))}</div>
                 <div class="technical-context-grid">
                     <div><span>30天涨跌</span><strong class="{change_class}">{price_change_30d:+.2f}%</strong></div>
                     <div><span>区间高点</span><strong>${high_30d:,.2f}</strong></div>
@@ -579,6 +642,15 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
     turnover_ratio = market_overview.get('volume_to_market_cap_ratio', 0)
     total_market_cap = _safe_float(market_overview.get('total_market_cap', 0))
     total_volume = _safe_float(market_overview.get('total_volume', 0))
+    market_change = _safe_float(market_overview.get('market_cap_change_percentage_24h_usd', 0))
+    if btc_dominance >= 55 and turnover_ratio < 8:
+        structure_summary = "资金继续集中在比特币等主流资产，扩散节奏偏慢，市场更偏防御配置。"
+    elif btc_dominance <= 50 and market_change > 0:
+        structure_summary = "主流币之外的风险偏好有所抬升，资金有向更高弹性资产扩散的迹象。"
+    elif turnover_ratio >= 12:
+        structure_summary = "成交活跃度提升，说明短线资金参与意愿增强，但仍需观察持续性。"
+    else:
+        structure_summary = "资金结构相对均衡，主流资产与山寨资产暂未出现单边主导。"
 
     def unit_label(value: float) -> str:
         if value >= 1_000_000_000_000:
@@ -615,6 +687,7 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
                     <div class="overview-sub">成交额 / 市值：{turnover_ratio:.2f}%</div>
                 </div>
             </div>
+            <div class="market-overview-summary">{html.escape(structure_summary)}</div>
         </div>
     </div>
     """

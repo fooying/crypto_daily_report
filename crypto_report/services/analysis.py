@@ -100,6 +100,21 @@ class AIAnalysisService:
                 news_tag_summary[tag_text] = news_tag_summary.get(tag_text, 0) + 1
         return sentiment_counts, news_keywords, news_tag_summary
 
+    @staticmethod
+    def summarize_news_focus(news_tag_summary: Dict[str, int]) -> str:
+        if not news_tag_summary:
+            return "当前新闻面缺少清晰主线，更多以零散事件驱动为主。"
+        top_tags = sorted(
+            news_tag_summary.items(),
+            key=lambda item: (-item[1], item[0]),
+        )[:2]
+        labels = [str(tag) for tag, _ in top_tags if tag]
+        if not labels:
+            return "当前新闻面缺少清晰主线，更多以零散事件驱动为主。"
+        if len(labels) == 1:
+            return f"新闻主线集中在{labels[0]}，相关事件对短线情绪影响更直接。"
+        return f"新闻主线集中在{labels[0]}与{labels[1]}，说明资金更关注政策、资金或事件催化。"
+
     def _build_rule_based_analysis(
         self,
         fear_greed_index: Dict[str, Any],
@@ -121,13 +136,16 @@ class AIAnalysisService:
             sentiment_analysis,
             market_overview,
             sentiment_counts,
+            news_tag_summary,
             weekly_ai_trend,
         )
+        news_focus_summary = self.summarize_news_focus(news_tag_summary)
         analysis = {
             "market_overview": self.generate_dynamic_market_overview(
                 fgi_value,
                 market_overview,
                 sentiment_counts,
+                news_focus_summary,
                 weekly_ai_trend,
             ),
             "technical_analysis": self.generate_dynamic_technical_analysis(
@@ -547,6 +565,7 @@ class AIAnalysisService:
         fgi_value: int,
         market_data: Dict[str, Any],
         sentiment_counts: Dict[str, int],
+        news_focus_summary: str = "",
         weekly_trend: Dict[str, Any] | None = None,
     ) -> str:
         market_cap_change = market_data.get("market_cap_change_percentage_24h_usd", 0)
@@ -580,6 +599,8 @@ class AIAnalysisService:
                 parts.append("新闻情绪偏谨慎，市场关注风险因素。")
             else:
                 parts.append("新闻情绪相对平衡，多空消息交织。")
+        if news_focus_summary:
+            parts.append(news_focus_summary)
 
         if weekly_trend:
             market_trend = weekly_trend.get("market_trend", "unknown")
@@ -604,6 +625,7 @@ class AIAnalysisService:
     ) -> str:
         technical_context = technical_context or {}
         btc_context = technical_context.get("BTC", {})
+        eth_context = technical_context.get("ETH", {})
         btc_latest = float(btc_context.get("latest_close", 0) or 0)
         btc_low_30d = float(btc_context.get("low_30d", 0) or 0)
         btc_high_30d = float(btc_context.get("high_30d", 0) or 0)
@@ -622,6 +644,17 @@ class AIAnalysisService:
             if btc_low_30d > 0 and btc_high_30d > 0
             else "需继续观察近30天区间结构"
         )
+        btc_summary = AIAnalysisService._build_asset_technical_summary("BTC", btc_context)
+        eth_summary = AIAnalysisService._build_asset_technical_summary("ETH", eth_context)
+        summary_lines = [line for line in [btc_summary, eth_summary] if line]
+        summary_html = ""
+        if summary_lines:
+            summary_html = (
+                '<div style="margin-bottom: 10px; padding: 10px 12px; background: #f8fafc; '
+                'border: 1px solid #e7edf4; border-radius: 10px; font-size: 0.9em; color: #475569;">'
+                + " ".join(summary_lines)
+                + "</div>"
+            )
         if fgi_value <= 20:
             analysis = f"""
             <div class="technical-analysis">
@@ -672,7 +705,32 @@ class AIAnalysisService:
                     'border-radius: 5px; font-size: 0.9em;">'
                     f'<strong>🔍 周度技术观察：</strong> {patterns[0]}</div>'
                 )
-        return analysis
+        return summary_html + analysis
+
+    @staticmethod
+    def _build_asset_technical_summary(symbol: str, context: Dict[str, Any]) -> str:
+        if not context:
+            return ""
+        ma7 = context.get("ma7")
+        ma30 = context.get("ma30")
+        rsi14 = context.get("rsi14")
+        bollinger_status = str(context.get("bollinger_status", "") or "")
+        parts = []
+        if ma7 is not None and ma30 is not None:
+            parts.append("短期强于中期均线" if float(ma7) >= float(ma30) else "短期仍弱于中期均线")
+        if rsi14 is not None:
+            rsi_value = float(rsi14)
+            if rsi_value < 30:
+                parts.append("RSI 接近超卖")
+            elif rsi_value > 70:
+                parts.append("RSI 偏强但需防过热")
+            else:
+                parts.append("RSI 处于中性区间")
+        if bollinger_status:
+            parts.append(f"布林带显示{bollinger_status}")
+        if not parts:
+            return ""
+        return f"<strong>{symbol}</strong>：" + "，".join(parts) + "。"
 
     @staticmethod
     def get_volatility_trend_text(volatility_trend: str) -> str:
@@ -792,6 +850,7 @@ class AIAnalysisService:
         sentiment_analysis: Dict[str, Any],
         market_overview: Dict[str, Any],
         sentiment_counts: Dict[str, int],
+        news_tag_summary: Dict[str, int],
         weekly_ai_trend: Dict[str, Any],
     ) -> Dict[str, Any]:
         value = sentiment_analysis.get("value", 50)
@@ -800,11 +859,13 @@ class AIAnalysisService:
         btc_dominance = market_overview.get("market_cap_percentage", {}).get("btc", 0)
         positive = sentiment_counts.get("positive", 0)
         negative = sentiment_counts.get("negative", 0)
+        news_focus_summary = self.summarize_news_focus(news_tag_summary)
         overall_points = [
             f"市场情绪当前为{classification}（{value}分），情绪仍是短线定价的重要变量。",
             f"总市值24小时变化为{market_change:+.2f}%，说明风险偏好{'回暖' if market_change > 0 else '仍偏弱' if market_change < 0 else '暂未形成方向'}。",
             f"比特币市值占比为{btc_dominance:.1f}%，反映资金在主流资产与避险偏好之间的平衡。",
             f"新闻面统计显示正面{positive}条、负面{negative}条，消息面对盘面形成{'一定支撑' if positive >= negative else '一定压制'}。",
+            news_focus_summary,
             (
                 f"结合趋势观察，当前更适合{'等待确认后逐步提高风险暴露' if value > 40 else '控制仓位并耐心等待情绪修复'}。"
                 f"{self._summarize_weekly_trend(weekly_ai_trend)}"

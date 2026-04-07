@@ -34,6 +34,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('50.0%', html)
         self.assertIn('山寨币占比', html)
         self.assertIn('成交额 / 市值', html)
+        self.assertIn('资金', html)
 
     def test_market_leadership_section_contains_highlights(self) -> None:
         html = generate_market_leadership_section(
@@ -209,6 +210,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('驱动因子', html)
         self.assertIn('综合情绪分', html)
         self.assertIn('综合分来源', html)
+        self.assertIn('综合情绪当前为', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
         html = generate_financial_analyst_section(
@@ -229,6 +231,7 @@ class RendererTests(unittest.TestCase):
                     'title': '测试新闻',
                     'summary': '测试摘要',
                     'sentiment': '中性',
+                    'impact': '中影响',
                     'time': '2026-04-03 10:00',
                     'url': 'https://example.com',
                     'source': 'UnitTest',
@@ -242,6 +245,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('3', html)
         self.assertIn('风险事件', html)
         self.assertIn('资金动向', html)
+        self.assertIn('中影响', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
         html = generate_top_focus_assets_section(
@@ -251,14 +255,20 @@ class RendererTests(unittest.TestCase):
                     'symbol': 'BTC',
                     'current_price': 100.0,
                     'price_change_percentage_24h': 1.5,
+                    'price_change_percentage_7d': 5.0,
+                    'market_cap': 1000.0,
+                    'total_volume': 120.0,
                     'image': 'assets/coin-icons/bitcoin.png',
                     'sparkline_7d': [90, 92, 95, 100],
                 }
-            ]
+            ],
+            {'market_cap_change_percentage_24h_usd': -0.5},
         )
         self.assertIn('Bitcoin', html)
         self.assertIn('assets/coin-icons/bitcoin.png', html)
         self.assertIn('focus-asset-sparkline', html)
+        self.assertIn('强于大盘', html)
+        self.assertIn('量能活跃', html)
 
     def test_top_focus_assets_section_hides_missing_sparkline(self) -> None:
         html = generate_top_focus_assets_section(
@@ -268,10 +278,14 @@ class RendererTests(unittest.TestCase):
                     'symbol': 'BTC',
                     'current_price': 100.0,
                     'price_change_percentage_24h': 1.5,
+                    'price_change_percentage_7d': 2.0,
+                    'market_cap': 1000.0,
+                    'total_volume': 20.0,
                     'image': 'assets/coin-icons/bitcoin.png',
                     'sparkline_7d': [],
                 }
-            ]
+            ],
+            {'market_cap_change_percentage_24h_usd': 3.0},
         )
         self.assertNotIn('focus-asset-sparkline', html)
 
@@ -291,6 +305,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('公链生态', html)
         self.assertIn('Meme', html)
         self.assertNotIn('USDT', html)
+        self.assertIn('板块轮动', html)
 
     def test_sector_overview_section_hides_when_sectors_too_few(self) -> None:
         html = generate_sector_overview_section(
@@ -378,6 +393,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('MA7 / MA30', html)
         self.assertIn('RSI14', html)
         self.assertIn('布林带', html)
+        self.assertIn('短期强于中期均线', html)
 
     def test_news_html_renders_tags(self) -> None:
         from crypto_report.renderers import generate_news_html
@@ -388,6 +404,7 @@ class RendererTests(unittest.TestCase):
                     'title': '测试新闻',
                     'summary': '测试摘要',
                     'sentiment': '中性',
+                    'impact': '一般',
                     'time': '2026-04-03 10:00',
                     'url': 'https://example.com/news',
                     'source': 'UnitTest',
@@ -397,6 +414,7 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('news-tag', html)
         self.assertIn('监管', html)
+        self.assertIn('一般', html)
 
 
 if __name__ == "__main__":

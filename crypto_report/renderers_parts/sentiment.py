@@ -84,6 +84,11 @@ def generate_sentiment_analysis_section(
         "<span>恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化</span></div>"
         "</div>"
     )
+    sentiment_headline = (
+        f"综合情绪当前为 {composite_label}，"
+        f"恐惧贪婪指数处于 {classification}，"
+        f"{trend_analysis}"
+    )
     deep_analysis_items = render_key_value_list(
         [
             ("当前解读", current_interpretation),
@@ -99,6 +104,7 @@ def generate_sentiment_analysis_section(
     return f"""
     <div class="section">
         <h2>市场情绪指数分析</h2>
+        <div class="sentiment-headline">{sentiment_headline}</div>
 
         <div class="sentiment-dashboard">
             <div class="sentiment-score-pair">

@@ -188,6 +188,11 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertLessEqual(result['score'], 100)
         self.assertTrue(result['drivers'])
 
+    def test_summarize_news_focus_returns_top_theme_summary(self) -> None:
+        result = self.service.summarize_news_focus({'监管': 3, 'ETF/机构': 2, 'DeFi': 1})
+        self.assertIn('监管', result)
+        self.assertIn('ETF/机构', result)
+
 
 if __name__ == '__main__':
     unittest.main()

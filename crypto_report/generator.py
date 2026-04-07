@@ -165,6 +165,14 @@ class CryptoReportGenerator:
             for crypto in top_cryptos
             if str(crypto.get("symbol", "")).upper() not in self.STABLECOIN_SYMBOLS
         ][:5]
+        top_focus_assets = sorted(
+            top_focus_assets,
+            key=lambda crypto: (
+                float(crypto.get("price_change_percentage_24h") or 0.0) * 0.6
+                + float(crypto.get("price_change_percentage_7d") or 0.0) * 0.4
+            ),
+            reverse=True,
+        )
         top_focus_symbols = {
             str(crypto.get("symbol", "")).upper()
             for crypto in top_focus_assets
@@ -473,7 +481,10 @@ class CryptoReportGenerator:
             inline_styles=self._load_inline_styles(),
             stylesheet_href=self.config.build_asset_href(self.report_stylesheet_name),
             market_overview_section=generate_market_overview_section(context["market_overview"]),
-            top_focus_assets_section=generate_top_focus_assets_section(context["top_focus_assets"]),
+            top_focus_assets_section=generate_top_focus_assets_section(
+                context["top_focus_assets"],
+                context["market_overview"],
+            ),
             market_insights_section=generate_market_insights_section(
                 context["market_overview"],
                 context["market_cap_history"],

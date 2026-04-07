@@ -100,6 +100,21 @@ class NewsService:
         tags = [label for label, keywords in tag_rules if any(keyword in text_to_check for keyword in keywords)]
         return tags[:3]
 
+    def classify_news_impact(self, title: str, summary: str, tags: List[str] | None = None) -> str:
+        text_to_check = (title + " " + summary).lower()
+        tag_set = set(tags or [])
+        high_priority_tags = {"监管", "ETF/机构", "安全事件"}
+        medium_priority_tags = {"交易所", "技术升级", "DeFi", "链上/挖矿"}
+        if tag_set & high_priority_tags:
+            return "高影响"
+        if any(keyword in text_to_check for keyword in ["etf", "黑客", "监管", "批准", "诉讼", "攻击"]):
+            return "高影响"
+        if tag_set & medium_priority_tags:
+            return "中影响"
+        if any(keyword in text_to_check for keyword in ["升级", "主网", "交易所", "defi", "矿工"]):
+            return "中影响"
+        return "一般"
+
     def extract_news_summary(
         self,
         article: Any,
@@ -202,15 +217,17 @@ class NewsService:
                     news_time = self.parse_news_time(time_elem.get_text(strip=True), today, start_date)
 
                 if news_time.date() >= start_date.date():
+                    tags = self.classify_news_tags(title, summary)
                     news_items.append(
                         {
                             "title": title,
                             "summary": summary[:150] + "..." if len(summary) > 150 else summary,
                             "sentiment": self.classify_news_sentiment(title, summary),
+                            "impact": self.classify_news_impact(title, summary, tags),
                             "time": news_time.strftime("%Y-%m-%d %H:%M"),
                             "url": link,
                             "source": "CoinTelegraph",
-                            "tags": self.classify_news_tags(title, summary),
+                            "tags": tags,
                         }
                     )
             except Exception as exc:
@@ -228,15 +245,17 @@ class NewsService:
             title_elem = article.find(["h3", "h4"]) or article
             title = title_elem.get_text(strip=True)
             if title and len(title) > 10:
+                tags = self.classify_news_tags(title, "")
                 news_items.append(
                     {
                         "title": title[:80],
                         "summary": "点击查看详情",
                         "sentiment": "中性",
+                        "impact": self.classify_news_impact(title, "", tags),
                         "time": "最新",
                         "source": "CoinMarketCap",
                         "url": f"https://coinmarketcap.com{article.get('href', '')}",
-                        "tags": self.classify_news_tags(title, ""),
+                        "tags": tags,
                     }
                 )
         return news_items
@@ -261,6 +280,7 @@ class NewsService:
                 "title": "备用新闻源不可用",
                 "summary": "上游新闻页面暂时无法访问，当前报告使用降级数据。",
                 "sentiment": "中性",
+                "impact": "一般",
                 "time": "最新",
                 "source": "Fallback",
                 "url": PRIMARY_NEWS_URL,
