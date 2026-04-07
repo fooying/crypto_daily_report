@@ -65,6 +65,8 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(result['market_cap_change_percentage_24h_usd'], 1.56)
         self.assertAlmostEqual(result['alt_market_cap_percentage'], 29.4)
         self.assertAlmostEqual(result['volume_to_market_cap_ratio'], 4.8)
+        self.assertIn('btc_dominance_daily_change', result)
+        self.assertIn('btc_dominance_weekly_change', result)
         self.assertEqual(self.http.fetch_json.call_count, 2)
         self.assertEqual(self.service.last_market_overview_source, 'coinmarketcap_backup')
         fallback_headers = self.http.fetch_json.call_args_list[1].kwargs['headers']
@@ -202,6 +204,9 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertIn('ETH', result)
         self.assertEqual(result['BTC']['price_change_30d'], 10.0)
         self.assertEqual(result['ETH']['avg_volume_30d'], 45.0)
+        self.assertIn('ma7', result['BTC'])
+        self.assertIn('rsi14', result['BTC'])
+        self.assertIn('bollinger_upper', result['BTC'])
         self.assertEqual(self.service.last_technical_context_source, 'coingecko_market_chart_range')
 
 

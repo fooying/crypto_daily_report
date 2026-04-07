@@ -86,6 +86,20 @@ class NewsService:
             return "谨慎"
         return "中性"
 
+    def classify_news_tags(self, title: str, summary: str) -> List[str]:
+        text_to_check = (title + " " + summary).lower()
+        tag_rules = [
+            ("监管", ["监管", "政策", "合规", "批准", "牌照", "诉讼", "审查"]),
+            ("ETF/机构", ["etf", "机构", "基金", "银行", "上市公司", "财库"]),
+            ("安全事件", ["黑客", "攻击", "漏洞", "盗", "安全事件", "风险事件"]),
+            ("DeFi", ["defi", "借贷", "tvl", "流动性", "协议"]),
+            ("交易所", ["coinbase", "binance", "bybit", "交易所", "上币"]),
+            ("链上/挖矿", ["矿工", "链上", "地址", "储备", "哈希"]),
+            ("技术升级", ["升级", "主网", "layer2", "zk", "rollup", "测试网"]),
+        ]
+        tags = [label for label, keywords in tag_rules if any(keyword in text_to_check for keyword in keywords)]
+        return tags[:3]
+
     def extract_news_summary(
         self,
         article: Any,
@@ -196,6 +210,7 @@ class NewsService:
                             "time": news_time.strftime("%Y-%m-%d %H:%M"),
                             "url": link,
                             "source": "CoinTelegraph",
+                            "tags": self.classify_news_tags(title, summary),
                         }
                     )
             except Exception as exc:
@@ -221,6 +236,7 @@ class NewsService:
                         "time": "最新",
                         "source": "CoinMarketCap",
                         "url": f"https://coinmarketcap.com{article.get('href', '')}",
+                        "tags": self.classify_news_tags(title, ""),
                     }
                 )
         return news_items
@@ -248,6 +264,7 @@ class NewsService:
                 "time": "最新",
                 "source": "Fallback",
                 "url": PRIMARY_NEWS_URL,
+                "tags": [],
             }
         ]
 

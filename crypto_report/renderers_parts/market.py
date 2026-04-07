@@ -364,6 +364,9 @@ def _generate_market_pulse_body(
     market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
     turnover_ratio = _safe_float(market_overview.get("volume_to_market_cap_ratio"), 0.0)
     market_change_class = "green" if market_change >= 0 else "red"
+    btc_dom_change_1d = _safe_float(market_overview.get("btc_dominance_daily_change"), 0.0)
+    btc_dom_change_7d = _safe_float(market_overview.get("btc_dominance_weekly_change"), 0.0)
+    btc_dom_note = f"日变 {btc_dom_change_1d:+.2f}pct / 周变 {btc_dom_change_7d:+.2f}pct"
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -371,7 +374,7 @@ def _generate_market_pulse_body(
     <div class="market-pulse-summary">
         <div><span>市场24h涨跌</span><strong class="{market_change_class}">{market_change:+.2f}%</strong></div>
         <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
-        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong></div>
+        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong><small>{btc_dom_note}</small></div>
         <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
     </div>
@@ -427,7 +430,16 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
         low_30d = float(metrics.get("low_30d", 0))
         latest_close = float(metrics.get("latest_close", 0))
         avg_volume_30d = float(metrics.get("avg_volume_30d", 0))
+        ma7 = metrics.get("ma7")
+        ma30 = metrics.get("ma30")
+        rsi14 = metrics.get("rsi14")
+        bollinger_status = html.escape(str(metrics.get("bollinger_status", "")))
+        bollinger_upper = metrics.get("bollinger_upper")
+        bollinger_lower = metrics.get("bollinger_lower")
         change_class = "green" if price_change_30d >= 0 else "red"
+        ma_status = ""
+        if ma7 is not None and ma30 is not None:
+            ma_status = "短期强于中期" if float(ma7) >= float(ma30) else "短期仍弱于中期"
         cards.append(
             f"""
             <div class="technical-context-card">
@@ -438,6 +450,11 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
                     <div><span>区间低点</span><strong>${low_30d:,.2f}</strong></div>
                     <div><span>最新收盘</span><strong>${latest_close:,.2f}</strong></div>
                     <div><span>30天均量</span><strong>{format_large_number(avg_volume_30d)}</strong></div>
+                </div>
+                <div class="technical-indicator-row">
+                    <div><span>MA7 / MA30</span><strong>{f'${float(ma7):,.2f}' if ma7 is not None else 'N/A'} / {f'${float(ma30):,.2f}' if ma30 is not None else 'N/A'}</strong><small>{ma_status or '样本不足'}</small></div>
+                    <div><span>RSI14</span><strong>{f'{float(rsi14):.1f}' if rsi14 is not None else 'N/A'}</strong><small>{'超卖' if rsi14 is not None and float(rsi14) < 30 else '偏强' if rsi14 is not None and float(rsi14) > 70 else '中性区间' if rsi14 is not None else '样本不足'}</small></div>
+                    <div><span>布林带</span><strong>{bollinger_status or 'N/A'}</strong><small>{f'${float(bollinger_lower):,.2f} - ${float(bollinger_upper):,.2f}' if bollinger_upper is not None and bollinger_lower is not None else '样本不足'}</small></div>
                 </div>
             </div>
             """

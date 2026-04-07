@@ -32,6 +32,7 @@ class ReportSnapshotTests(unittest.TestCase):
                     'time': '2026-04-03 10:00',
                     'url': 'https://example.com/news',
                     'source': 'UnitTest',
+                    'tags': ['监管'],
                 }
             ]
             obj.market_overview = {
@@ -42,6 +43,8 @@ class ReportSnapshotTests(unittest.TestCase):
                 'market_cap_change_percentage_24h_usd': 1.23,
                 'alt_market_cap_percentage': 30.0,
                 'volume_to_market_cap_ratio': 50.0,
+                'btc_dominance_daily_change': 0.5,
+                'btc_dominance_weekly_change': -1.2,
             }
             obj.top_cryptos = [{
                 'name': 'Bitcoin', 'symbol': 'BTC', 'current_price': 1.0, 'market_cap': 2.0,
@@ -61,6 +64,12 @@ class ReportSnapshotTests(unittest.TestCase):
                     'low_30d': 0.5,
                     'latest_close': 1.2,
                     'avg_volume_30d': 3.0,
+                    'ma7': 1.1,
+                    'ma30': 1.0,
+                    'rsi14': 52.3,
+                    'bollinger_upper': 1.4,
+                    'bollinger_lower': 0.8,
+                    'bollinger_status': '区间中部',
                 }
             }
             obj.fear_greed_index = {
@@ -108,6 +117,7 @@ class ReportSnapshotTests(unittest.TestCase):
             'time': '2026-04-03 10:00',
             'url': 'https://example.com/news',
             'source': 'UnitTest',
+            'tags': ['监管'],
         }]
         obj.market_overview = {
             'total_market_cap': 1_000_000_000,
@@ -117,6 +127,8 @@ class ReportSnapshotTests(unittest.TestCase):
             'market_cap_change_percentage_24h_usd': 1.23,
             'alt_market_cap_percentage': 30.0,
             'volume_to_market_cap_ratio': 50.0,
+            'btc_dominance_daily_change': 0.5,
+            'btc_dominance_weekly_change': -1.2,
         }
         obj.top_cryptos = [{
             'name': 'Bitcoin', 'symbol': 'BTC', 'current_price': 1.0, 'market_cap': 2.0,
@@ -136,6 +148,12 @@ class ReportSnapshotTests(unittest.TestCase):
                 'low_30d': 0.5,
                 'latest_close': 1.2,
                 'avg_volume_30d': 3.0,
+                'ma7': 1.1,
+                'ma30': 1.0,
+                'rsi14': 52.3,
+                'bollinger_upper': 1.4,
+                'bollinger_lower': 0.8,
+                'bollinger_status': '区间中部',
             }
         }
         obj.fear_greed_index = {

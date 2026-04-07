@@ -13,6 +13,13 @@ def generate_news_html(news: List[Dict[str, Any]]) -> str:
         publish_time = html.escape(str(item.get("time", "")))
         source = html.escape(str(item.get("source", "")))
         url = html.escape(str(item.get("url", "#")), quote=True)
+        tags = item.get("tags") or []
+        tags_html = ""
+        if tags:
+            tags_html = '<div class="news-tags">' + "".join(
+                f'<span class="news-tag">{html.escape(str(tag))}</span>'
+                for tag in tags
+            ) + '</div>'
         news_html += f"""
             <div class="news-item">
                 <div class="news-title-row">
@@ -20,6 +27,7 @@ def generate_news_html(news: List[Dict[str, Any]]) -> str:
                     <span class="news-sentiment-badge">{sentiment}</span>
                 </div>
                 <p class="news-summary">{summary}</p>
+                {tags_html}
                 <div class="news-meta">
                     <span>{publish_time}</span>
                     <span>{source}</span>

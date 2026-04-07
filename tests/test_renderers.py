@@ -285,6 +285,7 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('市场脉搏', html)
         self.assertIn('BTC主导率', html)
+        self.assertIn('日变', html)
         self.assertNotIn('总市值走势', html)
         self.assertNotIn('24小时交易量走势', html)
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
@@ -319,12 +320,40 @@ class RendererTests(unittest.TestCase):
                     'low_30d': 62000,
                     'latest_close': 68000,
                     'avg_volume_30d': 35_000_000_000,
+                    'ma7': 67500,
+                    'ma30': 66000,
+                    'rsi14': 54.2,
+                    'bollinger_upper': 71000,
+                    'bollinger_lower': 63000,
+                    'bollinger_status': '区间中部',
                 }
             }
         )
         self.assertIn('技术背景摘要', html)
         self.assertIn('BTC 30天技术摘要', html)
         self.assertIn('+10.50%', html)
+        self.assertIn('MA7 / MA30', html)
+        self.assertIn('RSI14', html)
+        self.assertIn('布林带', html)
+
+    def test_news_html_renders_tags(self) -> None:
+        from crypto_report.renderers import generate_news_html
+
+        html = generate_news_html(
+            [
+                {
+                    'title': '测试新闻',
+                    'summary': '测试摘要',
+                    'sentiment': '中性',
+                    'time': '2026-04-03 10:00',
+                    'url': 'https://example.com/news',
+                    'source': 'UnitTest',
+                    'tags': ['监管', 'ETF/机构'],
+                }
+            ]
+        )
+        self.assertIn('news-tag', html)
+        self.assertIn('监管', html)
 
 
 if __name__ == "__main__":

@@ -104,6 +104,8 @@ class TrendRepository:
             "value": market_data.get("total_market_cap", 0),
             "change_24h": market_data.get("market_cap_change_percentage_24h_usd", 0),
             "volume_24h": market_data.get("total_volume", 0),
+            "btc_dominance": (market_data.get("market_cap_percentage") or {}).get("btc", 0),
+            "eth_dominance": (market_data.get("market_cap_percentage") or {}).get("eth", 0),
             "timestamp": str(int(time.time())),
             "source": "coingecko",
         }

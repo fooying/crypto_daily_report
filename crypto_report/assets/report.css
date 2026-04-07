@@ -302,6 +302,14 @@ body {
   font-size: 1.08em;
 }
 
+.market-pulse-summary small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.78em;
+  line-height: 1.4;
+}
+
 .market-pulse-chart,
 .market-pulse-volume {
   border: 1px solid #e7edf4;
@@ -386,6 +394,34 @@ body {
   color: #7b8aa0;
   font-weight: 600;
   margin-bottom: 6px;
+}
+
+.technical-indicator-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf2f7;
+}
+
+.technical-indicator-row span {
+  display: block;
+  color: #7b8aa0;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.technical-indicator-row strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+.technical-indicator-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.8em;
 }
 
 /* ===== Market Leadership ===== */
@@ -587,6 +623,23 @@ body {
 .news-summary {
   margin: 10px 0;
   color: var(--text-secondary);
+}
+
+.news-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 6px;
+}
+
+.news-tag {
+  background: #f8fafc;
+  border: 1px solid #e7edf4;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.78em;
+  font-weight: 600;
+  padding: 3px 8px;
 }
 
 .news-meta {

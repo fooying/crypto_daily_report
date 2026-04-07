@@ -73,6 +73,7 @@ class AIAnalysisService:
                 sentiment_counts["neutral"] += 1
 
             title = item.get("title", "")
+            tags = item.get("tags") or []
             if "比特币" in title:
                 news_keywords.append("比特币")
             elif "以太坊" in title:
@@ -81,6 +82,8 @@ class AIAnalysisService:
                 news_keywords.append("监管")
             elif "DeFi" in title or "Layer2" in title:
                 news_keywords.append("技术")
+            for tag in tags:
+                news_keywords.append(str(tag))
         return sentiment_counts, news_keywords
 
     def _build_rule_based_analysis(

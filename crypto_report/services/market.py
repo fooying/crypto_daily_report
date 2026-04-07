@@ -98,9 +98,87 @@ class MarketService:
             "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
             if total_market_cap
             else 0,
+            "btc_dominance_daily_change": 0,
+            "btc_dominance_weekly_change": 0,
             "market_cap_change_percentage_24h_usd": metrics.get(
                 "quote", {}
             ).get("USD", {}).get("total_market_cap_yesterday_percentage_change", 0),
+        }
+
+    def _calculate_market_metric_change(self, metric_name: str, current_value: float, days: int) -> float:
+        try:
+            market_history = self.storage.load().get("market_cap", {})
+            dates = sorted(market_history.keys(), reverse=True)
+            if len(dates) < days:
+                return 0.0
+            previous_value = market_history.get(dates[days - 1], {}).get(metric_name)
+            if previous_value is None:
+                return 0.0
+            return round(float(current_value) - float(previous_value), 2)
+        except Exception as exc:
+            self.logger.debug("计算市场指标变化失败 metric=%s days=%s err=%s", metric_name, days, exc)
+            return 0.0
+
+    def _enrich_market_overview_trends(self, overview: MarketOverview) -> MarketOverview:
+        btc_dominance = (overview.get("market_cap_percentage") or {}).get("btc", 0.0)
+        overview["btc_dominance_daily_change"] = self._calculate_market_metric_change(
+            "btc_dominance",
+            btc_dominance,
+            2,
+        )
+        overview["btc_dominance_weekly_change"] = self._calculate_market_metric_change(
+            "btc_dominance",
+            btc_dominance,
+            7,
+        )
+        return overview
+
+    @staticmethod
+    def _calculate_moving_average(values: List[float], window: int) -> float | None:
+        if len(values) < window:
+            return None
+        subset = values[-window:]
+        return round(sum(subset) / window, 2)
+
+    @staticmethod
+    def _calculate_rsi(values: List[float], period: int = 14) -> float | None:
+        if len(values) <= period:
+            return None
+        gains = []
+        losses = []
+        for previous, current in zip(values[-(period + 1):-1], values[-period:]):
+            delta = current - previous
+            gains.append(max(delta, 0))
+            losses.append(abs(min(delta, 0)))
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
+        if avg_loss == 0:
+            return 100.0
+        rs = avg_gain / avg_loss
+        return round(100 - (100 / (1 + rs)), 2)
+
+    @staticmethod
+    def _calculate_bollinger_bands(values: List[float], window: int = 20) -> Dict[str, float] | None:
+        if len(values) < window:
+            return None
+        subset = values[-window:]
+        middle = sum(subset) / window
+        variance = sum((value - middle) ** 2 for value in subset) / window
+        std = variance ** 0.5
+        upper = middle + 2 * std
+        lower = middle - 2 * std
+        latest = subset[-1]
+        if latest >= upper:
+            status = "接近上轨"
+        elif latest <= lower:
+            status = "接近下轨"
+        else:
+            status = "区间中部"
+        return {
+            "upper": round(upper, 2),
+            "middle": round(middle, 2),
+            "lower": round(lower, 2),
+            "status": status,
         }
 
     def _map_coinmarketcap_listings(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -269,6 +347,10 @@ class MarketService:
 
                 if not close_prices:
                     continue
+                ma7 = self._calculate_moving_average(close_prices, 7)
+                ma30 = self._calculate_moving_average(close_prices, 30)
+                rsi14 = self._calculate_rsi(close_prices, 14)
+                bollinger = self._calculate_bollinger_bands(close_prices, 20) or {}
                 context[label] = {
                     "price_change_30d": round(
                         (close_prices[-1] - close_prices[0]) / close_prices[0] * 100,
@@ -282,6 +364,13 @@ class MarketService:
                     "avg_volume_30d": round(sum(volume_values) / len(volume_values), 2)
                     if volume_values
                     else 0,
+                    "ma7": ma7,
+                    "ma30": ma30,
+                    "rsi14": rsi14,
+                    "bollinger_upper": bollinger.get("upper"),
+                    "bollinger_middle": bollinger.get("middle"),
+                    "bollinger_lower": bollinger.get("lower"),
+                    "bollinger_status": bollinger.get("status", ""),
                 }
             if context:
                 self.last_technical_context_source = "coingecko_market_chart_range"
@@ -312,12 +401,14 @@ class MarketService:
                 "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
                 if total_market_cap
                 else 0,
+                "btc_dominance_daily_change": 0,
+                "btc_dominance_weekly_change": 0,
                 "market_cap_change_percentage_24h_usd": market_data.get(
                     "market_cap_change_percentage_24h_usd", 0
                 ),
             }
             self.storage.update_market_data_trend(result)
-            return result
+            return self._enrich_market_overview_trends(result)
 
         def backup():
             fallback_data = self.fetch_coinmarketcap_json(
@@ -326,7 +417,7 @@ class MarketService:
             )
             result = self._map_coinmarketcap_global_metrics(fallback_data)
             self.storage.update_market_data_trend(result)
-            return result
+            return self._enrich_market_overview_trends(result)
 
         return self._try_primary_then_backup(
             primary_fn=primary,

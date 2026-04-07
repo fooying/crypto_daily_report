@@ -15,6 +15,8 @@ def build_default_market_overview() -> Dict[str, Any]:
         "market_cap_change_percentage_24h_usd": 0,
         "alt_market_cap_percentage": 0,
         "volume_to_market_cap_ratio": 0,
+        "btc_dominance_daily_change": 0,
+        "btc_dominance_weekly_change": 0,
     }
 
 
