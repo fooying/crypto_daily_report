@@ -69,14 +69,65 @@ def _render_news_tag_summary(news_tag_summary: Dict[str, int]) -> str:
     )
 
 
+def _render_news_event_summary(news_event_summary: Dict[str, int]) -> str:
+    if not news_event_summary:
+        return ""
+    items = "".join(
+        (
+            '<span class="news-summary-tag">'
+            f'<span class="news-summary-tag-label">{html.escape(str(label))}</span>'
+            f'<span class="news-summary-tag-count">{count}</span>'
+            "</span>"
+        )
+        for label, count in sorted(
+            news_event_summary.items(),
+            key=lambda item: (-item[1], item[0]),
+        )
+    )
+    return (
+        '<div class="news-tag-summary">'
+        '<div class="news-tag-summary-title">事件主线</div>'
+        f'<div class="news-tag-summary-list">{items}</div>'
+        "</div>"
+    )
+
+
+def _render_event_watchlist(event_watchlist: List[Dict[str, Any]]) -> str:
+    if not event_watchlist:
+        return ""
+    rows = []
+    for item in event_watchlist:
+        rows.append(
+            '<div class="event-watch-item">'
+            f'<div class="event-watch-theme">{html.escape(str(item.get("theme", "")))}</div>'
+            f'<div class="event-watch-title">{html.escape(str(item.get("title", "")))}</div>'
+            '<div class="event-watch-meta">'
+            f'<span>{html.escape(str(item.get("time", "")))}</span>'
+            f'<span>{html.escape(str(item.get("impact", "")))}</span>'
+            f'<span>{html.escape(str(item.get("source", "")))}</span>'
+            "</div>"
+            "</div>"
+        )
+    return (
+        '<div class="news-event-watch">'
+        '<div class="news-tag-summary-title">事件观察</div>'
+        f'{"".join(rows)}'
+        "</div>"
+    )
+
+
 def generate_news_html(
     news: List[Dict[str, Any]],
     news_tag_summary: Dict[str, int] | None = None,
+    news_event_summary: Dict[str, int] | None = None,
+    event_watchlist: List[Dict[str, Any]] | None = None,
 ) -> str:
     news_items_html = ""
     summary_html = ""
     if news_tag_summary:
         summary_html = _render_news_tag_summary(news_tag_summary)
+    event_summary_html = _render_news_event_summary(news_event_summary or {})
+    watchlist_html = _render_event_watchlist(event_watchlist or [])
     for i, item in enumerate(news, 1):
         title = html.escape(str(item.get("title", "")))
         summary = html.escape(str(item.get("summary", "")))
@@ -111,4 +162,11 @@ def generate_news_html(
                 </div>
             </div>
             """
-    return summary_html + f'<div class="news-list">{news_items_html}</div>'
+    summary_wrap = ""
+    if summary_html or event_summary_html or watchlist_html:
+        summary_wrap = (
+            '<div class="news-summary-wrap">'
+            f'{summary_html}{event_summary_html}{watchlist_html}'
+            "</div>"
+        )
+    return summary_wrap + f'<div class="news-list">{news_items_html}</div>'

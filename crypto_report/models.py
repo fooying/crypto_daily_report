@@ -73,6 +73,36 @@ class SentimentComposite(TypedDict, total=False):
     drivers: List[str]
 
 
+class MacroAssetSnapshot(TypedDict, total=False):
+    symbol: str
+    label: str
+    latest: float
+    change_30d: float
+    correlation_30d: float
+
+
+class MacroContext(TypedDict, total=False):
+    btc: MacroAssetSnapshot
+    assets: List[MacroAssetSnapshot]
+    summary: str
+
+
+class DeFiChainSnapshot(TypedDict, total=False):
+    name: str
+    tvl: float
+    share_pct: float
+    change_1d: float | None
+    change_7d: float | None
+
+
+class DeFiOverview(TypedDict, total=False):
+    total_tvl: float
+    change_1d: float | None
+    change_7d: float | None
+    top_chains: List[DeFiChainSnapshot]
+    summary: str
+
+
 class AIAnalysis(TypedDict, total=False):
     market_overview: str
     technical_analysis: str
@@ -81,6 +111,8 @@ class AIAnalysis(TypedDict, total=False):
     sentiment_summary: SentimentSummary
     sentiment_composite: SentimentComposite
     news_tag_summary: Dict[str, int]
+    news_event_summary: Dict[str, int]
+    event_watchlist: List[Dict[str, Any]]
     weekly_trend: WeeklyTrend
     trend_enhanced_analysis: str
     sentiment_deep_analysis: Dict[str, Any]
@@ -103,3 +135,5 @@ class ReportContext(TypedDict):
     weekly_trend: WeeklyTrend
     dynamic_analysis: Dict[str, str]
     ai_analysis: AIAnalysis
+    macro_context: MacroContext
+    defi_overview: DeFiOverview

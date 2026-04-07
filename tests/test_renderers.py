@@ -4,7 +4,9 @@ import unittest
 
 from crypto_report.renderers import (
     generate_ai_analysis_section,
+    generate_defi_overview_section,
     generate_financial_analyst_section,
+    generate_macro_context_section,
     generate_market_leadership_section,
     generate_market_overview_section,
     generate_market_pulse_section,
@@ -239,8 +241,20 @@ class RendererTests(unittest.TestCase):
                 }
             ],
             {'监管': 3, 'ETF/机构': 2, '技术升级': 1},
+            {'监管与合规': 3, '机构资金': 2},
+            [
+                {
+                    'theme': '监管与合规',
+                    'title': '测试事件',
+                    'time': '2026-04-03 10:00',
+                    'impact': '高影响',
+                    'source': 'UnitTest',
+                }
+            ],
         )
         self.assertIn('新闻标签摘要', html)
+        self.assertIn('事件主线', html)
+        self.assertIn('事件观察', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
         self.assertIn('风险事件', html)
@@ -384,6 +398,10 @@ class RendererTests(unittest.TestCase):
                     'bollinger_upper': 71000,
                     'bollinger_lower': 63000,
                     'bollinger_status': '区间中部',
+                    'macd_bias': '快线位于零轴上方，动能偏多',
+                    'volatility_30d': 4.25,
+                    'support_level': 65000,
+                    'resistance_level': 69000,
                 }
             }
         )
@@ -394,6 +412,47 @@ class RendererTests(unittest.TestCase):
         self.assertIn('RSI14', html)
         self.assertIn('布林带', html)
         self.assertIn('短期强于中期均线', html)
+        self.assertIn('MACD 动能', html)
+        self.assertIn('30天波动率', html)
+        self.assertIn('支撑 / 阻力', html)
+
+    def test_macro_context_section_renders_cards(self) -> None:
+        html = generate_macro_context_section(
+            {
+                'btc': {'change_30d': 12.3},
+                'summary': 'BTC 与标普500联动更明显。',
+                'assets': [
+                    {
+                        'label': '标普500',
+                        'latest': 5000.0,
+                        'change_30d': 2.1,
+                        'correlation_30d': 0.42,
+                    }
+                ],
+            }
+        )
+        self.assertIn('宏观关联观察', html)
+        self.assertIn('标普500', html)
+        self.assertIn('30天相关性', html)
+
+    def test_defi_overview_section_renders_cards(self) -> None:
+        html = generate_defi_overview_section(
+            {
+                'total_tvl': 100_000_000_000,
+                'summary': 'DeFi TVL 仍以 Ethereum 为核心。',
+                'top_chains': [
+                    {
+                        'name': 'Ethereum',
+                        'tvl': 60_000_000_000,
+                        'share_pct': 60.0,
+                        'change_7d': 4.2,
+                    }
+                ],
+            }
+        )
+        self.assertIn('DeFi生态概览', html)
+        self.assertIn('Ethereum', html)
+        self.assertIn('总 TVL', html)
 
     def test_news_html_renders_tags(self) -> None:
         from crypto_report.renderers import generate_news_html

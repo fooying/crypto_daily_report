@@ -3,7 +3,9 @@ from __future__ import annotations
 from .renderers_parts.ai import generate_ai_analysis_section, generate_trading_signals_html
 from .renderers_parts.financial import generate_financial_analyst_section
 from .renderers_parts.market import (
+    generate_defi_overview_section,
     generate_crypto_table_rows,
+    generate_macro_context_section,
     generate_market_insights_section,
     generate_market_leadership_section,
     generate_market_overview_section,
@@ -18,7 +20,9 @@ from .renderers_parts.sentiment import generate_sentiment_analysis_section
 __all__ = [
     "generate_ai_analysis_section",
     "generate_crypto_table_rows",
+    "generate_defi_overview_section",
     "generate_financial_analyst_section",
+    "generate_macro_context_section",
     "generate_market_insights_section",
     "generate_market_leadership_section",
     "generate_market_overview_section",

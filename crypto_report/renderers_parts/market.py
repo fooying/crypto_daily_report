@@ -104,7 +104,40 @@ def _build_technical_takeaway(metrics: Dict[str, Any]) -> str:
             parts.append("RSI 中性")
     if bollinger_status:
         parts.append(f"波动处于{bollinger_status}")
+    macd_bias = str(metrics.get("macd_bias", "") or "")
+    if macd_bias:
+        parts.append(macd_bias)
     return "，".join(parts) if parts else "样本不足，暂无法形成统一结论"
+
+
+def _build_market_breadth_summary(
+    cryptos: List[Dict[str, Any]],
+    market_overview: Dict[str, Any],
+) -> str:
+    candidates = _select_non_stable_cryptos(cryptos)
+    if len(candidates) < 3:
+        return ""
+    market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
+    advancers = sum(
+        1 for item in candidates
+        if _safe_float(item.get("price_change_percentage_24h"), 0.0) > 0.5
+    )
+    decliners = sum(
+        1 for item in candidates
+        if _safe_float(item.get("price_change_percentage_24h"), 0.0) < -0.5
+    )
+    flat = max(0, len(candidates) - advancers - decliners)
+    outperform = sum(
+        1 for item in candidates
+        if _safe_float(item.get("price_change_percentage_24h"), -999.0) > market_change
+    )
+    return f"""
+    <div class="market-breadth-grid">
+        <div><span>上涨家数</span><strong>{advancers}</strong><small>下跌 {decliners} / 平盘 {flat}</small></div>
+        <div><span>跑赢大盘</span><strong>{outperform}</strong><small>按 24h 总市值变化比较</small></div>
+        <div><span>扩散强度</span><strong>{advancers - decliners:+d}</strong><small>正值代表广度改善</small></div>
+    </div>
+    """
 
 
 def generate_top_focus_assets_section(
@@ -341,6 +374,10 @@ def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
                 </div>
                 <div class="sector-value {change_class}">{avg_change:+.2f}%</div>
                 <div class="sector-meta">代表币：{html.escape(str(leader.get('symbol', '--')))} / 市值 {format_large_number(bucket['total_market_cap'])}</div>
+                <div class="sector-submeta">
+                    <span>上涨占比 {sum(1 for item in bucket['items'] if _safe_float(item.get('price_change_percentage_24h'), 0.0) > 0) / max(len(bucket['items']), 1) * 100:.0f}%</span>
+                    <span>龙头 {_safe_float(leader.get('price_change_percentage_24h'), 0.0):+.2f}%</span>
+                </div>
             </div>
             """
         )
@@ -484,11 +521,13 @@ def generate_market_insights_section(
     )
     leadership_body = _generate_market_leadership_body(cryptos, market_overview)
     sector_body = _generate_sector_overview_body(cryptos)
+    breadth_body = _build_market_breadth_summary(cryptos, market_overview)
     panels = []
     for title, body, extra_class in (
         ("市场脉搏", pulse_body, "market-insight-panel-wide"),
         ("市场风向", leadership_body, ""),
         ("板块观察", sector_body, ""),
+        ("市场广度", breadth_body, ""),
     ):
         if not body:
             continue
@@ -496,7 +535,7 @@ def generate_market_insights_section(
         panels.append(
             f"""
             <div class="{panel_class}">
-                <div class="market-insight-eyebrow">{'大盘结构' if title == '市场脉搏' else '主流强弱' if title == '市场风向' else '轮动变化'}</div>
+                <div class="market-insight-eyebrow">{'大盘结构' if title == '市场脉搏' else '主流强弱' if title == '市场风向' else '轮动变化' if title == '板块观察' else '资金扩散'}</div>
                 <h3>{title}</h3>
                 {body}
             </div>
@@ -531,6 +570,10 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
         bollinger_status = html.escape(str(metrics.get("bollinger_status", "")))
         bollinger_upper = metrics.get("bollinger_upper")
         bollinger_lower = metrics.get("bollinger_lower")
+        macd_bias = html.escape(str(metrics.get("macd_bias", "") or ""))
+        volatility_30d = metrics.get("volatility_30d")
+        support_level = metrics.get("support_level")
+        resistance_level = metrics.get("resistance_level")
         change_class = "green" if price_change_30d >= 0 else "red"
         ma_status = ""
         if ma7 is not None and ma30 is not None:
@@ -552,6 +595,11 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
                     <div><span>RSI14</span><strong>{f'{float(rsi14):.1f}' if rsi14 is not None else 'N/A'}</strong><small>{'超卖' if rsi14 is not None and float(rsi14) < 30 else '偏强' if rsi14 is not None and float(rsi14) > 70 else '中性区间' if rsi14 is not None else '样本不足'}</small></div>
                     <div><span>布林带</span><strong>{bollinger_status or 'N/A'}</strong><small>{f'${float(bollinger_lower):,.2f} - ${float(bollinger_upper):,.2f}' if bollinger_upper is not None and bollinger_lower is not None else '样本不足'}</small></div>
                 </div>
+                <div class="technical-indicator-row">
+                    <div><span>MACD 动能</span><strong>{macd_bias or 'N/A'}</strong><small>观察趋势延续性</small></div>
+                    <div><span>30天波动率</span><strong>{f'{float(volatility_30d):.2f}%' if volatility_30d is not None else 'N/A'}</strong><small>衡量振幅强弱</small></div>
+                    <div><span>支撑 / 阻力</span><strong>{f'${float(support_level):,.2f}' if support_level is not None else 'N/A'} / {f'${float(resistance_level):,.2f}' if resistance_level is not None else 'N/A'}</strong><small>近7天价格区间</small></div>
+                </div>
             </div>
             """
         )
@@ -561,6 +609,81 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
         <h2>技术背景摘要</h2>
         <div class="technical-context-wrap">
             {''.join(cards)}
+        </div>
+    </div>
+    """
+
+
+def generate_macro_context_section(macro_context: Dict[str, Any]) -> str:
+    assets = macro_context.get("assets") or []
+    if not assets:
+        return ""
+    btc = macro_context.get("btc") or {}
+    cards = []
+    for item in assets:
+        change_30d = _safe_float(item.get("change_30d"), 0.0)
+        change_class = "green" if change_30d >= 0 else "red"
+        corr = item.get("correlation_30d")
+        corr_text = f"{float(corr):+.2f}" if corr is not None else "N/A"
+        cards.append(
+            f"""
+            <div class="macro-card">
+                <div class="macro-card-label">{html.escape(str(item.get('label', '')))}</div>
+                <div class="macro-card-value {change_class}">{change_30d:+.2f}%</div>
+                <div class="macro-card-meta">
+                    <span>30天相关性 {corr_text}</span>
+                    <span>最新 {float(item.get('latest', 0.0)):,.2f}</span>
+                </div>
+            </div>
+            """
+        )
+    return f"""
+    <div class="section">
+        <h2>宏观关联观察</h2>
+        <div class="macro-summary">
+            <div><span>BTC 30天表现</span><strong class="{'green' if _safe_float(btc.get('change_30d'), 0.0) >= 0 else 'red'}">{_safe_float(btc.get('change_30d'), 0.0):+.2f}%</strong></div>
+            <p>{html.escape(str(macro_context.get('summary', '')))}</p>
+        </div>
+        <div class="macro-grid">
+            {''.join(cards)}
+        </div>
+    </div>
+    """
+
+
+def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
+    top_chains = defi_overview.get("top_chains") or []
+    if not top_chains:
+        return ""
+    chain_cards = []
+    for item in top_chains:
+        change_7d = item.get("change_7d")
+        change_text = f"{float(change_7d):+.2f}%" if change_7d is not None else "样本不足"
+        change_class = "green" if change_7d is not None and float(change_7d) >= 0 else "red"
+        chain_cards.append(
+            f"""
+            <div class="defi-card">
+                <div class="defi-card-header">
+                    <strong>{html.escape(str(item.get('name', '')))}</strong>
+                    <span>{float(item.get('share_pct', 0.0)):.1f}%</span>
+                </div>
+                <div class="defi-card-value">{format_large_number(_safe_float(item.get('tvl'), 0.0))}</div>
+                <div class="defi-card-meta">
+                    <span>TVL 占比</span>
+                    <strong class="{change_class}">7d {change_text}</strong>
+                </div>
+            </div>
+            """
+        )
+    return f"""
+    <div class="section">
+        <h2>DeFi生态概览</h2>
+        <div class="defi-summary">
+            <div><span>总 TVL</span><strong>{format_large_number(_safe_float(defi_overview.get('total_tvl'), 0.0))}</strong></div>
+            <p>{html.escape(str(defi_overview.get('summary', '')))}</p>
+        </div>
+        <div class="defi-grid">
+            {''.join(chain_cards)}
         </div>
     </div>
     """

@@ -151,7 +151,7 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertEqual(result['financial_analyst']['long_term']['summary'], 'AI长期')
 
     def test_collect_news_features_includes_tag_summary(self) -> None:
-        sentiment_counts, keywords, tag_summary = self.service._collect_news_features(
+        sentiment_counts, keywords, tag_summary, event_summary = self.service._collect_news_features(
             [
                 {
                     'title': '监管与 ETF 同步推进',
@@ -171,6 +171,8 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertIn('监管', keywords)
         self.assertEqual(tag_summary['监管'], 1)
         self.assertEqual(tag_summary['交易所'], 1)
+        self.assertEqual(event_summary['监管与合规'], 1)
+        self.assertEqual(event_summary['安全风险'], 1)
 
     def test_build_sentiment_composite_returns_summary(self) -> None:
         result = self.service.build_sentiment_composite(
@@ -192,6 +194,21 @@ class AIAnalysisServiceTests(unittest.TestCase):
         result = self.service.summarize_news_focus({'监管': 3, 'ETF/机构': 2, 'DeFi': 1})
         self.assertIn('监管', result)
         self.assertIn('ETF/机构', result)
+
+    def test_build_event_watchlist_returns_structured_items(self) -> None:
+        result = self.service.build_event_watchlist(
+            [
+                {
+                    'title': '比特币 ETF 资金回流',
+                    'time': '2026-04-07 09:00',
+                    'impact': '高影响',
+                    'source': 'CoinTelegraph',
+                    'tags': ['ETF/机构'],
+                }
+            ]
+        )
+        self.assertEqual(result[0]['theme'], '机构资金')
+        self.assertEqual(result[0]['impact'], '高影响')
 
 
 if __name__ == '__main__':

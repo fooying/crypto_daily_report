@@ -14,6 +14,8 @@ PRIMARY_NEWS_BASE_URL = "https://cointelegraph-cn.com"
 BACKUP_NEWS_URL = "https://coinmarketcap.com/zh/headlines/news/"
 FEAR_GREED_API_URL = "https://api.alternative.me/fng/"
 FEAR_GREED_SOURCE_URL = "https://alternative.me/crypto/fear-and-greed-index/"
+DEFILLAMA_CHAINS_API_URL = "https://api.llama.fi/v2/chains"
+YAHOO_CHART_API_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 
 
 @dataclass(frozen=True)
@@ -45,9 +47,12 @@ class ScriptConfig:
     news_request_timeout_seconds: int = 10
     article_request_timeout_seconds: int = 5
     deepseek_request_timeout_seconds: int = 30
+    macro_request_timeout_seconds: int = 15
+    defi_request_timeout_seconds: int = 15
     max_news_display_items: int = 10
     max_news_analysis_items: int = 30
     max_news_detail_fetches: int = 3
+    max_event_watch_items: int = 6
     generate_screenshots: bool = True
     screenshot_backend: str = "auto"
     screenshot_width: int = 1200

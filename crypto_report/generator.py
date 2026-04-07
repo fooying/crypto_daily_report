@@ -28,7 +28,9 @@ from .models import FearGreedIndex, MarketOverview, NewsItem, ReportContext
 from .renderers import (
     generate_ai_analysis_section,
     generate_crypto_table_rows,
+    generate_defi_overview_section,
     generate_financial_analyst_section,
+    generate_macro_context_section,
     generate_market_insights_section,
     generate_market_leadership_section,
     generate_technical_context_section,
@@ -107,6 +109,8 @@ class CryptoReportGenerator:
         self.top_cryptos: List[Dict[str, Any]] = []
         self.market_cap_history: List[Dict[str, Any]] = []
         self.technical_context: Dict[str, Any] = {}
+        self.macro_context: Dict[str, Any] = {}
+        self.defi_overview: Dict[str, Any] = {}
         self.sentiment: FearGreedIndex = {}
         self.news_date_range = self.news_service.news_date_range
 
@@ -147,6 +151,8 @@ class CryptoReportGenerator:
                 "top_cryptos": executor.submit(self.get_top_cryptocurrencies, 10),
                 "market_cap_history": executor.submit(self.get_market_cap_history, 30),
                 "technical_context": executor.submit(self.get_technical_context),
+                "macro_context": executor.submit(self.get_macro_context),
+                "defi_overview": executor.submit(self.get_defi_overview),
             }
             self.fear_greed_index = futures["fear_greed_index"].result()
             self.crypto_news = futures["crypto_news"].result()
@@ -154,6 +160,8 @@ class CryptoReportGenerator:
             self.top_cryptos = futures["top_cryptos"].result()
             self.market_cap_history = futures["market_cap_history"].result()
             self.technical_context = futures["technical_context"].result()
+            self.macro_context = futures["macro_context"].result()
+            self.defi_overview = futures["defi_overview"].result()
             self.news_date_range = self.news_service.news_date_range
 
     def _build_report_context(self) -> ReportContext:
@@ -200,6 +208,8 @@ class CryptoReportGenerator:
             "weekly_trend": get_structured_weekly_trend(sentiment),
             "dynamic_analysis": self.get_dynamic_analysis(sentiment.get("value", 50)),
             "ai_analysis": self.get_ai_analysis(),
+            "macro_context": self.macro_context or {},
+            "defi_overview": self.defi_overview or {},
         }
 
     def get_market_overview(self) -> MarketOverview:
@@ -216,6 +226,12 @@ class CryptoReportGenerator:
 
     def get_technical_context(self) -> Dict[str, Any]:
         return self.market_service.get_technical_context()
+
+    def get_macro_context(self) -> Dict[str, Any]:
+        return self.market_service.get_macro_context()
+
+    def get_defi_overview(self) -> Dict[str, Any]:
+        return self.market_service.get_defi_overview()
 
     def _load_trend_data(self) -> Dict[str, Any]:
         return self.storage.load()
@@ -499,6 +515,12 @@ class CryptoReportGenerator:
             technical_context_section=generate_technical_context_section(
                 context["technical_context"]
             ),
+            macro_context_section=generate_macro_context_section(
+                context["macro_context"]
+            ),
+            defi_overview_section=generate_defi_overview_section(
+                context["defi_overview"]
+            ),
             market_leadership_section=generate_market_leadership_section(
                 context["top_cryptos"],
                 context["market_overview"],
@@ -508,6 +530,8 @@ class CryptoReportGenerator:
             news_html=generate_news_html(
                 context["news"],
                 ai_analysis.get("news_tag_summary"),
+                ai_analysis.get("news_event_summary"),
+                ai_analysis.get("event_watchlist"),
             ),
             news_date_range=self.news_date_range,
             sentiment_section=self._generate_sentiment_analysis_section(

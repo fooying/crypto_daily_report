@@ -177,24 +177,12 @@ class MarketServiceFallbackTests(unittest.TestCase):
     def test_technical_context_uses_coingecko_market_chart_range(self) -> None:
         self.http.fetch_json.side_effect = [
             {
-                'prices': [
-                    [1, 60000],
-                    [2, 66000],
-                ],
-                'total_volumes': [
-                    [1, 10],
-                    [2, 20],
-                ],
+                'prices': [[index, 60000 + index * 1000] for index in range(1, 35)],
+                'total_volumes': [[index, 10 + index] for index in range(1, 35)],
             },
             {
-                'prices': [
-                    [1, 3000],
-                    [2, 3300],
-                ],
-                'total_volumes': [
-                    [1, 30],
-                    [2, 60],
-                ],
+                'prices': [[index, 3000 + index * 50] for index in range(1, 35)],
+                'total_volumes': [[index, 30 + index] for index in range(1, 35)],
             },
         ]
 
@@ -202,12 +190,43 @@ class MarketServiceFallbackTests(unittest.TestCase):
 
         self.assertIn('BTC', result)
         self.assertIn('ETH', result)
-        self.assertEqual(result['BTC']['price_change_30d'], 10.0)
-        self.assertEqual(result['ETH']['avg_volume_30d'], 45.0)
+        self.assertEqual(result['BTC']['price_change_30d'], 54.1)
+        self.assertEqual(result['ETH']['avg_volume_30d'], 47.5)
         self.assertIn('ma7', result['BTC'])
         self.assertIn('rsi14', result['BTC'])
         self.assertIn('bollinger_upper', result['BTC'])
+        self.assertIn('macd_bias', result['BTC'])
+        self.assertIn('volatility_30d', result['BTC'])
+        self.assertIn('support_level', result['BTC'])
         self.assertEqual(self.service.last_technical_context_source, 'coingecko_market_chart_range')
+
+    def test_get_macro_context_uses_coingecko_and_yahoo(self) -> None:
+        self.http.fetch_json.side_effect = [
+            {'prices': [[index, 60000 + index * 500] for index in range(1, 50)]},
+            {'chart': {'result': [{'indicators': {'quote': [{'close': [5000 + index * 10 for index in range(49)]}]}}]}},
+            {'chart': {'result': [{'indicators': {'quote': [{'close': [2300 + index * 3 for index in range(49)]}]}}]}},
+        ]
+
+        result = self.service.get_macro_context()
+
+        self.assertIn('assets', result)
+        self.assertEqual(len(result['assets']), 2)
+        self.assertEqual(result['assets'][0]['label'], '标普500')
+        self.assertIn('summary', result)
+        self.assertEqual(self.service.last_macro_context_source, 'coingecko_yahoo')
+
+    def test_get_defi_overview_uses_defillama_chains(self) -> None:
+        self.http.fetch_json.return_value = [
+            {'name': 'Ethereum', 'tvl': 60_000_000_000, 'change_1d': 1.2, 'change_7d': 4.1},
+            {'name': 'Solana', 'tvl': 10_000_000_000, 'change_1d': -0.4, 'change_7d': 6.5},
+        ]
+
+        result = self.service.get_defi_overview()
+
+        self.assertEqual(result['top_chains'][0]['name'], 'Ethereum')
+        self.assertAlmostEqual(result['top_chains'][0]['share_pct'], 85.7, places=1)
+        self.assertIn('summary', result)
+        self.assertEqual(self.service.last_defi_overview_source, 'defillama_chains')
 
 
 if __name__ == '__main__':

@@ -21,7 +21,8 @@ class AIAnalysisService:
         market_overview: Dict[str, Any],
         technical_context: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
-        sentiment_counts, news_keywords, news_tag_summary = self._collect_news_features(crypto_news)
+        sentiment_counts, news_keywords, news_tag_summary, news_event_summary = self._collect_news_features(crypto_news)
+        event_watchlist = self.build_event_watchlist(crypto_news)
         weekly_ai_trend = self.analyze_ai_weekly_trend(
             fear_greed_index,
             market_overview,
@@ -38,6 +39,8 @@ class AIAnalysisService:
             sentiment_counts,
             news_keywords,
             news_tag_summary,
+            news_event_summary,
+            event_watchlist,
             weekly_ai_trend,
             sentiment_composite,
         )
@@ -57,6 +60,8 @@ class AIAnalysisService:
         analysis.update(ai_result)
         analysis["sentiment_summary"] = sentiment_counts
         analysis["news_tag_summary"] = news_tag_summary
+        analysis["news_event_summary"] = news_event_summary
+        analysis["event_watchlist"] = event_watchlist
         analysis["sentiment_composite"] = sentiment_composite
         if weekly_ai_trend:
             analysis["weekly_trend"] = weekly_ai_trend
@@ -69,10 +74,11 @@ class AIAnalysisService:
     @staticmethod
     def _collect_news_features(
         crypto_news: List[Dict[str, Any]],
-    ) -> tuple[Dict[str, int], List[str], Dict[str, int]]:
+    ) -> tuple[Dict[str, int], List[str], Dict[str, int], Dict[str, int]]:
         sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
         news_keywords: List[str] = []
         news_tag_summary: Dict[str, int] = {}
+        news_event_summary: Dict[str, int] = {}
         for item in crypto_news:
             sentiment = item.get("sentiment", "")
             if "利好" in sentiment or "积极" in sentiment:
@@ -98,7 +104,53 @@ class AIAnalysisService:
                     continue
                 news_keywords.append(tag_text)
                 news_tag_summary[tag_text] = news_tag_summary.get(tag_text, 0) + 1
-        return sentiment_counts, news_keywords, news_tag_summary
+                event_label = AIAnalysisService._map_tag_to_event_theme(tag_text)
+                if event_label:
+                    news_event_summary[event_label] = news_event_summary.get(event_label, 0) + 1
+        return sentiment_counts, news_keywords, news_tag_summary, news_event_summary
+
+    @staticmethod
+    def _map_tag_to_event_theme(tag: str) -> str:
+        return {
+            "监管": "监管与合规",
+            "ETF/机构": "机构资金",
+            "安全事件": "安全风险",
+            "DeFi": "DeFi生态",
+            "交易所": "交易平台",
+            "链上/挖矿": "链上与矿业",
+            "技术升级": "技术进展",
+        }.get(str(tag).strip(), "")
+
+    def build_event_watchlist(self, crypto_news: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        watchlist: List[Dict[str, Any]] = []
+        max_items = getattr(self.config, "max_event_watch_items", 6)
+        for item in crypto_news:
+            tags = item.get("tags") or []
+            theme = ""
+            for tag in tags:
+                theme = self._map_tag_to_event_theme(str(tag))
+                if theme:
+                    break
+            if not theme:
+                continue
+            watchlist.append(
+                {
+                    "theme": theme,
+                    "title": str(item.get("title", "")).strip(),
+                    "time": str(item.get("time", "")).strip(),
+                    "impact": str(item.get("impact", "")).strip(),
+                    "source": str(item.get("source", "")).strip(),
+                }
+            )
+        deduped: List[Dict[str, Any]] = []
+        seen = set()
+        for item in watchlist:
+            key = (item["theme"], item["title"])
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(item)
+        return deduped[:max_items]
 
     @staticmethod
     def summarize_news_focus(news_tag_summary: Dict[str, int]) -> str:
@@ -123,6 +175,8 @@ class AIAnalysisService:
         sentiment_counts: Dict[str, int],
         news_keywords: List[str],
         news_tag_summary: Dict[str, int],
+        news_event_summary: Dict[str, int],
+        event_watchlist: List[Dict[str, Any]],
         weekly_ai_trend: Dict[str, Any],
         sentiment_composite: Dict[str, Any],
     ) -> Dict[str, Any]:
@@ -164,6 +218,8 @@ class AIAnalysisService:
             "sentiment_summary": sentiment_counts,
             "sentiment_composite": sentiment_composite,
             "news_tag_summary": news_tag_summary,
+            "news_event_summary": news_event_summary,
+            "event_watchlist": event_watchlist,
             "sentiment_deep_analysis": sentiment_deep_analysis,
             "financial_analyst": financial_analyst,
         }

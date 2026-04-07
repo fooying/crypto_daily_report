@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from datetime import timedelta
 import time
+import math
 from typing import Any, Dict, List
 
-from ..config import FEAR_GREED_API_URL, FEAR_GREED_SOURCE_URL
+from ..config import (
+    DEFILLAMA_CHAINS_API_URL,
+    FEAR_GREED_API_URL,
+    FEAR_GREED_SOURCE_URL,
+    YAHOO_CHART_API_URL,
+)
 from ..helpers import build_default_fear_greed_index, build_default_market_overview
 from ..http_client import HTTPRequestError
 from ..models import FearGreedIndex, MarketOverview
@@ -32,6 +38,8 @@ class MarketService:
         self.last_top_cryptos_source = "unknown"
         self.last_market_history_source = "unknown"
         self.last_technical_context_source = "unknown"
+        self.last_macro_context_source = "unknown"
+        self.last_defi_overview_source = "unknown"
 
     def _default_headers(self) -> Dict[str, str]:
         return {
@@ -181,6 +189,45 @@ class MarketService:
             "status": status,
         }
 
+    @staticmethod
+    def _calculate_ema(values: List[float], period: int) -> float | None:
+        if len(values) < period:
+            return None
+        multiplier = 2 / (period + 1)
+        ema = sum(values[:period]) / period
+        for value in values[period:]:
+            ema = (value - ema) * multiplier + ema
+        return round(ema, 2)
+
+    @classmethod
+    def _calculate_macd_bias(cls, values: List[float]) -> str | None:
+        ema12 = cls._calculate_ema(values, 12)
+        ema26 = cls._calculate_ema(values, 26)
+        if ema12 is None or ema26 is None:
+            return None
+        macd_line = ema12 - ema26
+        if macd_line > 0:
+            return "快线位于零轴上方，动能偏多"
+        if macd_line < 0:
+            return "快线位于零轴下方，动能偏弱"
+        return "快线贴近零轴，趋势方向不明"
+
+    @staticmethod
+    def _calculate_volatility(values: List[float], window: int = 30) -> float | None:
+        if len(values) < window:
+            return None
+        subset = values[-window:]
+        returns = []
+        for previous, current in zip(subset[:-1], subset[1:]):
+            if previous == 0:
+                continue
+            returns.append((current - previous) / previous)
+        if len(returns) < 2:
+            return None
+        mean_return = sum(returns) / len(returns)
+        variance = sum((item - mean_return) ** 2 for item in returns) / len(returns)
+        return round((variance ** 0.5) * 100, 2)
+
     def _map_coinmarketcap_listings(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         result = []
         for coin in data.get("data", []) or []:
@@ -204,6 +251,178 @@ class MarketService:
                 }
             )
         return result
+
+    @staticmethod
+    def _normalize_series(values: List[Any]) -> List[float]:
+        series: List[float] = []
+        for value in values:
+            try:
+                if value is None:
+                    continue
+                series.append(float(value))
+            except (TypeError, ValueError):
+                continue
+        return series
+
+    @staticmethod
+    def _calculate_correlation(base_values: List[float], compare_values: List[float]) -> float | None:
+        if len(base_values) < 5 or len(compare_values) < 5:
+            return None
+        sample_size = min(len(base_values), len(compare_values))
+        x = base_values[-sample_size:]
+        y = compare_values[-sample_size:]
+        mean_x = sum(x) / sample_size
+        mean_y = sum(y) / sample_size
+        numerator = sum((a - mean_x) * (b - mean_y) for a, b in zip(x, y))
+        denominator_x = math.sqrt(sum((a - mean_x) ** 2 for a in x))
+        denominator_y = math.sqrt(sum((b - mean_y) ** 2 for b in y))
+        if denominator_x == 0 or denominator_y == 0:
+            return None
+        return round(numerator / (denominator_x * denominator_y), 2)
+
+    @staticmethod
+    def _calculate_period_change(values: List[float], days: int = 30) -> float | None:
+        if len(values) < 2:
+            return None
+        lookback = min(len(values) - 1, days)
+        baseline = values[-(lookback + 1)]
+        latest = values[-1]
+        if baseline == 0:
+            return None
+        return round((latest - baseline) / baseline * 100, 2)
+
+    def _fetch_yahoo_chart_series(self, symbol: str, range_value: str = "3mo") -> List[float]:
+        url = (
+            f"{YAHOO_CHART_API_URL}/{symbol}"
+            f"?interval=1d&range={range_value}&includePrePost=false&events=div%2Csplits"
+        )
+        data = self.fetch_json(url, timeout=self.config.macro_request_timeout_seconds)
+        result = (((data or {}).get("chart") or {}).get("result") or [None])[0] or {}
+        closes = ((((result.get("indicators") or {}).get("quote") or [None])[0] or {}).get("close") or [])
+        return self._normalize_series(closes)
+
+    def get_macro_context(self) -> Dict[str, Any]:
+        try:
+            btc_market_chart = self.fetch_json(
+                f"{self.config.coingecko_api}/coins/bitcoin/market_chart?vs_currency=usd&days=90&interval=daily",
+                timeout=self.config.macro_request_timeout_seconds,
+            )
+            btc_prices = self._normalize_series(
+                [point[1] for point in (btc_market_chart.get("prices") or []) if isinstance(point, list) and len(point) > 1]
+            )
+            if len(btc_prices) < 10:
+                self.last_macro_context_source = "default_empty"
+                return {}
+
+            assets = [
+                ("^GSPC", "标普500"),
+                ("GC=F", "黄金"),
+            ]
+            snapshots = []
+            for symbol, label in assets:
+                series = self._fetch_yahoo_chart_series(symbol)
+                if len(series) < 10:
+                    continue
+                correlation = self._calculate_correlation(btc_prices[-30:], series[-30:])
+                change_30d = self._calculate_period_change(series, days=30)
+                latest = series[-1]
+                if correlation is None or change_30d is None:
+                    continue
+                snapshots.append(
+                    {
+                        "symbol": symbol,
+                        "label": label,
+                        "latest": round(latest, 2),
+                        "change_30d": change_30d,
+                        "correlation_30d": correlation,
+                    }
+                )
+
+            if not snapshots:
+                self.last_macro_context_source = "default_empty"
+                return {}
+
+            btc_change = self._calculate_period_change(btc_prices, days=30)
+            btc_snapshot = {
+                "symbol": "BTC",
+                "label": "比特币",
+                "latest": round(btc_prices[-1], 2),
+                "change_30d": btc_change if btc_change is not None else 0.0,
+            }
+            strongest_link = max(snapshots, key=lambda item: abs(item.get("correlation_30d", 0.0)))
+            summary = (
+                f"近30天 BTC 与{strongest_link['label']}的相关性为"
+                f"{strongest_link['correlation_30d']:+.2f}，"
+                f"更适合作为当前宏观联动的观察锚点。"
+            )
+            self.last_macro_context_source = "coingecko_yahoo"
+            return {
+                "btc": btc_snapshot,
+                "assets": snapshots,
+                "summary": summary,
+            }
+        except HTTPRequestError as exc:
+            self.logger.warning("宏观关联数据获取失败: %s", exc)
+        except Exception as exc:
+            self.logger.warning("宏观关联分析生成失败: %s", exc)
+        self.last_macro_context_source = "default_empty"
+        return {}
+
+    def get_defi_overview(self) -> Dict[str, Any]:
+        try:
+            chains = self.fetch_json(
+                DEFILLAMA_CHAINS_API_URL,
+                timeout=self.config.defi_request_timeout_seconds,
+            )
+            if not isinstance(chains, list):
+                self.last_defi_overview_source = "default_empty"
+                return {}
+            eligible = [
+                item
+                for item in chains
+                if isinstance(item, dict) and item.get("tvl") not in (None, 0)
+            ]
+            if not eligible:
+                self.last_defi_overview_source = "default_empty"
+                return {}
+
+            total_tvl = sum(float(item.get("tvl") or 0.0) for item in eligible)
+            top_chains = sorted(
+                eligible,
+                key=lambda item: float(item.get("tvl") or 0.0),
+                reverse=True,
+            )[:4]
+            chain_rows = []
+            for item in top_chains:
+                tvl = float(item.get("tvl") or 0.0)
+                chain_rows.append(
+                    {
+                        "name": str(item.get("name") or item.get("gecko_id") or "Unknown"),
+                        "tvl": tvl,
+                        "share_pct": round(tvl / total_tvl * 100, 1) if total_tvl else 0.0,
+                        "change_1d": float(item["change_1d"]) if item.get("change_1d") is not None else None,
+                        "change_7d": float(item["change_7d"]) if item.get("change_7d") is not None else None,
+                    }
+                )
+            leader = chain_rows[0]
+            summary = (
+                f"DeFi TVL 仍以{leader['name']}为核心，约占整体 {leader['share_pct']:.1f}% ，"
+                "可结合链级别资金迁移观察风险偏好的扩散方向。"
+            )
+            self.last_defi_overview_source = "defillama_chains"
+            return {
+                "total_tvl": total_tvl,
+                "change_1d": None,
+                "change_7d": None,
+                "top_chains": chain_rows,
+                "summary": summary,
+            }
+        except HTTPRequestError as exc:
+            self.logger.warning("DeFi 概览数据获取失败: %s", exc)
+        except Exception as exc:
+            self.logger.warning("DeFi 概览生成失败: %s", exc)
+        self.last_defi_overview_source = "default_empty"
+        return {}
 
     def _fetch_coinmarketcap_logos(
         self,
@@ -371,6 +590,10 @@ class MarketService:
                     "bollinger_middle": bollinger.get("middle"),
                     "bollinger_lower": bollinger.get("lower"),
                     "bollinger_status": bollinger.get("status", ""),
+                    "macd_bias": self._calculate_macd_bias(close_prices),
+                    "volatility_30d": self._calculate_volatility(close_prices, 30),
+                    "support_level": round(min(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
+                    "resistance_level": round(max(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
                 }
             if context:
                 self.last_technical_context_source = "coingecko_market_chart_range"
