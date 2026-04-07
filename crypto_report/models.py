@@ -11,8 +11,8 @@ class MarketOverview(TypedDict):
     market_cap_change_percentage_24h_usd: float
     alt_market_cap_percentage: float
     volume_to_market_cap_ratio: float
-    btc_dominance_daily_change: float
-    btc_dominance_weekly_change: float
+    btc_dominance_daily_change: Optional[float]
+    btc_dominance_weekly_change: Optional[float]
 
 
 class WeeklyTrend(TypedDict, total=False):

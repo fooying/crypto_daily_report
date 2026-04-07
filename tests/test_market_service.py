@@ -65,8 +65,8 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(result['market_cap_change_percentage_24h_usd'], 1.56)
         self.assertAlmostEqual(result['alt_market_cap_percentage'], 29.4)
         self.assertAlmostEqual(result['volume_to_market_cap_ratio'], 4.8)
-        self.assertIn('btc_dominance_daily_change', result)
-        self.assertIn('btc_dominance_weekly_change', result)
+        self.assertIsNone(result['btc_dominance_daily_change'])
+        self.assertIsNone(result['btc_dominance_weekly_change'])
         self.assertEqual(self.http.fetch_json.call_count, 2)
         self.assertEqual(self.service.last_market_overview_source, 'coinmarketcap_backup')
         fallback_headers = self.http.fetch_json.call_args_list[1].kwargs['headers']

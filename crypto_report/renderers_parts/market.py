@@ -364,9 +364,18 @@ def _generate_market_pulse_body(
     market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
     turnover_ratio = _safe_float(market_overview.get("volume_to_market_cap_ratio"), 0.0)
     market_change_class = "green" if market_change >= 0 else "red"
-    btc_dom_change_1d = _safe_float(market_overview.get("btc_dominance_daily_change"), 0.0)
-    btc_dom_change_7d = _safe_float(market_overview.get("btc_dominance_weekly_change"), 0.0)
-    btc_dom_note = f"日变 {btc_dom_change_1d:+.2f}pct / 周变 {btc_dom_change_7d:+.2f}pct"
+    btc_dom_change_1d = market_overview.get("btc_dominance_daily_change")
+    btc_dom_change_7d = market_overview.get("btc_dominance_weekly_change")
+    btc_dom_note_parts = []
+    if btc_dom_change_1d is not None:
+        btc_dom_note_parts.append(f"日变 {float(btc_dom_change_1d):+.2f}pct")
+    if btc_dom_change_7d is not None:
+        btc_dom_note_parts.append(f"周变 {float(btc_dom_change_7d):+.2f}pct")
+    btc_dom_note_html = (
+        f"<small>{' / '.join(btc_dom_note_parts)}</small>"
+        if btc_dom_note_parts
+        else ""
+    )
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -374,7 +383,7 @@ def _generate_market_pulse_body(
     <div class="market-pulse-summary">
         <div><span>市场24h涨跌</span><strong class="{market_change_class}">{market_change:+.2f}%</strong></div>
         <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
-        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong><small>{btc_dom_note}</small></div>
+        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong>{btc_dom_note_html}</div>
         <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
     </div>

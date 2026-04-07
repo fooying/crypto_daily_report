@@ -277,6 +277,8 @@ class RendererTests(unittest.TestCase):
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
                 'alt_market_cap_percentage': 30.0,
                 'volume_to_market_cap_ratio': 50.0,
+                'btc_dominance_daily_change': None,
+                'btc_dominance_weekly_change': None,
             },
             [
                 {'market_cap': 900_000_000, 'volume_24h': 450_000_000},
@@ -285,7 +287,7 @@ class RendererTests(unittest.TestCase):
         )
         self.assertIn('市场脉搏', html)
         self.assertIn('BTC主导率', html)
-        self.assertIn('日变', html)
+        self.assertNotIn('日变', html)
         self.assertNotIn('总市值走势', html)
         self.assertNotIn('24小时交易量走势', html)
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
@@ -299,6 +301,8 @@ class RendererTests(unittest.TestCase):
                 'market_cap_percentage': {'btc': 50.0, 'eth': 20.0},
                 'alt_market_cap_percentage': 30.0,
                 'volume_to_market_cap_ratio': 50.0,
+                'btc_dominance_daily_change': 0.5,
+                'btc_dominance_weekly_change': -1.2,
             },
             [
                 {'market_cap': 850_000_000, 'volume_24h': 420_000_000},
@@ -310,6 +314,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('总市值走势', html)
         self.assertIn('24小时交易量走势', html)
         self.assertIn('<svg', html)
+        self.assertIn('日变 +0.50pct / 周变 -1.20pct', html)
 
     def test_technical_context_section_contains_asset_metrics(self) -> None:
         html = generate_technical_context_section(

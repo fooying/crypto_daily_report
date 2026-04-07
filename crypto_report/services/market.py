@@ -98,26 +98,26 @@ class MarketService:
             "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
             if total_market_cap
             else 0,
-            "btc_dominance_daily_change": 0,
-            "btc_dominance_weekly_change": 0,
+            "btc_dominance_daily_change": None,
+            "btc_dominance_weekly_change": None,
             "market_cap_change_percentage_24h_usd": metrics.get(
                 "quote", {}
             ).get("USD", {}).get("total_market_cap_yesterday_percentage_change", 0),
         }
 
-    def _calculate_market_metric_change(self, metric_name: str, current_value: float, days: int) -> float:
+    def _calculate_market_metric_change(self, metric_name: str, current_value: float, days: int) -> float | None:
         try:
             market_history = self.storage.load().get("market_cap", {})
             dates = sorted(market_history.keys(), reverse=True)
             if len(dates) < days:
-                return 0.0
+                return None
             previous_value = market_history.get(dates[days - 1], {}).get(metric_name)
             if previous_value is None:
-                return 0.0
+                return None
             return round(float(current_value) - float(previous_value), 2)
         except Exception as exc:
             self.logger.debug("计算市场指标变化失败 metric=%s days=%s err=%s", metric_name, days, exc)
-            return 0.0
+            return None
 
     def _enrich_market_overview_trends(self, overview: MarketOverview) -> MarketOverview:
         btc_dominance = (overview.get("market_cap_percentage") or {}).get("btc", 0.0)
@@ -401,8 +401,8 @@ class MarketService:
                 "volume_to_market_cap_ratio": round(total_volume / total_market_cap * 100, 2)
                 if total_market_cap
                 else 0,
-                "btc_dominance_daily_change": 0,
-                "btc_dominance_weekly_change": 0,
+                "btc_dominance_daily_change": None,
+                "btc_dominance_weekly_change": None,
                 "market_cap_change_percentage_24h_usd": market_data.get(
                     "market_cap_change_percentage_24h_usd", 0
                 ),
