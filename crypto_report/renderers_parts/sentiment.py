@@ -77,24 +77,19 @@ def generate_sentiment_analysis_section(
             "</div>"
         )
 
-    fear_greed_drivers_html = _render_driver_list(
-        "驱动因子",
-        [
-            f"当前区间：{raw_classification}",
-            raw_description,
-            f"来源：{raw_source_name}",
-        ],
+    composite_drivers_html = _render_driver_list(
+        "综合市场情绪分驱动因子",
+        composite_drivers[:3],
     )
-    composite_drivers_html = _render_driver_list("驱动因子", composite_drivers[:3])
     summary_items = (
-        '<div class="sentiment-definition-grid">'
-        '<div class="sentiment-definition-card">'
+        '<div class="sentiment-reference-grid">'
+        '<div class="sentiment-driver-list-wrapper">'
         '<div class="sentiment-driver-title">恐惧贪婪指数</div>'
         '<ul class="sentiment-driver-list">'
         "<li>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</li>"
         f'<li>来源 <a href="{source_url}" target="_blank">{source_name}</a></li>'
         "</ul></div>"
-        '<div class="sentiment-definition-card">'
+        '<div class="sentiment-driver-list-wrapper">'
         '<div class="sentiment-driver-title">综合市场情绪分</div>'
         '<ul class="sentiment-driver-list">'
         "<li>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</li>"
@@ -134,7 +129,6 @@ def generate_sentiment_analysis_section(
                     <div class="sentiment-bar">
                         <div class="sentiment-bar-fill" style="width: {sentiment.get('value', 0)}%; background: {sentiment_bar_color};"></div>
                     </div>
-                    {fear_greed_drivers_html}
                 </div>
 
                 <div class="sentiment-gauge sentiment-gauge-composite">
@@ -142,9 +136,9 @@ def generate_sentiment_analysis_section(
                     <div class="gauge-value">{composite_score}</div>
                     <div class="gauge-classification {composite_level_class}">{composite_label}</div>
                     <div class="composite-summary-card">{composite_summary}</div>
-                    {composite_drivers_html}
                 </div>
             </div>
+            {composite_drivers_html}
 
             <div class="sentiment-trends">
                 <div class="trends-title">

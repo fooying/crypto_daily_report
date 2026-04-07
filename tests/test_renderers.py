@@ -164,8 +164,8 @@ class RendererTests(unittest.TestCase):
         self.assertIn('&lt;risk&gt;', html)
         self.assertIn('<li>signal</li>', html)
         self.assertIn('上涨趋势', html)
-        self.assertIn('盘整阶段', html)
         self.assertIn('对应主题', html)
+        self.assertNotIn('盘整阶段', html)
 
     def test_sentiment_analysis_section_contains_summary(self) -> None:
         html = generate_sentiment_analysis_section(
@@ -209,7 +209,7 @@ class RendererTests(unittest.TestCase):
         self.assertNotIn('更新时间：</strong> 2026-04-03 10:00:00', html)
         self.assertIn('综合市场情绪分', html)
         self.assertIn('风险偏好回升', html)
-        self.assertIn('驱动因子', html)
+        self.assertIn('综合市场情绪分驱动因子', html)
         self.assertIn('恐惧贪婪指数', html)
         self.assertIn('来源 恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化', html)
         self.assertIn('综合情绪当前为', html)
@@ -252,7 +252,7 @@ class RendererTests(unittest.TestCase):
                 }
             ],
         )
-        self.assertIn('事件主线', html)
+        self.assertIn('新闻标签', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
         self.assertIn('中影响', html)

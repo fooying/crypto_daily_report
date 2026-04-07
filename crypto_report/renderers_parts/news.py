@@ -64,7 +64,7 @@ def _render_news_event_summary(
     )
     return (
         '<div class="news-tag-summary">'
-        '<div class="news-tag-summary-title">事件主线</div>'
+        '<div class="news-tag-summary-title">新闻标签</div>'
         f'<div class="news-tag-summary-list">{items}</div>'
         "</div>"
     )

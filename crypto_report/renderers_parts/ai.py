@@ -28,6 +28,10 @@ def _normalize_plain_text(value: str) -> str:
     return re.sub(r"\s+", " ", _localize_terms(value)).strip()
 
 
+def _normalize_compare_text(value: str) -> str:
+    return re.sub(r"[\s，。；、,.!:：\-]+", "", _normalize_plain_text(value)).lower()
+
+
 def generate_trading_signals_html(signals: List[str]) -> str:
     signal_html = ""
     signal_icons = {
@@ -113,10 +117,6 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
         line for line in trend_lines
         if line.startswith(("⚖️", "📈", "📉", "😐", "😊", "😨"))
     ]
-    trend_summary = "；".join(trend_summary_lines)
-    trend_summary_html = ""
-    if trend_summary:
-        trend_summary_html = f'<p class="ai-trend-summary">{html.escape(trend_summary)}</p>'
     risk_tags = [
         (tag, count)
         for tag, count in sorted(
@@ -125,8 +125,14 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
         )
         if tag in {"监管", "安全事件", "交易所", "ETF/机构", "技术升级"}
     ][:3]
+    risk_normalized = _normalize_compare_text(risk_assessment)
+    filtered_risk_tags = []
+    for tag, count in risk_tags:
+        if _normalize_compare_text(str(tag)) in risk_normalized:
+            continue
+        filtered_risk_tags.append((tag, count))
     risk_focus_html = ""
-    if risk_tags:
+    if filtered_risk_tags:
         risk_focus_items = "".join(
             (
                 '<span class="news-summary-tag">'
@@ -134,7 +140,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                 f'<span class="news-summary-tag-count">{count}</span>'
                 "</span>"
             )
-            for tag, count in risk_tags
+            for tag, count in filtered_risk_tags
         )
         risk_focus_html = (
             '<div class="ai-risk-focus">'
@@ -151,7 +157,6 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                 <div class="ai-merged-block">
                     <p>{overview}</p>
                     {technical_analysis}
-                    {trend_summary_html}
                 </div>
             </div>
 
