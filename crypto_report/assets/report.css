@@ -211,15 +211,22 @@ body {
   border-radius: 18px;
   padding: 18px;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .focus-asset-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   color: var(--text-primary);
   margin-bottom: 10px;
   font-size: 1em;
+}
+
+.focus-asset-header strong,
+.focus-asset-header span {
+  min-width: 0;
 }
 
 .focus-asset-price {
@@ -485,11 +492,13 @@ body {
 .crypto-table {
   border: 1px solid #e7edf4;
   border-radius: 18px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .crypto-table table {
   width: 100%;
+  min-width: 860px;
   border-collapse: collapse;
   margin-top: 0;
 }
@@ -1061,7 +1070,20 @@ body {
     font-size: 1.6em;
   }
 
-  .focus-asset-grid {
-    grid-template-columns: 1fr;
+  .focus-assets-block h3,
+  .market-insight-panel h3 {
+    font-size: 1em;
+  }
+
+  .focus-asset-card {
+    padding: 14px;
+  }
+
+  .focus-asset-price {
+    font-size: 1.35em;
+  }
+
+  .focus-asset-meta {
+    font-size: 0.78em;
   }
 }

@@ -170,6 +170,7 @@ class CryptoReportGenerator:
         return {
             "report_time": self.report_date.strftime("%Y-%m-%d %H:%M"),
             "market_overview": self.market_overview,
+            "all_top_cryptos": top_cryptos,
             "top_cryptos": table_cryptos,
             "top_focus_assets": top_focus_assets,
             "market_cap_history": market_cap_history,
@@ -465,7 +466,7 @@ class CryptoReportGenerator:
             market_insights_section=generate_market_insights_section(
                 context["market_overview"],
                 context["market_cap_history"],
-                context["top_cryptos"],
+                context["all_top_cryptos"],
             ),
             market_pulse_section=generate_market_pulse_section(
                 context["market_overview"],

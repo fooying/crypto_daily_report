@@ -77,6 +77,7 @@ class AIAnalysis(TypedDict, total=False):
 class ReportContext(TypedDict):
     report_time: str
     market_overview: MarketOverview
+    all_top_cryptos: List[Dict[str, Any]]
     top_cryptos: List[Dict[str, Any]]
     top_focus_assets: List[Dict[str, Any]]
     market_cap_history: List[Dict[str, Any]]
