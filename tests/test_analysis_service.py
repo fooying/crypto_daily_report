@@ -210,6 +210,32 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertEqual(result[0]['theme'], '机构资金')
         self.assertEqual(result[0]['impact'], '高影响')
 
+    def test_generate_dynamic_technical_analysis_prefers_support_levels(self) -> None:
+        html = self.service.generate_dynamic_technical_analysis(
+            15,
+            technical_context={
+                'BTC': {
+                    'latest_close': 70000,
+                    'low_30d': 61000,
+                    'high_30d': 72000,
+                    'support_level': 68500,
+                    'resistance_level': 70500,
+                }
+            },
+        )
+        self.assertIn('$68,500', html)
+        self.assertIn('关键支撑测试', html)
+        self.assertIn('近30天价格区间约为 $61,000 - $72,000', html)
+
+    def test_generate_dynamic_technical_analysis_avoids_hardcoded_price_fallbacks(self) -> None:
+        html = self.service.generate_dynamic_technical_analysis(
+            55,
+            technical_context={'BTC': {}, 'ETH': {}},
+        )
+        self.assertIn('关键阻力位', html)
+        self.assertNotIn('$40,000', html)
+        self.assertNotIn('$45,000', html)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -719,22 +719,55 @@ class AIAnalysisService:
         btc_context = technical_context.get("BTC", {})
         eth_context = technical_context.get("ETH", {})
         btc_latest = float(btc_context.get("latest_close", 0) or 0)
+        btc_support_level = btc_context.get("support_level")
+        btc_resistance_level = btc_context.get("resistance_level")
         btc_low_30d = float(btc_context.get("low_30d", 0) or 0)
         btc_high_30d = float(btc_context.get("high_30d", 0) or 0)
-        btc_support = (
-            btc_low_30d
-            if btc_low_30d > 0
-            else btc_latest * 0.9 if btc_latest > 0 else 40000
-        )
-        btc_resistance = (
-            btc_high_30d
-            if btc_high_30d > 0
-            else btc_latest * 1.05 if btc_latest > 0 else 45000
-        )
+        btc_support = None
+        if btc_support_level is not None:
+            btc_support = float(btc_support_level)
+        elif btc_low_30d > 0:
+            btc_support = btc_low_30d
+        elif btc_latest > 0:
+            btc_support = btc_latest * 0.9
+
+        btc_resistance = None
+        if btc_resistance_level is not None:
+            btc_resistance = float(btc_resistance_level)
+        elif btc_high_30d > 0:
+            btc_resistance = btc_high_30d
+        elif btc_latest > 0:
+            btc_resistance = btc_latest * 1.05
+
         btc_range_text = (
             f"近30天价格区间约为 ${btc_low_30d:,.0f} - ${btc_high_30d:,.0f}"
             if btc_low_30d > 0 and btc_high_30d > 0
             else "需继续观察近30天区间结构"
+        )
+        btc_support_text = (
+            f"${btc_support:,.0f} 一带"
+            if btc_support is not None
+            else "关键支撑位"
+        )
+        btc_resistance_text = (
+            f"${btc_resistance:,.0f} 一带"
+            if btc_resistance is not None
+            else "关键阻力位"
+        )
+        btc_support_observation = (
+            f"比特币正围绕 {btc_support_text} 寻找支撑，需观察是否形成止跌结构"
+            if btc_support is not None
+            else "比特币仍在寻找关键支撑位，需等待价格结构进一步确认"
+        )
+        btc_support_watch = (
+            f"关注 {btc_support_text} 支撑是否有效"
+            if btc_support is not None
+            else "关注关键支撑位能否逐步确认"
+        )
+        btc_resistance_watch = (
+            f"关注 {btc_resistance_text} 能否有效突破"
+            if btc_resistance is not None
+            else "关注关键阻力位能否在放量后突破"
         )
         btc_summary = AIAnalysisService._build_asset_technical_summary("BTC", btc_context)
         eth_summary = AIAnalysisService._build_asset_technical_summary("ETH", eth_context)
@@ -752,7 +785,7 @@ class AIAnalysisService:
             <div class="technical-analysis">
                 <ul>
                     <li><strong>超卖状态明显</strong>：多数主流币RSI指标低于30，显示技术性超卖</li>
-                    <li><strong>关键支撑测试</strong>：比特币正围绕 ${btc_support:,.0f} 一带寻找支撑，需观察是否形成止跌结构</li>
+                    <li><strong>关键支撑测试</strong>：{btc_support_observation}</li>
                     <li><strong>成交量萎缩</strong>：市场交投清淡，观望情绪浓厚</li>
                     <li><strong>区间观察</strong>：{btc_range_text}</li>
                 </ul>
@@ -764,7 +797,7 @@ class AIAnalysisService:
                 <ul>
                     <li><strong>震荡整理</strong>：主要币种在关键支撑阻力区间内震荡</li>
                     <li><strong>均线压制</strong>：价格受短期均线压制，需要放量突破</li>
-                    <li><strong>支撑测试</strong>：关注 ${btc_support:,.0f} 一带支撑是否有效</li>
+                    <li><strong>支撑测试</strong>：{btc_support_watch}</li>
                     <li><strong>指标修复</strong>：RSI指标从超卖区域有所修复</li>
                 </ul>
             </div>
@@ -774,7 +807,7 @@ class AIAnalysisService:
             <div class="technical-analysis">
                 <ul>
                     <li><strong>趋势分化</strong>：各币种走势出现分化，需区别对待</li>
-                    <li><strong>关键阻力</strong>：关注 ${btc_resistance:,.0f} 一带能否有效突破</li>
+                    <li><strong>关键阻力</strong>：{btc_resistance_watch}</li>
                     <li><strong>成交量配合</strong>：上涨需要成交量放大配合</li>
                     <li><strong>指标健康</strong>：主要技术指标处于健康区间</li>
                 </ul>
