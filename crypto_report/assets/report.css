@@ -938,6 +938,20 @@ body {
   gap: 14px;
 }
 
+.sentiment-gauge-divider {
+  position: relative;
+  padding-right: 18px;
+}
+
+.sentiment-gauge-divider::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: -7px;
+  bottom: 6px;
+  border-right: 1px dashed #dbe4ee;
+}
+
 .sentiment-gauge {
   text-align: center;
   padding: 6px 8px;
@@ -1009,10 +1023,11 @@ body {
 }
 
 .trends-title {
-  font-size: 1.05em;
-  color: var(--text-primary);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
   margin-bottom: 14px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .trend-grid {
@@ -1038,6 +1053,14 @@ body {
   color: #6c757d;
   margin-bottom: 6px;
   font-weight: 600;
+}
+
+.trend-change {
+  margin: 0 auto;
+  max-width: 290px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  font-size: 0.9em;
 }
 
 .trend-value {
@@ -1604,6 +1627,20 @@ body {
   .sentiment-score-pair,
   .sentiment-definition-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sentiment-gauge-divider {
+    padding-right: 8px;
+    padding-bottom: 18px;
+  }
+
+  .sentiment-gauge-divider::after {
+    top: auto;
+    left: 10px;
+    right: 10px;
+    bottom: 0;
+    border-right: 0;
+    border-bottom: 1px dashed #dbe4ee;
   }
 
   .trend-grid {

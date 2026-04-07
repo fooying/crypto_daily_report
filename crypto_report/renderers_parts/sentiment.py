@@ -126,7 +126,7 @@ def generate_sentiment_analysis_section(
 
         <div class="sentiment-dashboard">
             <div class="sentiment-score-pair">
-                <div class="sentiment-gauge">
+                <div class="sentiment-gauge sentiment-gauge-divider">
                     <div class="gauge-title">加密货币恐惧贪婪指数</div>
                     <div class="gauge-value">{sentiment.get('value', 0)}</div>
                     <div class="gauge-classification">{classification}</div>

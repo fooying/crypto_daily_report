@@ -668,8 +668,11 @@ def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
     chain_cards = []
     for item in top_chains:
         change_7d = item.get("change_7d")
-        change_text = f"{float(change_7d):+.2f}%" if change_7d is not None else "样本不足"
-        change_class = "green" if change_7d is not None and float(change_7d) >= 0 else "red"
+        change_html = ""
+        if change_7d is not None:
+            change_text = f"{float(change_7d):+.2f}%"
+            change_class = "green" if float(change_7d) >= 0 else "red"
+            change_html = f'<strong class="{change_class}">7d {change_text}</strong>'
         chain_cards.append(
             f"""
             <div class="defi-card">
@@ -680,7 +683,7 @@ def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
                 <div class="defi-card-value">{format_large_number(_safe_float(item.get('tvl'), 0.0))}</div>
                 <div class="defi-card-meta">
                     <span>TVL 占比</span>
-                    <strong class="{change_class}">7d {change_text}</strong>
+                    {change_html}
                 </div>
             </div>
             """

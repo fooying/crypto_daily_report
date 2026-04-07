@@ -465,6 +465,26 @@ class RendererTests(unittest.TestCase):
         self.assertIn('头部协议跟踪', html)
         self.assertIn('Aave', html)
 
+    def test_defi_overview_section_hides_missing_chain_change(self) -> None:
+        html = generate_defi_overview_section(
+            {
+                'total_tvl': 100_000_000_000,
+                'summary': 'DeFi TVL 仍以 Ethereum 为核心。',
+                'top_chains': [
+                    {
+                        'name': 'Ethereum',
+                        'tvl': 60_000_000_000,
+                        'share_pct': 60.0,
+                        'change_7d': None,
+                    }
+                ],
+                'top_protocols': [],
+            }
+        )
+        self.assertIn('TVL 占比', html)
+        self.assertNotIn('样本不足', html)
+        self.assertNotIn('7d ', html)
+
     def test_news_html_renders_tags(self) -> None:
         from crypto_report.renderers import generate_news_html
 
