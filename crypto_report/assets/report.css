@@ -1542,6 +1542,14 @@ body {
   font-size: 1rem;
 }
 
+.financial-overview .insight-list {
+  padding-left: 20px;
+}
+
+.financial-overview .insight-list li {
+  margin-bottom: 10px;
+}
+
 .financial-panel-short {
   border-left-color: #e7edf4;
 }
@@ -1578,6 +1586,8 @@ body {
 
 .stance-row p {
   margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
 }
 
 .stance-mini {
