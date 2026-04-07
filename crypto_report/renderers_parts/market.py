@@ -493,13 +493,6 @@ def _generate_market_pulse_body(
         if btc_dom_meta_parts
         else "<small>观察主线资产是否继续吸走流动性</small>"
     )
-    composite_score = ""
-    composite_meta_html = ""
-    if sentiment_composite:
-        composite_score = str(sentiment_composite.get("score", ""))
-        composite_label = html.escape(str(sentiment_composite.get("label", "")).strip())
-        if composite_label:
-            composite_meta_html = f"<small>{composite_label}</small>"
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -510,7 +503,6 @@ def _generate_market_pulse_body(
         <div><span>量能相对均值</span><strong>{volume_bias:.0f}%</strong><small>100% 为近周期均值</small></div>
         <div><span>BTC主导率变化</span><strong>{btc_dom_display}</strong>{btc_dom_meta_html}</div>
         <div><span>市值区间振幅</span><strong>{market_range:.2f}%</strong><small>{period_text} 高低点差</small></div>
-        <div><span>综合情绪分</span><strong>{composite_score or '暂无'}</strong>{composite_meta_html or '<small>结合情绪与新闻面判断</small>'}</div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
     </div>
     {''.join(chart_sections)}
