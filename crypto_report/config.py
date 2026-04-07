@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -33,6 +34,7 @@ class ScriptConfig:
     report_title: str = "数字货币每日分析报告"
     report_system_name: str = "数字货币每日报告生成系统"
     report_version: str = "7.0.0"
+    report_timezone: str = "Asia/Shanghai"
     cleanup_days_to_keep: int = 30
     trend_data_filename: str = "trend_data.json"
     log_filename: str = "crypto_analyst.log"
@@ -111,6 +113,12 @@ class ScriptConfig:
 
     def build_report_filename(self, report_date: datetime) -> str:
         return f"{report_date.strftime(self.report_filename_date_format)}.html"
+
+    def get_report_timezone(self):
+        try:
+            return ZoneInfo(self.report_timezone)
+        except ZoneInfoNotFoundError:
+            return ZoneInfo("Asia/Shanghai")
 
     def should_inline_css(self) -> bool:
         return self.report_css_mode == "inline"

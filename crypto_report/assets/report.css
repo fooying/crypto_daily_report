@@ -193,12 +193,6 @@ body {
   margin: 0 0 18px;
 }
 
-.focus-assets-block h3 {
-  margin: 0 0 14px;
-  color: var(--text-primary);
-  font-size: 1.08em;
-}
-
 .focus-asset-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -242,9 +236,9 @@ body {
 
 .focus-asset-change-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .focus-asset-meta {
@@ -984,6 +978,7 @@ body {
 
 .financial-overview {
   margin-bottom: 10px;
+  padding-top: 14px;
 }
 
 .stance-row {
@@ -1096,7 +1091,6 @@ body {
     font-size: 1.6em;
   }
 
-  .focus-assets-block h3,
   .market-insight-panel h3 {
     font-size: 1em;
   }

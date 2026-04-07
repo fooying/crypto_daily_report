@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -72,7 +73,8 @@ class CryptoReportGenerator:
         report_date: Optional[dt] = None,
     ):
         self.config = config or APP_CONFIG
-        self.report_date = report_date or dt.now()
+        self.report_tz = self.config.get_report_timezone()
+        self.report_date = self._normalize_report_date(report_date)
         self.report_dir = str(self.config.report_dir)
         self.trend_data_file = self.config.trend_data_file
         self.report_base_url = self.config.normalized_report_base_url
@@ -111,6 +113,13 @@ class CryptoReportGenerator:
         os.makedirs(self.report_dir, exist_ok=True)
         self.trend_data_file.parent.mkdir(parents=True, exist_ok=True)
         self._log_config_warnings()
+
+    def _normalize_report_date(self, report_date: Optional[dt]) -> dt:
+        if report_date is None:
+            return dt.now(self.report_tz)
+        if report_date.tzinfo is None:
+            return report_date.replace(tzinfo=self.report_tz)
+        return report_date.astimezone(self.report_tz)
 
     def _build_template_environment(self):
         if Environment is None or FileSystemLoader is None or select_autoescape is None:

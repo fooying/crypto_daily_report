@@ -221,7 +221,6 @@ class RendererTests(unittest.TestCase):
                 }
             ]
         )
-        self.assertIn('主流币速览', html)
         self.assertIn('Bitcoin', html)
         self.assertIn('assets/coin-icons/bitcoin.png', html)
         self.assertIn('focus-asset-sparkline', html)

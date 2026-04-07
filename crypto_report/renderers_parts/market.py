@@ -121,7 +121,6 @@ def generate_top_focus_assets_section(cryptos: List[Dict[str, Any]]) -> str:
         )
     return f"""
     <div class="focus-assets-block">
-        <h3>主流币速览</h3>
         <div class="focus-asset-grid">
             {''.join(cards)}
         </div>
