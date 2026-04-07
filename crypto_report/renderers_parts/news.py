@@ -73,7 +73,7 @@ def generate_news_html(
     news: List[Dict[str, Any]],
     news_tag_summary: Dict[str, int] | None = None,
 ) -> str:
-    news_html = ""
+    news_items_html = ""
     summary_html = ""
     if news_tag_summary:
         summary_html = _render_news_tag_summary(news_tag_summary)
@@ -93,7 +93,7 @@ def generate_news_html(
                 for tag in tags
             ) + '</div>'
         impact_html = f'<span class="news-impact-badge">{impact}</span>' if impact else ""
-        news_html += f"""
+        news_items_html += f"""
             <div class="news-item">
                 <div class="news-title-row">
                     <div class="news-title">{i}. {title}</div>
@@ -111,4 +111,4 @@ def generate_news_html(
                 </div>
             </div>
             """
-    return summary_html + news_html
+    return summary_html + f'<div class="news-list">{news_items_html}</div>'

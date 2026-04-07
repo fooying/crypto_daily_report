@@ -141,7 +141,8 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
     <div class="section">
         <h2>AI智能分析</h2>
         <div class="ai-analysis">
-            <div class="content-panel">
+            <div class="content-panel ai-panel ai-panel-overview">
+                <div class="analysis-kicker">综合判断</div>
                 <div class="ai-merged-block">
                     <p>{overview}</p>
                     {technical_analysis}
@@ -149,7 +150,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                 </div>
             </div>
 
-            <div class="content-panel">
+            <div class="content-panel ai-panel ai-panel-risk">
                 <div class="panel-title-row">
                     <h3>风险评估</h3>
                     <div class="ai-sentiment-mini">
@@ -165,7 +166,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                 {risk_focus_html}
             </div>
 
-            <div class="content-panel">
+            <div class="content-panel ai-panel ai-panel-signals">
                 <h3>交易信号</h3>
                 <ul class="signal-list">
                     {trading_signals_html}

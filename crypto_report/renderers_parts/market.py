@@ -496,6 +496,7 @@ def generate_market_insights_section(
         panels.append(
             f"""
             <div class="{panel_class}">
+                <div class="market-insight-eyebrow">{'大盘结构' if title == '市场脉搏' else '主流强弱' if title == '市场风向' else '轮动变化'}</div>
                 <h3>{title}</h3>
                 {body}
             </div>

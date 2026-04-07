@@ -26,6 +26,7 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
     <div class="section">
         <h2>金融分析师视角</h2>
         <div class="content-panel financial-panel financial-overview">
+            <div class="analysis-kicker">策略判断</div>
             <h3>整体解读</h3>
             {overall_points}
         </div>
@@ -33,7 +34,10 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
         <div class="section-subgrid financial-detail-grid">
             <div class="content-panel financial-panel financial-panel-short">
                 <div class="panel-title-row">
-                    <h3>短期建议</h3>
+                    <div class="financial-title-wrap">
+                        <span class="financial-horizon">短线执行</span>
+                        <h3>短期建议</h3>
+                    </div>
                     <div class="ai-sentiment-mini stance-mini">
                         <span>{html.escape(str(short_term.get('stance', '谨慎')))}</span>
                     </div>
@@ -46,7 +50,10 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
 
             <div class="content-panel financial-panel financial-panel-long">
                 <div class="panel-title-row">
-                    <h3>长期建议</h3>
+                    <div class="financial-title-wrap">
+                        <span class="financial-horizon">中长期配置</span>
+                        <h3>长期建议</h3>
+                    </div>
                     <div class="ai-sentiment-mini stance-mini">
                         <span>{html.escape(str(long_term.get('stance', '中性')))}</span>
                     </div>

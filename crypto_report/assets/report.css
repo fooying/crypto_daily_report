@@ -219,6 +219,13 @@ body {
   min-width: 0;
 }
 
+.focus-asset-card .crypto-icon,
+.focus-asset-card .crypto-icon-fallback {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}
+
 .focus-asset-header {
   display: flex;
   align-items: center;
@@ -304,6 +311,15 @@ body {
   margin: 0 0 14px;
   color: var(--text-primary);
   font-size: 1.08em;
+}
+
+.market-insight-eyebrow {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .market-pulse-summary {
@@ -640,6 +656,11 @@ body {
 }
 
 /* ===== News ===== */
+.news-list {
+  display: grid;
+  gap: 0;
+}
+
 .news-item {
   background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
   border: 1px solid #e8eef5;
@@ -869,6 +890,15 @@ body {
   color: var(--text-secondary);
 }
 
+.trend-panel-summary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #dbe4ee;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
 .sentiment-details {
   margin-top: 24px;
 }
@@ -892,6 +922,19 @@ body {
 .ai-analysis {
   display: grid;
   gap: 16px;
+}
+
+.analysis-kicker {
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ai-panel h3 {
+  margin-bottom: 10px;
 }
 
 .ai-detail-grid,
@@ -1250,6 +1293,19 @@ body {
   padding-top: 14px;
 }
 
+.financial-title-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.financial-horizon {
+  color: var(--text-secondary);
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .stance-row {
   display: flex;
   gap: 10px;
@@ -1337,6 +1393,33 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .focus-asset-card {
+    padding: 14px 14px 12px;
+  }
+
+  .focus-asset-header {
+    margin-bottom: 8px;
+  }
+
+  .focus-asset-price {
+    font-size: 1.45em;
+    margin-bottom: 6px;
+  }
+
+  .focus-asset-change-row,
+  .focus-asset-strength-row {
+    margin-bottom: 8px;
+  }
+
+  .focus-asset-meta {
+    font-size: 0.76em;
+    gap: 2px;
+  }
+
+  .focus-asset-sparkline svg {
+    height: 44px;
+  }
+
   .market-pulse-summary,
   .leadership-grid,
   .sector-grid {
@@ -1370,6 +1453,57 @@ body {
 
   .news-badge-group {
     justify-content: flex-start;
+  }
+
+  .news-item {
+    padding: 14px 14px 12px;
+    margin-bottom: 10px;
+  }
+
+  .news-title {
+    font-size: 0.96em;
+  }
+
+  .news-summary {
+    margin-bottom: 8px;
+    font-size: 0.88em;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .news-meta {
+    gap: 10px;
+    font-size: 0.8em;
+  }
+
+  .news-tags {
+    margin-bottom: 8px;
+  }
+
+  .news-list .news-item:nth-child(n+7) {
+    display: none;
+  }
+
+  .sentiment-trends {
+    padding: 18px;
+  }
+
+  .trend-note,
+  .trend-panel-summary {
+    font-size: 0.84em;
+  }
+
+  .ai-panel,
+  .financial-panel {
+    padding: 16px;
+  }
+
+  .analysis-kicker,
+  .financial-horizon {
+    font-size: 0.74em;
   }
 
   .trend-card {
