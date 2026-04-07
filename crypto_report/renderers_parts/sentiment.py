@@ -33,13 +33,16 @@ def generate_sentiment_analysis_section(
     sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
     del sentiment_updated_at
+    raw_source_name = str(sentiment.get("source", "币安恐惧贪婪指数"))
+    raw_classification = str(sentiment.get("classification", ""))
+    raw_description = str(sentiment.get("description", ""))
     source_url = html.escape(
         str(sentiment.get("url", "https://www.binance.com/zh-CN/square/fear-and-greed-index")),
         quote=True,
     )
-    source_name = html.escape(str(sentiment.get("source", "币安恐惧贪婪指数")))
-    classification = html.escape(str(sentiment.get("classification", "")))
-    description = html.escape(str(sentiment.get("description", "")))
+    source_name = html.escape(raw_source_name)
+    classification = html.escape(raw_classification)
+    description = html.escape(raw_description)
     current_interpretation = html.escape(
         str(deep_analysis.get("current_interpretation", description))
     )
@@ -58,30 +61,45 @@ def generate_sentiment_analysis_section(
     composite_label = html.escape(str(composite.get("label", default_label)))
     composite_summary = html.escape(str(composite.get("summary", "")))
     composite_drivers = composite.get("drivers") or []
-    composite_drivers_html = ""
-    if composite_drivers:
+
+    def _render_driver_list(title: str, items: list[str]) -> str:
         driver_items = "".join(
             f"<li>{html.escape(str(item))}</li>"
-            for item in composite_drivers[:3]
+            for item in items
             if str(item).strip()
         )
-        if driver_items:
-            composite_drivers_html = (
-                '<div class="sentiment-driver-list-wrapper">'
-                '<div class="sentiment-driver-title">驱动因子</div>'
-                f'<ul class="sentiment-driver-list">{driver_items}</ul>'
-                "</div>"
-            )
+        if not driver_items:
+            return ""
+        return (
+            '<div class="sentiment-driver-list-wrapper">'
+            f'<div class="sentiment-driver-title">{html.escape(title)}</div>'
+            f'<ul class="sentiment-driver-list">{driver_items}</ul>'
+            "</div>"
+        )
+
+    fear_greed_drivers_html = _render_driver_list(
+        "驱动因子",
+        [
+            f"当前区间：{raw_classification}",
+            raw_description,
+            f"来源：{raw_source_name}",
+        ],
+    )
+    composite_drivers_html = _render_driver_list("驱动因子", composite_drivers[:3])
     summary_items = (
-        '<div class="compact-summary">'
-        '<div class="compact-line"><span>快速判断</span>'
-        "<span>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</span></div>"
-        '<div class="compact-line"><span>综合情绪分</span>'
-        "<span>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</span></div>"
-        f'<div class="compact-line"><span>数据来源</span>'
-        f'<a href="{source_url}" target="_blank">{source_name}</a></div>'
-        '<div class="compact-line"><span>综合分来源</span>'
-        "<span>恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化</span></div>"
+        '<div class="sentiment-definition-grid">'
+        '<div class="sentiment-definition-card">'
+        '<div class="sentiment-driver-title">恐惧贪婪指数</div>'
+        '<ul class="sentiment-driver-list">'
+        "<li>0-20 极度恐惧 / 21-40 恐惧 / 41-60 中性 / 61-80 贪婪 / 81-100 极度贪婪</li>"
+        f'<li>来源 <a href="{source_url}" target="_blank">{source_name}</a></li>'
+        "</ul></div>"
+        '<div class="sentiment-definition-card">'
+        '<div class="sentiment-driver-title">综合市场情绪分</div>'
+        '<ul class="sentiment-driver-list">'
+        "<li>0-25 极度防御 / 26-45 偏防御 / 46-60 中性平衡 / 61-75 风险偏好回升 / 76-100 偏热</li>"
+        "<li>来源 恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化</li>"
+        "</ul></div>"
         "</div>"
     )
     sentiment_headline = (
@@ -116,6 +134,7 @@ def generate_sentiment_analysis_section(
                     <div class="sentiment-bar">
                         <div class="sentiment-bar-fill" style="width: {sentiment.get('value', 0)}%; background: {sentiment_bar_color};"></div>
                     </div>
+                    {fear_greed_drivers_html}
                 </div>
 
                 <div class="sentiment-gauge sentiment-gauge-composite">
@@ -123,6 +142,7 @@ def generate_sentiment_analysis_section(
                     <div class="gauge-value">{composite_score}</div>
                     <div class="gauge-classification {composite_level_class}">{composite_label}</div>
                     <div class="composite-summary-card">{composite_summary}</div>
+                    {composite_drivers_html}
                 </div>
             </div>
 
@@ -155,7 +175,6 @@ def generate_sentiment_analysis_section(
                 <div class="trend-panel-summary">情绪变化节奏用于观察短线修复或继续走弱，需结合综合市场情绪分一起判断。</div>
             </div>
         </div>
-        {composite_drivers_html}
         <div class="sentiment-inline-note">
             {summary_items}
         </div>

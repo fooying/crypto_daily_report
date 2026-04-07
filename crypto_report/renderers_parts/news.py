@@ -4,6 +4,39 @@ import html
 from typing import Any, Dict, List
 
 
+TAG_ALIASES = {
+    "DeFi生态": "DeFi",
+    "DeFi 协议": "DeFi",
+    "监管与合规": "监管",
+    "合规": "监管",
+    "交易所": "交易平台",
+    "交易平台": "交易平台",
+    "机构资金": "ETF/机构",
+    "机构": "ETF/机构",
+    "ETF": "ETF/机构",
+    "ETF/机构": "ETF/机构",
+}
+
+
+def _normalize_tag(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return TAG_ALIASES.get(text, text)
+
+
+def _dedupe_tag_sequence(values: List[Any]) -> List[str]:
+    results: List[str] = []
+    seen: set[str] = set()
+    for value in values:
+        tag = _normalize_tag(value)
+        if not tag or tag in seen:
+            continue
+        seen.add(tag)
+        results.append(tag)
+    return results
+
+
 def _render_news_event_summary(
     news_tag_summary: Dict[str, int],
     news_event_summary: Dict[str, int],
@@ -11,7 +44,7 @@ def _render_news_event_summary(
     merged_counts: Dict[str, int] = {}
     for source in (news_event_summary or {}, news_tag_summary or {}):
         for label, count in source.items():
-            text = str(label).strip()
+            text = _normalize_tag(label)
             if not text:
                 continue
             merged_counts[text] = merged_counts.get(text, 0) + int(count)
@@ -63,19 +96,13 @@ def generate_news_html(
         url = html.escape(str(item.get("url", "#")), quote=True)
         tags = item.get("tags") or []
         event_item = watch_lookup.get(str(item.get("title", "")).strip(), {})
+        merged_tags = _dedupe_tag_sequence([*tags, event_item.get("theme", "")])
         tags_html = ""
-        if tags:
+        if merged_tags:
             tags_html = '<div class="news-tags">' + "".join(
-                f'<span class="news-tag">{html.escape(str(tag))}</span>'
-                for tag in tags
+                f'<span class="news-tag">{html.escape(tag)}</span>'
+                for tag in merged_tags
             ) + '</div>'
-        if event_item.get("theme"):
-            tags_html += (
-                '<div class="news-event-inline">'
-                f'<span class="event-watch-theme">{html.escape(str(event_item.get("theme", "")))}</span>'
-                f'<span class="news-event-source">{html.escape(str(event_item.get("source", "")))}</span>'
-                '</div>'
-            )
         impact_html = f'<span class="news-impact-badge">{impact}</span>' if impact else ""
         news_items_html += f"""
             <div class="news-item">

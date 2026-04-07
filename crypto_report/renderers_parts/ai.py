@@ -84,13 +84,18 @@ def generate_trading_signals_html(signals: List[str]) -> str:
             title, desc = signal.split(":", 1)
         else:
             title, desc = signal, ""
+        desc_html = (
+            f'<div class="signal-desc">{html.escape(desc.strip())}</div>'
+            if desc.strip()
+            else ""
+        )
         signal_html += f"""
                 <li class="{signal_type}">
                     <div class="signal-title-row">
                         <span class="signal-icon">{icon}</span>
                         <span class="signal-title">{html.escape(title)}</span>
                     </div>
-                    <div class="signal-desc">{html.escape(desc)}</div>
+                    {desc_html}
                 </li>
             """
     return signal_html

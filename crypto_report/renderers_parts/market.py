@@ -469,19 +469,37 @@ def _generate_market_pulse_body(
     market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
     turnover_ratio = _safe_float(market_overview.get("volume_to_market_cap_ratio"), 0.0)
     market_change_class = "green" if market_change >= 0 else "red"
+    latest_volume = volume_values[-1] if volume_values else 0.0
+    average_volume = sum(volume_values) / len(volume_values) if volume_values else 0.0
+    volume_bias = (latest_volume / average_volume * 100) if average_volume > 0 else 0.0
+    market_range = (
+        ((max(market_values) - min(market_values)) / min(market_values) * 100)
+        if len(market_values) >= 2 and min(market_values) > 0
+        else 0.0
+    )
     btc_dom_change_1d = market_overview.get("btc_dominance_daily_change")
     btc_dom_change_7d = market_overview.get("btc_dominance_weekly_change")
-    btc_dom_note_parts = []
+    btc_dom_display = "暂无"
+    btc_dom_meta_parts = []
     if btc_dom_change_1d is not None:
-        btc_dom_note_parts.append(f"日变 {float(btc_dom_change_1d):+.2f}pct")
+        btc_dom_display = f"{float(btc_dom_change_1d):+.2f}pct"
     if btc_dom_change_7d is not None:
-        btc_dom_note_parts.append(f"周变 {float(btc_dom_change_7d):+.2f}pct")
-    btc_dom_note_html = (
-        f"<small>{' / '.join(btc_dom_note_parts)}</small>"
-        if btc_dom_note_parts
-        else ""
+        btc_dom_meta_parts.append(f"7d {float(btc_dom_change_7d):+.2f}pct")
+    btc_current = _safe_float(market_overview.get("market_cap_percentage", {}).get("btc", 0.0), 0.0)
+    if btc_current > 0:
+        btc_dom_meta_parts.append(f"当前 {btc_current:.1f}%")
+    btc_dom_meta_html = (
+        f"<small>{' / '.join(btc_dom_meta_parts)}</small>"
+        if btc_dom_meta_parts
+        else "<small>观察主线资产是否继续吸走流动性</small>"
     )
-    alt_dominance = _safe_float(market_overview.get("alt_market_cap_percentage"), 0.0)
+    composite_score = ""
+    composite_meta_html = ""
+    if sentiment_composite:
+        composite_score = str(sentiment_composite.get("score", ""))
+        composite_label = html.escape(str(sentiment_composite.get("label", "")).strip())
+        if composite_label:
+            composite_meta_html = f"<small>{composite_label}</small>"
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -489,9 +507,10 @@ def _generate_market_pulse_body(
     <div class="market-pulse-summary">
         <div><span>市场24h涨跌</span><strong class="{market_change_class}">{market_change:+.2f}%</strong></div>
         <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
-        <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong>{btc_dom_note_html}</div>
-        <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
-        <div><span>山寨币占比</span><strong>{alt_dominance:.1f}%</strong></div>
+        <div><span>量能相对均值</span><strong>{volume_bias:.0f}%</strong><small>100% 为近周期均值</small></div>
+        <div><span>BTC主导率变化</span><strong>{btc_dom_display}</strong>{btc_dom_meta_html}</div>
+        <div><span>市值区间振幅</span><strong>{market_range:.2f}%</strong><small>{period_text} 高低点差</small></div>
+        <div><span>综合情绪分</span><strong>{composite_score or '暂无'}</strong>{composite_meta_html or '<small>结合情绪与新闻面判断</small>'}</div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
     </div>
     {''.join(chart_sections)}

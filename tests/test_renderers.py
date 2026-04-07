@@ -210,8 +210,8 @@ class RendererTests(unittest.TestCase):
         self.assertIn('综合市场情绪分', html)
         self.assertIn('风险偏好回升', html)
         self.assertIn('驱动因子', html)
-        self.assertIn('综合情绪分', html)
-        self.assertIn('综合分来源', html)
+        self.assertIn('恐惧贪婪指数', html)
+        self.assertIn('来源 恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化', html)
         self.assertIn('综合情绪当前为', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
@@ -256,6 +256,8 @@ class RendererTests(unittest.TestCase):
         self.assertIn('监管', html)
         self.assertIn('3', html)
         self.assertIn('中影响', html)
+        self.assertEqual(html.count('监管'), 2)
+        self.assertNotIn('监管与合规', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
         html = generate_top_focus_assets_section(
@@ -347,13 +349,14 @@ class RendererTests(unittest.TestCase):
             {'label': '偏防御', 'summary': '情绪修复尚不稳固，适合控制仓位。'},
         )
         self.assertIn('市场脉搏', html)
-        self.assertIn('BTC主导率', html)
+        self.assertIn('BTC主导率变化', html)
         self.assertNotIn('日变', html)
         self.assertNotIn('总市值走势', html)
         self.assertNotIn('24小时交易量走势', html)
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
-        self.assertNotIn('市场状态', html)
-        self.assertIn('山寨币占比', html)
+        self.assertIn('量能相对均值', html)
+        self.assertIn('市值区间振幅', html)
+        self.assertIn('偏防御', html)
 
     def test_market_pulse_section_shows_charts_when_history_is_enough(self) -> None:
         html = generate_market_pulse_section(
@@ -377,7 +380,8 @@ class RendererTests(unittest.TestCase):
         self.assertIn('总市值走势', html)
         self.assertIn('24小时交易量走势', html)
         self.assertIn('<svg', html)
-        self.assertIn('日变 +0.50pct / 周变 -1.20pct', html)
+        self.assertIn('当前 50.0%', html)
+        self.assertIn('7d -1.20pct', html)
 
     def test_technical_context_section_contains_asset_metrics(self) -> None:
         html = generate_technical_context_section(

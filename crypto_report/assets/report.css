@@ -835,7 +835,7 @@ body {
 
 .news-title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 650;
   color: var(--text-primary);
   line-height: 1.45;
 }
@@ -879,6 +879,7 @@ body {
   gap: 8px;
   flex-wrap: wrap;
   margin: 0 0 10px;
+  align-items: center;
 }
 
 .news-tag {
@@ -888,7 +889,7 @@ body {
   color: var(--text-secondary);
   font-size: 0.78em;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 4px 9px;
 }
 
 .news-meta {
@@ -939,10 +940,13 @@ body {
 
 .sentiment-gauge {
   text-align: center;
-  padding: 4px 6px;
+  padding: 6px 8px;
   border: 0;
   box-shadow: none;
   background: transparent;
+  display: grid;
+  align-content: start;
+  gap: 10px;
 }
 
 .gauge-title {
@@ -963,7 +967,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 
 .sentiment-level-risk { color: #b91c1c; }
@@ -982,6 +986,12 @@ body {
   color: var(--text-secondary);
   line-height: 1.55;
   font-size: 0.9em;
+}
+
+.sentiment-gauge .sentiment-driver-list-wrapper {
+  margin: 8px 0 0;
+  padding: 12px 14px;
+  text-align: left;
 }
 
 .sentiment-bar {
@@ -1382,23 +1392,35 @@ body {
 
 .sentiment-inline-note {
   margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sentiment-definition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sentiment-definition-card {
+  display: grid;
+  gap: 8px;
   padding: 14px 16px;
   border: 1px solid #e7edf4;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.92) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.94) 100%);
+  box-shadow: var(--shadow-sm);
 }
 
-.news-event-inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: -2px 0 10px;
+.sentiment-definition-card .sentiment-driver-list {
+  padding-left: 18px;
 }
 
-.news-event-source {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
+.sentiment-definition-card a {
+  color: var(--info-color);
+  text-decoration: none;
+  font-weight: 600;
 }
 
 /* ===== AI Analysis ===== */
@@ -1455,20 +1477,22 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .signal-icon { font-size: 1.2em; }
 .signal-title {
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 0.93rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.55;
 }
 
 .signal-desc {
   font-size: 0.88em;
   color: var(--text-secondary);
   padding-left: 26px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* ===== Financial Analyst ===== */
@@ -1577,7 +1601,8 @@ body {
   }
 
   .sentiment-dashboard,
-  .sentiment-score-pair {
+  .sentiment-score-pair,
+  .sentiment-definition-grid {
     grid-template-columns: 1fr;
   }
 
