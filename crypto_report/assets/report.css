@@ -84,11 +84,11 @@ body {
 
 .section h2 {
   margin: 0 0 18px;
-  font-size: 1.55em;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text-primary);
   text-align: left;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.02em;
 }
 
 .section h2::after {
@@ -124,6 +124,7 @@ body {
 
 .panel-title-row h3 {
   margin: 0;
+  font-size: 1.02rem;
 }
 
 /* ===== Market Overview ===== */
@@ -162,7 +163,7 @@ body {
 }
 
 .overview-value {
-  font-size: clamp(1.6rem, 2.7vw, 3.1rem);
+  font-size: clamp(1.45rem, 2.3vw, 2.2rem);
   font-weight: 750;
   color: var(--text-primary);
   margin: 10px 0;
@@ -186,17 +187,6 @@ body {
 .overview-sub {
   font-size: 0.85em;
   color: var(--text-secondary);
-}
-
-.market-overview-summary {
-  margin-top: 14px;
-  color: var(--text-secondary);
-  font-size: 0.95em;
-  line-height: 1.65;
-  padding: 14px 16px;
-  border: 1px solid #e8eef5;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(248,250,252,0.9) 100%);
 }
 
 /* ===== Focus Assets ===== */
@@ -242,7 +232,7 @@ body {
 }
 
 .focus-asset-price {
-  font-size: 1.7em;
+  font-size: 1.35rem;
   font-weight: 750;
   color: var(--text-primary);
   margin-bottom: 8px;
@@ -310,7 +300,7 @@ body {
 .market-insight-panel h3 {
   margin: 0 0 14px;
   color: var(--text-primary);
-  font-size: 1.08em;
+  font-size: 1rem;
 }
 
 .market-insight-eyebrow {
@@ -324,7 +314,7 @@ body {
 
 .market-pulse-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -344,7 +334,7 @@ body {
 }
 
 .market-pulse-summary strong {
-  font-size: 1.08em;
+  font-size: 1rem;
 }
 
 .market-pulse-summary small {
@@ -353,10 +343,6 @@ body {
   color: var(--text-secondary);
   font-size: 0.78em;
   line-height: 1.4;
-}
-
-.market-pulse-state {
-  grid-column: 1 / -1;
 }
 
 .market-pulse-chart,
@@ -430,6 +416,7 @@ body {
   font-weight: 700;
   margin-bottom: 12px;
   color: var(--text-primary);
+  font-size: 1rem;
 }
 
 .technical-context-takeaway {
@@ -833,7 +820,7 @@ body {
   background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
   border: 1px solid #e8eef5;
   border-radius: 18px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 14px;
   box-shadow: var(--shadow-sm);
 }
@@ -847,7 +834,7 @@ body {
 }
 
 .news-title {
-  font-size: 1.04em;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.45;
@@ -884,6 +871,7 @@ body {
   margin: 0 0 12px;
   color: var(--text-secondary);
   line-height: 1.65;
+  font-size: 0.93rem;
 }
 
 .news-tags {
@@ -958,21 +946,21 @@ body {
 }
 
 .gauge-title {
-  font-size: 0.96em;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .gauge-value {
-  font-size: clamp(3rem, 4.8vw, 3.6rem);
+  font-size: clamp(2.2rem, 3.8vw, 2.9rem);
   font-weight: 800;
   line-height: 1;
   margin: 14px 0 10px;
 }
 
 .gauge-classification {
-  font-size: 1.12em;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 14px;
@@ -1095,7 +1083,7 @@ body {
 .analysis-kicker {
   margin-bottom: 10px;
   color: var(--text-secondary);
-  font-size: 0.78em;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1297,26 +1285,15 @@ body {
 
 .news-tag-summary {
   display: grid;
-  gap: 12px;
-  padding: 0 0 18px;
-  margin-bottom: 14px;
+  gap: 10px;
+  padding: 0 0 14px;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .news-tag-summary-title {
-  font-size: 0.9em;
+  font-size: 0.88rem;
   color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.news-tag-summary-group {
-  display: grid;
-  gap: 8px;
-}
-
-.news-tag-summary-group-title {
-  font-size: 0.82em;
-  color: var(--text-tertiary);
   font-weight: 600;
 }
 
@@ -1324,20 +1301,6 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.news-event-watch {
-  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
-  border: 1px solid #e8eef5;
-  border-radius: 18px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-}
-
-.event-watch-item + .event-watch-item {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #e2e8f0;
 }
 
 .event-watch-theme {
@@ -1368,70 +1331,6 @@ body {
   font-size: 0.82em;
 }
 
-.calendar-wrap {
-  display: grid;
-  gap: 12px;
-}
-
-.calendar-item {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%);
-  border: 1px solid #e8eef5;
-  border-radius: 18px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-}
-
-.calendar-time {
-  color: var(--text-secondary);
-  font-size: 0.9em;
-  font-weight: 600;
-}
-
-.calendar-theme-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.calendar-theme,
-.calendar-impact {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.78em;
-  font-weight: 700;
-}
-
-.calendar-theme {
-  border: 1px solid #dbe6f1;
-  background: #f8fafc;
-  color: var(--text-secondary);
-}
-
-.calendar-impact {
-  border: 1px solid #dcfce7;
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.calendar-title {
-  color: var(--text-primary);
-  font-weight: 700;
-  line-height: 1.5;
-}
-
-.calendar-meta {
-  margin-top: 6px;
-  color: var(--text-secondary);
-  font-size: 0.84em;
-}
-
 .news-summary-tag {
   display: inline-flex;
   align-items: center;
@@ -1455,9 +1354,11 @@ body {
 .sentiment-driver-list-wrapper {
   display: grid;
   gap: 6px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px dashed #dbe4ee;
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  border: 1px dashed #dbe4ee;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.86);
   text-align: left;
 }
 
@@ -1477,6 +1378,27 @@ body {
 
 .sentiment-driver-list li {
   margin: 0 0 2px;
+}
+
+.sentiment-inline-note {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid #e7edf4;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.92) 100%);
+}
+
+.news-event-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: -2px 0 10px;
+}
+
+.news-event-source {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 
 /* ===== AI Analysis ===== */
@@ -1701,6 +1623,13 @@ body {
     gap: 10px;
   }
 
+  .macro-grid,
+  .defi-grid,
+  .defi-protocol-grid,
+  .market-breadth-grid {
+    grid-template-columns: 1fr;
+  }
+
   .market-insights-wrap {
     gap: 12px;
   }
@@ -1777,7 +1706,7 @@ body {
 
   .analysis-kicker,
   .financial-horizon {
-    font-size: 0.74em;
+    font-size: 0.72rem;
   }
 
   .trend-card {
@@ -1824,5 +1753,9 @@ body {
 
   .market-pulse-summary strong {
     font-size: 1em;
+  }
+
+  .market-pulse-summary {
+    grid-template-columns: 1fr;
   }
 }

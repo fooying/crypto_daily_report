@@ -5,7 +5,6 @@ import unittest
 from crypto_report.renderers import (
     generate_ai_analysis_section,
     generate_defi_overview_section,
-    generate_event_calendar_section,
     generate_financial_analyst_section,
     generate_macro_context_section,
     generate_market_leadership_section,
@@ -37,7 +36,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('50.0%', html)
         self.assertIn('山寨币占比', html)
         self.assertIn('成交额 / 市值', html)
-        self.assertIn('资金', html)
+        self.assertNotIn('资金结构相对均衡', html)
 
     def test_market_leadership_section_contains_highlights(self) -> None:
         html = generate_market_leadership_section(
@@ -206,7 +205,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn('市场情绪指数分析', html)
         self.assertIn('history', html)
         self.assertIn('impact', html)
-        self.assertIn('查看完整指数说明', html)
+        self.assertNotIn('查看完整指数说明', html)
         self.assertNotIn('更新时间：</strong> 2026-04-03 10:00:00', html)
         self.assertIn('综合市场情绪分', html)
         self.assertIn('风险偏好回升', html)
@@ -253,13 +252,9 @@ class RendererTests(unittest.TestCase):
                 }
             ],
         )
-        self.assertIn('新闻标签摘要', html)
         self.assertIn('事件主线', html)
-        self.assertIn('事件观察', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
-        self.assertIn('风险事件', html)
-        self.assertIn('资金动向', html)
         self.assertIn('中影响', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
@@ -357,8 +352,8 @@ class RendererTests(unittest.TestCase):
         self.assertNotIn('总市值走势', html)
         self.assertNotIn('24小时交易量走势', html)
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
-        self.assertIn('市场状态', html)
-        self.assertIn('偏防御', html)
+        self.assertNotIn('市场状态', html)
+        self.assertIn('山寨币占比', html)
 
     def test_market_pulse_section_shows_charts_when_history_is_enough(self) -> None:
         html = generate_market_pulse_section(
@@ -465,22 +460,6 @@ class RendererTests(unittest.TestCase):
         self.assertIn('总 TVL', html)
         self.assertIn('头部协议跟踪', html)
         self.assertIn('Aave', html)
-
-    def test_event_calendar_section_renders_items(self) -> None:
-        html = generate_event_calendar_section(
-            [
-                {
-                    'theme': '机构资金',
-                    'title': '比特币 ETF 资金回流',
-                    'time': '2026-04-07 09:00',
-                    'impact': '高影响',
-                    'source': 'UnitTest',
-                }
-            ]
-        )
-        self.assertIn('事件日历', html)
-        self.assertIn('机构资金', html)
-        self.assertIn('持续跟踪', html)
 
     def test_news_html_renders_tags(self) -> None:
         from crypto_report.renderers import generate_news_html

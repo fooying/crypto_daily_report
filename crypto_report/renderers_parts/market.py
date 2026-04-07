@@ -481,17 +481,7 @@ def _generate_market_pulse_body(
         if btc_dom_note_parts
         else ""
     )
-    composite = sentiment_composite or {}
-    composite_label = str(composite.get("label", "") or "").strip()
-    composite_summary = str(composite.get("summary", "") or "").strip()
-    pulse_state_html = ""
-    if composite_label or composite_summary:
-        pulse_state_html = (
-            '<div class="market-pulse-state">'
-            f'<span>市场状态</span><strong>{html.escape(composite_label or "中性平衡")}</strong>'
-            f'<small>{html.escape(composite_summary)}</small>'
-            "</div>"
-        )
+    alt_dominance = _safe_float(market_overview.get("alt_market_cap_percentage"), 0.0)
     return f"""
     <div class="market-pulse-meta">
         展示近 {history_days} 天的总市值与 24 小时交易量变化。
@@ -501,8 +491,8 @@ def _generate_market_pulse_body(
         <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
         <div><span>BTC主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('btc', 0):.1f}%</strong>{btc_dom_note_html}</div>
         <div><span>ETH主导率</span><strong>{market_overview.get('market_cap_percentage', {}).get('eth', 0):.1f}%</strong></div>
+        <div><span>山寨币占比</span><strong>{alt_dominance:.1f}%</strong></div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
-        {pulse_state_html}
     </div>
     {''.join(chart_sections)}
     """
@@ -798,15 +788,6 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
     total_market_cap = _safe_float(market_overview.get('total_market_cap', 0))
     total_volume = _safe_float(market_overview.get('total_volume', 0))
     market_change = _safe_float(market_overview.get('market_cap_change_percentage_24h_usd', 0))
-    if btc_dominance >= 55 and turnover_ratio < 8:
-        structure_summary = "资金继续集中在比特币等主流资产，扩散节奏偏慢，市场更偏防御配置。"
-    elif btc_dominance <= 50 and market_change > 0:
-        structure_summary = "主流币之外的风险偏好有所抬升，资金有向更高弹性资产扩散的迹象。"
-    elif turnover_ratio >= 12:
-        structure_summary = "成交活跃度提升，说明短线资金参与意愿增强，但仍需观察持续性。"
-    else:
-        structure_summary = "资金结构相对均衡，主流资产与山寨资产暂未出现单边主导。"
-
     def unit_label(value: float) -> str:
         if value >= 1_000_000_000_000:
             return "单位：万亿"
@@ -842,7 +823,6 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
                     <div class="overview-sub">成交额 / 市值：{turnover_ratio:.2f}%</div>
                 </div>
             </div>
-            <div class="market-overview-summary">{html.escape(structure_summary)}</div>
         </div>
     </div>
     """

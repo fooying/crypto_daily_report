@@ -123,7 +123,6 @@ def generate_sentiment_analysis_section(
                     <div class="gauge-value">{composite_score}</div>
                     <div class="gauge-classification {composite_level_class}">{composite_label}</div>
                     <div class="composite-summary-card">{composite_summary}</div>
-                    {composite_drivers_html}
                 </div>
             </div>
 
@@ -156,24 +155,12 @@ def generate_sentiment_analysis_section(
                 <div class="trend-panel-summary">情绪变化节奏用于观察短线修复或继续走弱，需结合综合市场情绪分一起判断。</div>
             </div>
         </div>
+        {composite_drivers_html}
+        <div class="sentiment-inline-note">
+            {summary_items}
+        </div>
 
         <div class="sentiment-details">
-            <h3>指数说明</h3>
-            <div class="source-info">
-                {summary_items}
-                <details>
-                    <summary class="sentiment-details-summary">查看完整指数说明</summary>
-                    <p>该指数结合市场数据、社交媒体情绪、波动率和交易量等多维度数据，综合反映加密货币市场情绪。</p>
-                    <ul>
-                        <li><span class="sentiment-level-label">0-20 极度恐惧：</span>市场极度悲观，通常对应超卖区间</li>
-                        <li><span class="sentiment-level-label">21-40 恐惧：</span>投资者偏谨慎，市场接近底部区域</li>
-                        <li><span class="sentiment-level-label">41-60 中性：</span>多空力量相对均衡</li>
-                        <li><span class="sentiment-level-label">61-80 贪婪：</span>风险偏好回升，需防回调</li>
-                        <li><span class="sentiment-level-label">81-100 极度贪婪：</span>过热概率升高，需控制仓位</li>
-                    </ul>
-                </details>
-            </div>
-
             <h3>深度分析</h3>
             <div class="analysis-content">{deep_analysis_items}</div>
         </div>
