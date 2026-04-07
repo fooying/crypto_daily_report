@@ -163,8 +163,10 @@ def generate_sentiment_analysis_section(
                     </div>
                 </div>
 
-                <div class="trend-note">趋势统计基于 {html.escape(report_time)} 生成。</div>
-                <div class="trend-panel-summary">情绪变化节奏用于观察短线修复或继续走弱，需结合综合市场情绪分一起判断。</div>
+                <div class="trend-panel-summary">
+                    <p>趋势统计基于 {html.escape(report_time)} 生成。</p>
+                    <p>情绪变化节奏用于观察短线修复或继续走弱，需结合综合市场情绪分一起判断。</p>
+                </div>
             </div>
         </div>
         <div class="sentiment-inline-note">

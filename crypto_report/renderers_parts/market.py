@@ -673,10 +673,7 @@ def generate_defi_overview_section(defi_overview: Dict[str, Any]) -> str:
                     <span>{float(item.get('share_pct', 0.0)):.1f}%</span>
                 </div>
                 <div class="defi-card-value">{format_large_number(_safe_float(item.get('tvl'), 0.0))}</div>
-                <div class="defi-card-meta">
-                    <span>TVL 占比</span>
-                    {change_html}
-                </div>
+                {f'<div class="defi-card-meta"><span>TVL 占比</span>{change_html}</div>' if change_html else ''}
             </div>
             """
         )

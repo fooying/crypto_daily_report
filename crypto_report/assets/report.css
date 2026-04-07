@@ -1094,6 +1094,14 @@ body {
   line-height: 1.6;
 }
 
+.trend-panel-summary p {
+  margin: 0;
+}
+
+.trend-panel-summary p + p {
+  margin-top: 8px;
+}
+
 .sentiment-details {
   margin-top: 24px;
 }
@@ -1445,13 +1453,11 @@ body {
 
 .sentiment-score-panel > .sentiment-driver-list-wrapper {
   margin: 0;
-  padding-top: 18px;
-  border-style: solid;
-  border-color: #dbe7f3;
-  background: linear-gradient(180deg, #f8fbff 0%, #f3f7fb 100%);
+  padding: 18px 0 0;
+  border: 0;
+  background: transparent;
   border-top: 1px dashed #dbe4ee;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  border-radius: 0;
 }
 
 /* ===== AI Analysis ===== */
@@ -1531,6 +1537,11 @@ body {
   border-left: 1px solid #e7edf4;
 }
 
+.financial-panel h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
 .financial-panel-short {
   border-left-color: #e7edf4;
 }
@@ -1589,7 +1600,7 @@ body {
 }
 
 .insight-list li {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .insight-list.empty,

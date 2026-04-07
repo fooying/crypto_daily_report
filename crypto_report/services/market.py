@@ -21,6 +21,11 @@ from .storage import TrendStorage
 class MarketService:
     """Fetch market and fear/greed data and persist trend history."""
 
+    CMC_TECHNICAL_IDS = {
+        "BTC": 1,
+        "ETH": 1027,
+    }
+
     CLASSIFICATION_MAP = {
         "Extreme Fear": "极度恐惧",
         "Fear": "恐惧",
@@ -586,6 +591,76 @@ class MarketService:
         self.last_market_history_source = "default_empty"
         return []
 
+    def _build_technical_context_from_series(
+        self,
+        close_prices: List[float],
+        volume_values: List[float],
+    ) -> Dict[str, Any]:
+        ma7 = self._calculate_moving_average(close_prices, 7)
+        ma30 = self._calculate_moving_average(close_prices, 30)
+        rsi14 = self._calculate_rsi(close_prices, 14)
+        bollinger = self._calculate_bollinger_bands(close_prices, 20) or {}
+        return {
+            "price_change_30d": round(
+                (close_prices[-1] - close_prices[0]) / close_prices[0] * 100,
+                2,
+            )
+            if close_prices[0]
+            else 0,
+            "high_30d": max(close_prices),
+            "low_30d": min(close_prices),
+            "latest_close": close_prices[-1],
+            "avg_volume_30d": round(sum(volume_values) / len(volume_values), 2)
+            if volume_values
+            else 0,
+            "ma7": ma7,
+            "ma30": ma30,
+            "rsi14": rsi14,
+            "bollinger_upper": bollinger.get("upper"),
+            "bollinger_middle": bollinger.get("middle"),
+            "bollinger_lower": bollinger.get("lower"),
+            "bollinger_status": bollinger.get("status", ""),
+            "macd_bias": self._calculate_macd_bias(close_prices),
+            "volatility_30d": self._calculate_volatility(close_prices, 30),
+            "support_level": round(min(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
+            "resistance_level": round(max(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
+        }
+
+    def _fetch_coinmarketcap_technical_context(
+        self,
+        time_start,
+        time_end,
+    ) -> Dict[str, Any]:
+        if not self.config.coinmarketcap_api_key or self.config.coinmarketcap_api_key == "replace-me":
+            return {}
+
+        context: Dict[str, Any] = {}
+        for label, cmc_id in self.CMC_TECHNICAL_IDS.items():
+            url = (
+                f"{self.config.coinmarketcap_api}/cryptocurrency/ohlcv/historical"
+                f"?id={cmc_id}"
+                f"&time_start={time_start.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                f"&time_end={time_end.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                "&interval=daily&count=31&convert=USD"
+            )
+            data = self.fetch_coinmarketcap_json(url, timeout=15)
+            quotes = (((data or {}).get("data") or {}).get("quotes")) or []
+            close_prices: List[float] = []
+            volume_values: List[float] = []
+            for item in quotes:
+                quote = (item or {}).get("quote", {}).get("USD", {})
+                close = quote.get("close")
+                volume = quote.get("volume")
+                if close is None:
+                    continue
+                close_prices.append(float(close))
+                if volume is not None:
+                    volume_values.append(float(volume))
+            if len(close_prices) < 2:
+                continue
+            context[label] = self._build_technical_context_from_series(close_prices, volume_values)
+        return context
+
     def get_technical_context(self) -> Dict[str, Any]:
         time_end = self.report_date
         time_start = time_end - timedelta(days=30)
@@ -620,42 +695,25 @@ class MarketService:
 
                 if not close_prices:
                     continue
-                ma7 = self._calculate_moving_average(close_prices, 7)
-                ma30 = self._calculate_moving_average(close_prices, 30)
-                rsi14 = self._calculate_rsi(close_prices, 14)
-                bollinger = self._calculate_bollinger_bands(close_prices, 20) or {}
-                context[label] = {
-                    "price_change_30d": round(
-                        (close_prices[-1] - close_prices[0]) / close_prices[0] * 100,
-                        2,
-                    )
-                    if close_prices[0]
-                    else 0,
-                    "high_30d": max(close_prices),
-                    "low_30d": min(close_prices),
-                    "latest_close": close_prices[-1],
-                    "avg_volume_30d": round(sum(volume_values) / len(volume_values), 2)
-                    if volume_values
-                    else 0,
-                    "ma7": ma7,
-                    "ma30": ma30,
-                    "rsi14": rsi14,
-                    "bollinger_upper": bollinger.get("upper"),
-                    "bollinger_middle": bollinger.get("middle"),
-                    "bollinger_lower": bollinger.get("lower"),
-                    "bollinger_status": bollinger.get("status", ""),
-                    "macd_bias": self._calculate_macd_bias(close_prices),
-                    "volatility_30d": self._calculate_volatility(close_prices, 30),
-                    "support_level": round(min(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
-                    "resistance_level": round(max(close_prices[-7:]), 2) if len(close_prices) >= 7 else None,
-                }
+                context[label] = self._build_technical_context_from_series(close_prices, volume_values)
             if context:
                 self.last_technical_context_source = "coingecko_market_chart_range"
-            return context
+                return context
         except HTTPRequestError as exc:
-            self.logger.warning("CoinGecko 技术背景历史请求失败，技术背景摘要将降级为空: %s", exc)
+            self.logger.warning("CoinGecko 技术背景历史请求失败，尝试 CoinMarketCap 备用源: %s", exc)
         except Exception as exc:
-            self.logger.warning("CoinGecko 技术背景历史获取失败，技术背景摘要将降级为空: %s", exc)
+            self.logger.warning("CoinGecko 技术背景历史获取失败，尝试 CoinMarketCap 备用源: %s", exc)
+
+        try:
+            context = self._fetch_coinmarketcap_technical_context(time_start, time_end)
+            if context:
+                self.last_technical_context_source = "coinmarketcap_ohlcv_historical"
+                self.logger.info("技术背景摘要已切换为 CoinMarketCap 备用源")
+                return context
+        except HTTPRequestError as exc:
+            self.logger.warning("CoinMarketCap 技术背景历史请求失败，技术背景摘要将降级为空: %s", exc)
+        except Exception as exc:
+            self.logger.warning("CoinMarketCap 技术背景历史获取失败，技术背景摘要将降级为空: %s", exc)
         self.last_technical_context_source = "default_empty"
         return {}
 
