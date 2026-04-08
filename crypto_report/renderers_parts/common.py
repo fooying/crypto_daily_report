@@ -67,7 +67,13 @@ def render_mobile_details(
     preview = html.escape(str(preview_text or "").strip() or "展开查看")
     return (
         f'<details class="{css_class}">'
-        f'<summary>{preview}</summary>'
+        '<summary>'
+        f'<span class="mobile-details-preview">{preview}</span>'
+        '<span class="mobile-details-toggle" aria-hidden="true">'
+        '<span class="mobile-details-toggle-open">展开</span>'
+        '<span class="mobile-details-toggle-close">收起</span>'
+        "</span>"
+        "</summary>"
         f'<div class="mobile-details-body">{body_html}</div>'
         '</details>'
     )

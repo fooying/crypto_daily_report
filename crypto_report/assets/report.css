@@ -877,6 +877,41 @@ body {
   display: none;
 }
 
+.mobile-details-preview {
+  min-width: 0;
+}
+
+.mobile-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--info-color);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mobile-details-toggle::before {
+  content: "⌄";
+  font-size: 0.85em;
+  transform: translateY(-1px);
+}
+
+.mobile-details-toggle-close {
+  display: none;
+}
+
+.mobile-details[open] .mobile-details-toggle-open {
+  display: none;
+}
+
+.mobile-details[open] .mobile-details-toggle-close {
+  display: inline;
+}
+
+.mobile-details[open] .mobile-details-toggle::before {
+  transform: rotate(180deg) translateY(1px);
+}
+
 .mobile-details-body {
   display: block;
 }
@@ -1421,6 +1456,43 @@ body {
   font-size: 0.8rem;
 }
 
+.news-tag-summary-source {
+  display: grid;
+  gap: 8px;
+}
+
+.news-tag-summary-source-label {
+  font-weight: 600;
+}
+
+.source-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #dbe6f1;
+  background: linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(241,245,249,0.92) 100%);
+  color: var(--text-secondary);
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+.source-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--info-color);
+  flex-shrink: 0;
+}
+
 .news-tag-summary-list {
   display: flex;
   flex-wrap: wrap;
@@ -1879,15 +1951,22 @@ body {
   }
 
   .mobile-details > summary {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 0.88em;
     line-height: 1.55;
     list-style: none;
+  }
+
+  .mobile-details-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
   .mobile-details > summary::-webkit-details-marker {
@@ -2021,6 +2100,11 @@ body {
   .news-tag-summary-source,
   .section-source-note {
     font-size: 0.76rem;
+  }
+
+  .source-chip {
+    font-size: 0.74rem;
+    padding: 4px 9px;
   }
 
   .risk-level,

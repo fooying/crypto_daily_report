@@ -85,11 +85,19 @@ def _render_news_event_summary(
             key=lambda item: (-item[1], item[0]),
         )[:10]
     )
-    source_html = (
-        f'<div class="news-tag-summary-source">来源构成：{html.escape(source_summary)}</div>'
-        if source_summary
-        else ""
-    )
+    source_html = ""
+    if source_summary:
+        chips = "".join(
+            f'<span class="source-chip">{html.escape(part.strip())}</span>'
+            for part in source_summary.split("+")
+            if part.strip()
+        )
+        source_html = (
+            '<div class="news-tag-summary-source">'
+            '<span class="news-tag-summary-source-label">来源构成</span>'
+            f'<div class="source-chip-row">{chips}</div>'
+            "</div>"
+        )
     return (
         '<div class="news-tag-summary">'
         '<div class="news-tag-summary-title">新闻标签</div>'

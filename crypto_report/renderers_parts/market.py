@@ -124,7 +124,11 @@ def _build_technical_takeaway(metrics: Dict[str, Any]) -> str:
 def _render_section_source_note(source_note: str) -> str:
     if not source_note:
         return ""
-    return f'<div class="section-source-note">{html.escape(source_note)}</div>'
+    return (
+        '<div class="source-chip-row section-source-note">'
+        f'<span class="source-chip">{html.escape(source_note)}</span>'
+        "</div>"
+    )
 
 
 def _build_market_breadth_summary(
