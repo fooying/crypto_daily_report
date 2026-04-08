@@ -137,7 +137,8 @@ class HTTPClient:
                 json=json_body,
             )
             elapsed_ms = (time.perf_counter() - start) * 1000
-            self.logger.info(
+            log_method = self.logger.info if method != 'GET' else self.logger.debug
+            log_method(
                 'http_request method=%s url=%s status=%s elapsed_ms=%.1f',
                 method,
                 url,

@@ -251,9 +251,12 @@ class RendererTests(unittest.TestCase):
                     'source': 'UnitTest',
                 }
             ],
+            total_news_count=16,
+            news_source_summary='CoinTelegraph 15 条 + CoinMarketCap 1 条',
         )
         self.assertIn('新闻标签', html)
-        self.assertIn('本次抓取 1 条，当前展示 1 条', html)
+        self.assertIn('本次抓取 16 条，当前展示 1 条', html)
+        self.assertIn('来源构成：CoinTelegraph 15 条 + CoinMarketCap 1 条', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
         self.assertIn('中影响', html)
@@ -407,9 +410,11 @@ class RendererTests(unittest.TestCase):
                     'support_level': 65000,
                     'resistance_level': 69000,
                 }
-            }
+            },
+            source_note='技术背景来源：当日本地缓存',
         )
         self.assertIn('技术背景摘要', html)
+        self.assertIn('技术背景来源：当日本地缓存', html)
         self.assertIn('BTC 30天技术摘要', html)
         self.assertIn('+10.50%', html)
         self.assertIn('MA7 / MA30', html)
@@ -433,9 +438,11 @@ class RendererTests(unittest.TestCase):
                         'correlation_30d': 0.42,
                     }
                 ],
-            }
+            },
+            source_note='宏观关联来源：CoinGecko + Yahoo Finance',
         )
         self.assertIn('宏观关联观察', html)
+        self.assertIn('宏观关联来源：CoinGecko + Yahoo Finance', html)
         self.assertIn('标普500', html)
         self.assertIn('30天相关性', html)
 

@@ -60,6 +60,7 @@ def _render_news_event_summary(
     news_event_summary: Dict[str, int],
     total_count: int,
     display_count: int,
+    source_summary: str,
 ) -> str:
     merged_counts: Dict[str, int] = {}
     for source in (news_event_summary or {}, news_tag_summary or {}):
@@ -82,10 +83,16 @@ def _render_news_event_summary(
             key=lambda item: (-item[1], item[0]),
         )[:10]
     )
+    source_html = (
+        f'<div class="news-tag-summary-source">来源构成：{html.escape(source_summary)}</div>'
+        if source_summary
+        else ""
+    )
     return (
         '<div class="news-tag-summary">'
         '<div class="news-tag-summary-title">新闻标签</div>'
         f'<div class="news-tag-summary-meta">本次抓取 {total_count} 条，当前展示 {display_count} 条</div>'
+        f'{source_html}'
         f'<div class="news-tag-summary-list">{items}</div>'
         "</div>"
     )
@@ -97,6 +104,7 @@ def generate_news_html(
     news_event_summary: Dict[str, int] | None = None,
     event_watchlist: List[Dict[str, Any]] | None = None,
     total_news_count: int | None = None,
+    news_source_summary: str = "",
 ) -> str:
     news_items_html = ""
     display_count = len(news or [])
@@ -106,6 +114,7 @@ def generate_news_html(
         news_event_summary or {},
         total_count,
         display_count,
+        news_source_summary,
     )
     watch_lookup = {
         str(item.get("title", "")).strip(): item

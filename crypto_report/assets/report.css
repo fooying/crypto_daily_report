@@ -460,6 +460,10 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.section-source-note {
+  margin: -6px 0 14px;
+}
+
 .technical-context-header {
   font-weight: 700;
   margin-bottom: 12px;
@@ -1398,6 +1402,12 @@ body {
   font-size: 0.8rem;
 }
 
+.news-tag-summary-source,
+.section-source-note {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
 .news-tag-summary-list {
   display: flex;
   flex-wrap: wrap;
@@ -1855,6 +1865,29 @@ body {
     display: none;
   }
 
+  .risk-level,
+  .stance-row p,
+  .ai-merged-block p,
+  .signal-desc,
+  .insight-list li,
+  .action-list li {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .risk-level,
+  .stance-row p,
+  .ai-merged-block p {
+    -webkit-line-clamp: 3;
+  }
+
+  .signal-desc,
+  .insight-list li,
+  .action-list li {
+    -webkit-line-clamp: 2;
+  }
+
   .sentiment-trends {
     padding: 18px;
   }
@@ -1936,5 +1969,26 @@ body {
 
   .market-pulse-summary {
     grid-template-columns: 1fr;
+  }
+
+  .news-summary {
+    -webkit-line-clamp: 1;
+    font-size: 0.84em;
+  }
+
+  .news-list .news-item:nth-child(n+6) {
+    display: none;
+  }
+
+  .news-tag-summary-meta,
+  .news-tag-summary-source,
+  .section-source-note {
+    font-size: 0.76rem;
+  }
+
+  .risk-level,
+  .stance-row p,
+  .ai-merged-block p {
+    -webkit-line-clamp: 2;
   }
 }

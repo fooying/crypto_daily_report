@@ -135,6 +135,32 @@ class CryptoReportGenerator:
             lstrip_blocks=True,
         )
 
+    @staticmethod
+    def _summarize_news_sources(news_items: List[NewsItem]) -> str:
+        if not news_items:
+            return ""
+        source_counts: Dict[str, int] = {}
+        for item in news_items:
+            source = str(item.get("source", "")).strip()
+            if not source:
+                continue
+            source_counts[source] = source_counts.get(source, 0) + 1
+        return " + ".join(
+            f"{source} {count} 条"
+            for source, count in sorted(source_counts.items(), key=lambda item: (-item[1], item[0]))
+        )
+
+    @staticmethod
+    def _build_data_source_note(source_key: str, category: str) -> str:
+        mapping = {
+            "coingecko_market_chart_range": f"{category}来源：CoinGecko 实时接口",
+            "coinmarketcap_ohlcv_historical": f"{category}来源：CoinMarketCap 备用接口",
+            "local_cache": f"{category}来源：当日本地缓存",
+            "coingecko_yahoo": f"{category}来源：CoinGecko + Yahoo Finance",
+            "default_empty": f"{category}来源：当前不可用",
+        }
+        return mapping.get(source_key, "")
+
     def _log_config_warnings(self) -> None:
         if self.config.ignores_asset_url_mode():
             logger.debug(
@@ -202,6 +228,7 @@ class CryptoReportGenerator:
             "technical_context": technical_context,
             "news": display_news,
             "news_total_count": len(self.crypto_news or []),
+            "news_source_summary": self._summarize_news_sources(self.crypto_news or []),
             "sentiment": sentiment,
             "daily_change_meta": build_change_meta(sentiment.get("daily_change")),
             "weekly_change_meta": build_change_meta(sentiment.get("weekly_change")),
@@ -210,7 +237,15 @@ class CryptoReportGenerator:
             "dynamic_analysis": self.get_dynamic_analysis(sentiment.get("value", 50)),
             "ai_analysis": self.get_ai_analysis(),
             "macro_context": self.macro_context or {},
+            "macro_context_source_note": self._build_data_source_note(
+                self.market_service.last_macro_context_source,
+                "宏观关联",
+            ),
             "defi_overview": self.defi_overview or {},
+            "technical_context_source_note": self._build_data_source_note(
+                self.market_service.last_technical_context_source,
+                "技术背景",
+            ),
         }
 
     def get_market_overview(self) -> MarketOverview:
@@ -516,10 +551,12 @@ class CryptoReportGenerator:
                 ai_analysis.get("sentiment_composite"),
             ),
             technical_context_section=generate_technical_context_section(
-                context["technical_context"]
+                context["technical_context"],
+                source_note=context.get("technical_context_source_note", ""),
             ),
             macro_context_section=generate_macro_context_section(
-                context["macro_context"]
+                context["macro_context"],
+                source_note=context.get("macro_context_source_note", ""),
             ),
             defi_overview_section=generate_defi_overview_section(
                 context["defi_overview"]
@@ -536,6 +573,7 @@ class CryptoReportGenerator:
                 ai_analysis.get("news_event_summary"),
                 ai_analysis.get("event_watchlist"),
                 context.get("news_total_count", len(context["news"])),
+                context.get("news_source_summary", ""),
             ),
             news_date_range=self.news_date_range,
             sentiment_section=self._generate_sentiment_analysis_section(

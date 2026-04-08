@@ -121,6 +121,12 @@ def _build_technical_takeaway(metrics: Dict[str, Any]) -> str:
     return "，".join(parts) if parts else "样本不足，暂无法形成统一结论"
 
 
+def _render_section_source_note(source_note: str) -> str:
+    if not source_note:
+        return ""
+    return f'<div class="section-source-note">{html.escape(source_note)}</div>'
+
+
 def _build_market_breadth_summary(
     cryptos: List[Dict[str, Any]],
     market_overview: Dict[str, Any],
@@ -584,7 +590,10 @@ def generate_market_insights_section(
     """
 
 
-def generate_technical_context_section(technical_context: Dict[str, Any]) -> str:
+def generate_technical_context_section(
+    technical_context: Dict[str, Any],
+    source_note: str = "",
+) -> str:
     if not technical_context:
         return ""
 
@@ -638,6 +647,7 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
     return f"""
     <div class="section">
         <h2>技术背景摘要</h2>
+        {_render_section_source_note(source_note)}
         <div class="technical-context-wrap">
             {''.join(cards)}
         </div>
@@ -645,7 +655,10 @@ def generate_technical_context_section(technical_context: Dict[str, Any]) -> str
     """
 
 
-def generate_macro_context_section(macro_context: Dict[str, Any]) -> str:
+def generate_macro_context_section(
+    macro_context: Dict[str, Any],
+    source_note: str = "",
+) -> str:
     assets = macro_context.get("assets") or []
     if not assets:
         return ""
@@ -671,6 +684,7 @@ def generate_macro_context_section(macro_context: Dict[str, Any]) -> str:
     return f"""
     <div class="section">
         <h2>宏观关联观察</h2>
+        {_render_section_source_note(source_note)}
         <div class="macro-summary">
             <div><span>BTC 30天表现</span><strong class="{'green' if _safe_float(btc.get('change_30d'), 0.0) >= 0 else 'red'}">{_safe_float(btc.get('change_30d'), 0.0):+.2f}%</strong></div>
             <p>{html.escape(str(macro_context.get('summary', '')))}</p>
