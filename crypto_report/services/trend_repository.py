@@ -10,6 +10,24 @@ from typing import Any, Dict, List
 class TrendRepository:
     """Handle persistence and raw trend updates."""
 
+    SERIES_RETENTION_LIMITS = {
+        "fear_greed_index": 30,
+        "market_cap": 30,
+        "bitcoin_price": 30,
+        "ethereum_price": 30,
+    }
+
+    TOP_LEVEL_KEY_ORDER = (
+        "fear_greed_index",
+        "market_cap",
+        "bitcoin_price",
+        "ethereum_price",
+        "macro_context_cache",
+        "defi_overview_cache",
+        "last_updated",
+        "metadata",
+    )
+
     def __init__(self, trend_data_file: Path, report_date: datetime, logger) -> None:
         self.trend_data_file = Path(trend_data_file)
         self.report_date = report_date
@@ -40,6 +58,7 @@ class TrendRepository:
     def save(self, data: Dict[str, Any]) -> bool:
         try:
             self.trend_data_file.parent.mkdir(parents=True, exist_ok=True)
+            self._normalize_trend_data(data)
             data["last_updated"] = str(datetime.now())
             self.trend_data_file.write_text(
                 json.dumps(data, ensure_ascii=False, indent=2),
@@ -67,7 +86,7 @@ class TrendRepository:
             or existing.get("classification") != payload["classification"]
         )
         fgi_history[current_date] = payload
-        self._trim_history(fgi_history)
+        self._trim_history(fgi_history, limit=self.SERIES_RETENTION_LIMITS["fear_greed_index"])
         self.save(trend_data)
         if not existing:
             self.logger.info("恐惧贪婪指数已写入当日缓存: %s -> %s", current_date, current_value)
@@ -124,7 +143,7 @@ class TrendRepository:
                 continue
 
         if inserted or updated:
-            self._trim_history(fgi_history)
+            self._trim_history(fgi_history, limit=self.SERIES_RETENTION_LIMITS["fear_greed_index"])
             self.save(trend_data)
             self.logger.info(
                 "恐惧贪婪指数历史缓存已同步: 新增 %s 条，更新 %s 条",
@@ -147,7 +166,7 @@ class TrendRepository:
             "timestamp": str(int(time.time())),
             "source": "coingecko",
         }
-        self._trim_history(trend_data["market_cap"])
+        self._trim_history(trend_data["market_cap"], limit=self.SERIES_RETENTION_LIMITS["market_cap"])
         self.save(trend_data)
         return trend_data
 
@@ -161,7 +180,7 @@ class TrendRepository:
             "timestamp": str(int(time.time())),
             "source": "coingecko",
         }
-        self._trim_history(trend_data[key])
+        self._trim_history(trend_data[key], limit=self.SERIES_RETENTION_LIMITS.get(key, 30))
         self.save(trend_data)
         return trend_data
 
@@ -193,3 +212,24 @@ class TrendRepository:
         dates = sorted(history.keys(), reverse=True)
         for old_date in dates[limit:]:
             del history[old_date]
+
+    def _normalize_trend_data(self, data: Dict[str, Any]) -> None:
+        for key, limit in self.SERIES_RETENTION_LIMITS.items():
+            history = data.get(key)
+            if isinstance(history, dict):
+                self._trim_history(history, limit=limit)
+                data[key] = dict(sorted(history.items(), key=lambda item: item[0], reverse=True))
+
+        ordered: Dict[str, Any] = {}
+        for key in self.TOP_LEVEL_KEY_ORDER:
+            if key in data:
+                ordered[key] = data[key]
+        for key in sorted(data.keys()):
+            if key not in ordered:
+                value = data[key]
+                if isinstance(value, dict):
+                    value = dict(sorted(value.items(), key=lambda item: item[0]))
+                ordered[key] = value
+
+        data.clear()
+        data.update(ordered)

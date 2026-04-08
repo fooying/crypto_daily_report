@@ -176,6 +176,42 @@ class RealFixtureTests(unittest.TestCase):
         stored = self.storage.load()['fear_greed_index']
         self.assertEqual(stored['2026-04-03']['value'], 15)
 
+    def test_trend_repository_trims_histories_to_30_days_and_keeps_key_order(self) -> None:
+        history = {}
+        for offset in range(35):
+            date_key = (datetime(2026, 4, 3, 12, 0) - timedelta(days=offset)).strftime('%Y-%m-%d')
+            history[date_key] = {
+                'value': offset,
+                'classification': '恐惧',
+                'timestamp': str(1775174400 - offset * 86400),
+                'source': 'alternative.me',
+            }
+
+        self.storage.save(
+            {
+                'metadata': {'version': '1.0'},
+                'fear_greed_index': history,
+                'market_cap': history,
+                'bitcoin_price': history,
+                'ethereum_price': history,
+            }
+        )
+
+        raw = json.loads(self.storage.trend_data_file.read_text(encoding='utf-8'))
+
+        self.assertEqual(list(raw.keys())[:4], [
+            'fear_greed_index',
+            'market_cap',
+            'bitcoin_price',
+            'ethereum_price',
+        ])
+        self.assertEqual(len(raw['fear_greed_index']), 30)
+        self.assertEqual(len(raw['market_cap']), 30)
+        self.assertEqual(len(raw['bitcoin_price']), 30)
+        self.assertEqual(len(raw['ethereum_price']), 30)
+        self.assertEqual(next(iter(raw['fear_greed_index'].keys())), '2026-04-03')
+        self.assertNotIn('2026-02-28', raw['fear_greed_index'])
+
 
 if __name__ == '__main__':
     unittest.main()
