@@ -1393,6 +1393,11 @@ body {
   font-weight: 600;
 }
 
+.news-tag-summary-meta {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
 .news-tag-summary-list {
   display: flex;
   flex-wrap: wrap;

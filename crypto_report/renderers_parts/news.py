@@ -58,6 +58,8 @@ def _dedupe_tag_sequence(values: List[Any]) -> List[str]:
 def _render_news_event_summary(
     news_tag_summary: Dict[str, int],
     news_event_summary: Dict[str, int],
+    total_count: int,
+    display_count: int,
 ) -> str:
     merged_counts: Dict[str, int] = {}
     for source in (news_event_summary or {}, news_tag_summary or {}):
@@ -65,7 +67,7 @@ def _render_news_event_summary(
             text = _normalize_tag(label)
             if not text:
                 continue
-            merged_counts[text] = merged_counts.get(text, 0) + int(count)
+            merged_counts[text] = max(merged_counts.get(text, 0), int(count))
     if not merged_counts:
         return ""
     items = "".join(
@@ -83,6 +85,7 @@ def _render_news_event_summary(
     return (
         '<div class="news-tag-summary">'
         '<div class="news-tag-summary-title">新闻标签</div>'
+        f'<div class="news-tag-summary-meta">本次抓取 {total_count} 条，当前展示 {display_count} 条</div>'
         f'<div class="news-tag-summary-list">{items}</div>'
         "</div>"
     )
@@ -93,11 +96,16 @@ def generate_news_html(
     news_tag_summary: Dict[str, int] | None = None,
     news_event_summary: Dict[str, int] | None = None,
     event_watchlist: List[Dict[str, Any]] | None = None,
+    total_news_count: int | None = None,
 ) -> str:
     news_items_html = ""
+    display_count = len(news or [])
+    total_count = total_news_count if total_news_count is not None else display_count
     event_summary_html = _render_news_event_summary(
         news_tag_summary or {},
         news_event_summary or {},
+        total_count,
+        display_count,
     )
     watch_lookup = {
         str(item.get("title", "")).strip(): item

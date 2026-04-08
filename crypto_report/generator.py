@@ -201,6 +201,7 @@ class CryptoReportGenerator:
             "market_cap_history": market_cap_history,
             "technical_context": technical_context,
             "news": display_news,
+            "news_total_count": len(self.crypto_news or []),
             "sentiment": sentiment,
             "daily_change_meta": build_change_meta(sentiment.get("daily_change")),
             "weekly_change_meta": build_change_meta(sentiment.get("weekly_change")),
@@ -534,6 +535,7 @@ class CryptoReportGenerator:
                 ai_analysis.get("news_tag_summary"),
                 ai_analysis.get("news_event_summary"),
                 ai_analysis.get("event_watchlist"),
+                context.get("news_total_count", len(context["news"])),
             ),
             news_date_range=self.news_date_range,
             sentiment_section=self._generate_sentiment_analysis_section(

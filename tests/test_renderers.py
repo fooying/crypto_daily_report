@@ -253,10 +253,12 @@ class RendererTests(unittest.TestCase):
             ],
         )
         self.assertIn('新闻标签', html)
+        self.assertIn('本次抓取 1 条，当前展示 1 条', html)
         self.assertIn('监管', html)
         self.assertIn('3', html)
         self.assertIn('中影响', html)
         self.assertEqual(html.count('监管'), 2)
+        self.assertEqual(html.count('ETF/机构'), 2)
         self.assertNotIn('监管与合规', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
