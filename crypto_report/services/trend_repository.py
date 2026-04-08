@@ -44,6 +44,7 @@ class TrendRepository:
         self.report_date = report_date
         self.logger = logger
         self._file_lock = self._get_file_lock(self.trend_data_file)
+        self._ensure_primary_file_health()
 
     def load(self) -> Dict[str, Any]:
         with self._file_lock:
@@ -215,12 +216,20 @@ class TrendRepository:
     def _load_unlocked(self) -> Dict[str, Any]:
         try:
             if self.trend_data_file.exists():
-                return json.loads(self.trend_data_file.read_text(encoding="utf-8"))
+                data = json.loads(self.trend_data_file.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    normalized = deepcopy(data)
+                    self._normalize_trend_data(normalized)
+                    if self._snapshot_without_last_updated(normalized) != self._snapshot_without_last_updated(data):
+                        self.logger.info("趋势数据检测到可整理内容，已自动重写: %s", self.trend_data_file)
+                        self._save_unlocked(normalized)
+                        return normalized
+                    return data
         except Exception as exc:
-            self.logger.warning(f"加载趋势数据失败: {exc}")
+            self.logger.warning("加载趋势数据失败(%s): %s", self.trend_data_file, exc)
             backup_data = self._load_backup_unlocked()
             if backup_data is not None:
-                self.logger.warning("趋势数据主文件损坏，已回退到备份文件: %s", self._backup_path())
+                self._restore_primary_from_backup_unlocked(backup_data, reason="load_failure")
                 return backup_data
         return {
             "fear_greed_index": {},
@@ -337,6 +346,44 @@ class TrendRepository:
         except Exception as exc:
             self.logger.warning("加载趋势数据备份失败: %s", exc)
         return None
+
+    def _ensure_primary_file_health(self) -> None:
+        with self._file_lock:
+            if not self.trend_data_file.exists():
+                return
+            try:
+                content = self.trend_data_file.read_text(encoding="utf-8")
+                data = json.loads(content)
+                if not isinstance(data, dict):
+                    raise ValueError("主文件不是 JSON 对象")
+            except Exception as exc:
+                backup_data = self._load_backup_unlocked()
+                if backup_data is None:
+                    self.logger.warning("趋势数据启动自检失败且无可用备份: %s", exc)
+                    return
+                self._restore_primary_from_backup_unlocked(backup_data, reason=f"startup_repair:{exc}")
+
+    def _restore_primary_from_backup_unlocked(self, backup_data: Dict[str, Any], reason: str) -> None:
+        normalized = deepcopy(backup_data)
+        self._normalize_trend_data(normalized)
+        serialized = json.dumps(normalized, ensure_ascii=False, indent=2)
+        with NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=self.trend_data_file.parent,
+            prefix=f"{self.trend_data_file.name}.repair.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_file.write(serialized)
+            temp_path = Path(temp_file.name)
+        os.replace(temp_path, self.trend_data_file)
+        self.logger.warning(
+            "趋势数据主文件已自动从备份恢复(%s): %s <- %s",
+            reason,
+            self.trend_data_file,
+            self._backup_path(),
+        )
 
     def _atomic_write(self, serialized: str) -> None:
         backup_path = self._backup_path()

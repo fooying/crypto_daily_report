@@ -178,6 +178,40 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertIn('stance', result['financial_analyst']['short_term'])
         self.assertIn('overall_points', result['financial_analyst'])
 
+    def test_get_ai_analysis_coerces_string_shapes_from_deepseek(self) -> None:
+        self.http.post_json.return_value = {
+            'choices': [
+                {
+                    'message': {
+                        'content': (
+                            '{"market_overview":"AI市场综述",'
+                            '"trading_signals":"1. 信号1\\n2. 信号2",'
+                            '"sentiment_deep_analysis":"AI情绪解读",'
+                            '"financial_analyst":{"overall_points":"1. 点1\\n2. 点2","short_term":{"summary":"AI短期","action_items":"- 动作A\\n- 动作B"}}}'
+                        )
+                    }
+                }
+            ]
+        }
+
+        result = self.service.get_ai_analysis(
+            self.fear_greed_index,
+            self.crypto_news,
+            self.market_overview,
+            self.technical_context,
+        )
+
+        self.assertEqual(result['trading_signals'], ['信号1', '信号2'])
+        self.assertEqual(
+            result['sentiment_deep_analysis']['current_interpretation'],
+            'AI情绪解读',
+        )
+        self.assertEqual(result['financial_analyst']['overall_points'], ['点1', '点2'])
+        self.assertEqual(
+            result['financial_analyst']['short_term']['action_items'],
+            ['动作A', '动作B'],
+        )
+
     def test_collect_news_features_includes_tag_summary(self) -> None:
         sentiment_counts, keywords, tag_summary, event_summary = self.service._collect_news_features(
             [

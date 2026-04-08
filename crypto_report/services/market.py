@@ -141,6 +141,12 @@ class MarketService:
         current_date = self.report_date.strftime("%Y-%m-%d")
         return current_date in history and len(history) >= days
 
+    def _log_same_day_cache_hit(self, label: str, key: str) -> None:
+        self.logger.info("%s已命中当日本地缓存(key=%s)", label, key)
+
+    def _log_capability_skip(self, label: str, key: str) -> None:
+        self.logger.info("%s今日已标记不可用，跳过重试(key=%s)", label, key)
+
     def _is_same_day_cache_available(self, key: str) -> Dict[str, Any]:
         cached = self.storage.get_cached_snapshot(key)
         if cached.get("date") == self.report_date.strftime("%Y-%m-%d"):
@@ -375,10 +381,10 @@ class MarketService:
         payload = cached.get("payload") or {}
         if payload:
             self.last_macro_context_source = "local_cache"
-            self.logger.info("宏观关联已命中当日本地缓存")
+            self._log_same_day_cache_hit("宏观关联", "macro_context_cache")
             return payload
         if self._should_skip_same_day_capability("macro_context_coingecko_capability"):
-            self.logger.info("宏观关联 CoinGecko 数据今日已标记不可用，跳过重试")
+            self._log_capability_skip("宏观关联 CoinGecko 数据", "macro_context_coingecko_capability")
             self.last_macro_context_source = "default_empty"
             return {}
 
@@ -464,7 +470,7 @@ class MarketService:
         payload = cached.get("payload") or {}
         if payload:
             self.last_macro_context_source = "local_cache"
-            self.logger.info("宏观关联已回退到本地缓存")
+            self.logger.info("宏观关联请求失败后已回退到本地缓存")
             return payload
         self.last_macro_context_source = "default_empty"
         return {}
@@ -750,10 +756,13 @@ class MarketService:
         payload = cached.get("payload") or {}
         if payload:
             self.last_technical_context_source = "local_cache"
-            self.logger.info("技术背景摘要已命中当日本地缓存")
+            self._log_same_day_cache_hit("技术背景摘要", "technical_context_cache")
             return payload
         if self._should_skip_same_day_capability("technical_context_coingecko_capability"):
-            self.logger.info("CoinGecko 技术背景历史今日已标记不可用，跳过重试")
+            self._log_capability_skip(
+                "CoinGecko 技术背景历史",
+                "technical_context_coingecko_capability",
+            )
         else:
             try:
                 context: Dict[str, Any] = {}
@@ -806,7 +815,10 @@ class MarketService:
                 self.logger.warning("CoinGecko 技术背景历史获取失败，尝试 CoinMarketCap 备用源: %s", exc)
 
         if self._should_skip_coinmarketcap_technical_fallback():
-            self.logger.info("CoinMarketCap 技术背景历史备用源今日已标记不可用，跳过重试")
+            self._log_capability_skip(
+                "CoinMarketCap 技术背景历史备用源",
+                "technical_context_cmc_capability",
+            )
             payload = (self.storage.get_cached_snapshot("technical_context_cache").get("payload") or {})
             if payload:
                 self.last_technical_context_source = "local_cache"
@@ -838,7 +850,7 @@ class MarketService:
         payload = (self.storage.get_cached_snapshot("technical_context_cache").get("payload") or {})
         if payload:
             self.last_technical_context_source = "local_cache"
-            self.logger.info("技术背景摘要已回退到本地缓存")
+            self.logger.info("技术背景摘要请求失败后已回退到本地缓存")
             return payload
         self.last_technical_context_source = "default_empty"
         return {}
@@ -1064,10 +1076,18 @@ class MarketService:
             )
             self.storage.update_fear_greed_trend(current_value, classification)
 
-            if history_7d is None and not self._has_enough_local_fear_greed_history(7):
-                history_7d = self._fetch_fear_greed_history(7)
-            if history_30d is None and not self._has_enough_local_fear_greed_history(30):
-                history_30d = self._fetch_fear_greed_history(30)
+            has_local_7d = self._has_enough_local_fear_greed_history(7)
+            has_local_30d = self._has_enough_local_fear_greed_history(30)
+            if history_7d is None:
+                if has_local_7d:
+                    self.logger.info("恐惧贪婪指数已具备7天本地趋势数据，跳过额外历史请求")
+                else:
+                    history_7d = self._fetch_fear_greed_history(7)
+            if history_30d is None:
+                if has_local_30d:
+                    self.logger.info("恐惧贪婪指数已具备30天本地趋势数据，跳过额外历史请求")
+                else:
+                    history_30d = self._fetch_fear_greed_history(30)
 
             return self.parse_fear_greed_response(
                 data,
@@ -1080,7 +1100,7 @@ class MarketService:
             self.logger.warning("恐惧贪婪指数请求失败: %s", exc)
         except Exception as exc:
             self.logger.warning("获取恐惧贪婪指数失败: %s", exc)
-        self.logger.warning("API调用失败，尝试从趋势数据获取")
+        self.logger.warning("恐惧贪婪指数 API 不可用，回退到本地趋势缓存")
         fgi_trend = self.storage.load().get("fear_greed_index", {})
         dates = sorted(fgi_trend.keys(), reverse=True)
         if dates:

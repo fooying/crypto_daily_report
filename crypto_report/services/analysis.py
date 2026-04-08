@@ -455,6 +455,8 @@ class AIAnalysisService:
     def _normalize_ai_output(content: str) -> Dict[str, Any]:
         payload = AIAnalysisService._extract_json_payload(content)
         data = AIAnalysisService._loads_json_payload(payload)
+        if not isinstance(data, dict):
+            raise ValueError("DeepSeek 返回不是 JSON 对象")
         supported_fields = {
             "market_overview",
             "technical_analysis",
@@ -466,20 +468,7 @@ class AIAnalysisService:
         }
         if not any(field in data for field in supported_fields):
             raise ValueError("DeepSeek 返回缺少可用分析字段")
-        if "trading_signals" in data and not isinstance(data["trading_signals"], list):
-            raise ValueError("DeepSeek trading_signals 不是数组")
-        if "trading_signals" in data:
-            data["trading_signals"] = [
-                str(item).strip()
-                for item in data["trading_signals"]
-                if str(item).strip()
-            ][:5]
-            if not data["trading_signals"]:
-                data.pop("trading_signals", None)
-        if "sentiment_deep_analysis" in data and not isinstance(data["sentiment_deep_analysis"], dict):
-            raise ValueError("DeepSeek sentiment_deep_analysis 不是对象")
-        if "financial_analyst" in data and not isinstance(data["financial_analyst"], dict):
-            raise ValueError("DeepSeek financial_analyst 不是对象")
+        data = AIAnalysisService._coerce_ai_output(data)
         return {
             key: value for key, value in data.items()
             if key in supported_fields and value not in (None, "", [], {})
@@ -587,6 +576,113 @@ class AIAnalysisService:
                 merged[key] = value
         return merged
 
+    @staticmethod
+    def _coerce_ai_output(data: Dict[str, Any]) -> Dict[str, Any]:
+        normalized = dict(data)
+        trading_signals = AIAnalysisService._coerce_string_list(
+            normalized.get("trading_signals"),
+            max_items=5,
+        )
+        if trading_signals:
+            normalized["trading_signals"] = trading_signals
+        else:
+            normalized.pop("trading_signals", None)
+
+        sentiment_deep_analysis = AIAnalysisService._coerce_sentiment_deep_analysis(
+            normalized.get("sentiment_deep_analysis")
+        )
+        if sentiment_deep_analysis:
+            normalized["sentiment_deep_analysis"] = sentiment_deep_analysis
+        else:
+            normalized.pop("sentiment_deep_analysis", None)
+
+        financial_analyst = AIAnalysisService._coerce_financial_analyst(
+            normalized.get("financial_analyst")
+        )
+        if financial_analyst:
+            normalized["financial_analyst"] = financial_analyst
+        else:
+            normalized.pop("financial_analyst", None)
+
+        for key in ("market_overview", "technical_analysis", "risk_assessment", "trend_enhanced_analysis"):
+            value = normalized.get(key)
+            if isinstance(value, str):
+                value = value.strip()
+            if value:
+                normalized[key] = value
+            else:
+                normalized.pop(key, None)
+        return normalized
+
+    @staticmethod
+    def _coerce_string_list(value: Any, max_items: int = 5) -> List[str]:
+        if isinstance(value, list):
+            items = value
+        elif isinstance(value, str):
+            items = re.split(r"[\n\r]+|[;；]+", value)
+        else:
+            return []
+        cleaned: List[str] = []
+        for item in items:
+            text = str(item).strip()
+            text = re.sub(r"^[\-\*\d\.\)\(、\s]+", "", text)
+            if text:
+                cleaned.append(text)
+        return cleaned[:max_items]
+
+    @staticmethod
+    def _coerce_sentiment_deep_analysis(value: Any) -> Dict[str, str]:
+        if isinstance(value, str):
+            value = {"current_interpretation": value}
+        if not isinstance(value, dict):
+            return {}
+        ordered_keys = (
+            "current_interpretation",
+            "weekly_trend",
+            "historical_comparison",
+            "market_impact",
+            "investor_behavior",
+            "trading_advice",
+        )
+        normalized: Dict[str, str] = {}
+        for key in ordered_keys:
+            field = value.get(key)
+            if field is None:
+                continue
+            text = str(field).strip()
+            if text:
+                normalized[key] = text
+        return normalized
+
+    @staticmethod
+    def _coerce_financial_analyst(value: Any) -> Dict[str, Any]:
+        if not isinstance(value, dict):
+            return {}
+        normalized: Dict[str, Any] = {}
+        overall_points = AIAnalysisService._coerce_string_list(value.get("overall_points"), max_items=5)
+        if overall_points:
+            normalized["overall_points"] = overall_points
+        for horizon in ("short_term", "long_term"):
+            item = value.get(horizon)
+            if not isinstance(item, dict):
+                continue
+            block: Dict[str, Any] = {}
+            stance = str(item.get("stance", "")).strip()
+            summary = str(item.get("summary", "")).strip()
+            action_items = AIAnalysisService._coerce_string_list(
+                item.get("action_items"),
+                max_items=4,
+            )
+            if stance:
+                block["stance"] = stance
+            if summary:
+                block["summary"] = summary
+            if action_items:
+                block["action_items"] = action_items
+            if block:
+                normalized[horizon] = block
+        return normalized
+
     def _generate_deepseek_analysis(
         self,
         fear_greed_index: Dict[str, Any],
@@ -621,7 +717,10 @@ class AIAnalysisService:
             )
             content = self._extract_deepseek_content(response)
             analysis = self._normalize_ai_output(content)
-            self.logger.info("DeepSeek 分析生成成功")
+            self.logger.info(
+                "DeepSeek 分析生成成功，返回字段: %s",
+                ",".join(sorted(analysis.keys())),
+            )
             return analysis
         except Exception as exc:
             self.logger.warning("DeepSeek 分析生成失败，回退规则分析: %s", exc)

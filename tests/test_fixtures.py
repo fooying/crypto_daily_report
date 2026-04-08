@@ -13,6 +13,7 @@ from crypto_report.services.market import MarketService
 from crypto_report.services import news as news_module
 from crypto_report.services.news import NewsService
 from crypto_report.services.storage import TrendStorage
+from crypto_report.services.trend_repository import TrendRepository
 
 
 class RealFixtureTests(unittest.TestCase):
@@ -45,6 +46,9 @@ class RealFixtureTests(unittest.TestCase):
     def tearDown(self) -> None:
         if self.storage.trend_data_file.exists():
             self.storage.trend_data_file.unlink()
+        backup_path = self.storage.trend_data_file.with_suffix('.json.bak')
+        if backup_path.exists():
+            backup_path.unlink()
 
     def test_parse_cointelegraph_listing_fixture(self) -> None:
         self._skip_if_no_bs4()
@@ -271,6 +275,28 @@ class RealFixtureTests(unittest.TestCase):
         self.assertIn(data['fear_greed_index']['2026-04-03']['value'], range(10, 22))
         self.assertIn(data['market_cap']['2026-04-03']['value'], range(1000, 1012))
         self.assertIn(data['macro_context_cache']['payload']['index'], range(12))
+
+    def test_trend_repository_restores_primary_file_from_backup_on_init(self) -> None:
+        valid_backup = {
+            'fear_greed_index': {
+                '2026-04-03': {
+                    'value': 15,
+                    'classification': '恐惧',
+                    'timestamp': '1775174400',
+                    'source': 'alternative.me',
+                }
+            }
+        }
+        self.storage.trend_data_file.write_text('{"broken": true}\n{"extra": true}', encoding='utf-8')
+        backup_path = self.storage.trend_data_file.with_suffix('.json.bak')
+        backup_path.write_text(json.dumps(valid_backup, ensure_ascii=False, indent=2), encoding='utf-8')
+
+        repository = TrendRepository(self.storage.trend_data_file, datetime(2026, 4, 3), self.logger)
+        restored = repository.load()
+
+        self.assertEqual(restored['fear_greed_index']['2026-04-03']['value'], 15)
+        persisted = json.loads(self.storage.trend_data_file.read_text(encoding='utf-8'))
+        self.assertEqual(persisted['fear_greed_index']['2026-04-03']['value'], 15)
 
 
 if __name__ == '__main__':
