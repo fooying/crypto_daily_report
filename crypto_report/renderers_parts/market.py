@@ -530,10 +530,10 @@ def _generate_market_pulse_body(
     <div class="market-pulse-summary">
         <div><span>市场24h涨跌</span><strong class="{market_change_class}">{market_change:+.2f}%</strong></div>
         <div><span>成交 / 市值</span><strong>{turnover_ratio:.2f}%</strong></div>
-        <div><span>量能相对均值</span><strong>{volume_bias:.0f}%</strong><small>100% 为近周期均值</small></div>
+        <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
         <div><span>BTC主导率变化</span><strong>{btc_dom_display}</strong>{btc_dom_meta_html}</div>
         <div><span>市值区间振幅</span><strong>{market_range:.2f}%</strong><small>{period_text} 高低点差</small></div>
-        <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
+        <div><span>量能相对均值</span><strong>{volume_bias:.0f}%</strong><small>100% 为近周期均值</small></div>
     </div>
     {chart_grid_html}
     """
