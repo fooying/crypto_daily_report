@@ -275,18 +275,7 @@ class NewsService:
             self.logger.warning("CoinMarketCap 备用新闻源获取失败: %s", exc)
 
         self.last_source_used = "fallback_stub"
-        return [
-            {
-                "title": "备用新闻源不可用",
-                "summary": "上游新闻页面暂时无法访问，当前报告使用降级数据。",
-                "sentiment": "中性",
-                "impact": "一般",
-                "time": "最新",
-                "source": "Fallback",
-                "url": PRIMARY_NEWS_URL,
-                "tags": [],
-            }
-        ]
+        return []
 
     def get_crypto_news(self) -> List[NewsItem]:
         try:

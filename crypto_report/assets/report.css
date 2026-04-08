@@ -1021,6 +1021,17 @@ body {
   font-weight: 600;
 }
 
+.news-empty-state {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed #d7e2ee;
+  background: linear-gradient(180deg, rgba(248,250,252,0.96) 0%, rgba(241,245,249,0.92) 100%);
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
 /* ===== Sentiment ===== */
 .sentiment-headline {
   margin-bottom: 16px;
@@ -2008,6 +2019,17 @@ body {
 
   .mobile-details:not([open]) .mobile-details-body {
     display: none;
+  }
+
+  .mobile-details[open] .risk-level,
+  .mobile-details[open] .stance-row p,
+  .mobile-details[open] .ai-merged-block p,
+  .mobile-details[open] .signal-desc,
+  .mobile-details[open] .insight-list li,
+  .mobile-details[open] .action-list li {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
   }
 
   .risk-level,

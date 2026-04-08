@@ -3,9 +3,6 @@ from __future__ import annotations
 import html
 from typing import Any, Dict, List
 
-from .common import render_mobile_details
-
-
 TAG_ALIASES = {
     "DeFi生态": "DeFi",
     "DeFi 协议": "DeFi",
@@ -103,9 +100,22 @@ def generate_news_html(
     total_news_count: int | None = None,
     news_source_summary: str = "",
 ) -> str:
-    news_items_html = ""
     display_count = len(news or [])
     total_count = total_news_count if total_news_count is not None else display_count
+    if not news:
+        meta_text = f"本次抓取 {total_count} 条，当前展示 0 条" if total_count else "本次未获取到可展示的新闻"
+        source_suffix = f"；来源构成：{html.escape(news_source_summary)}" if news_source_summary else ""
+        return (
+            '<div class="news-summary-wrap">'
+            '<div class="news-tag-summary">'
+            '<div class="news-tag-summary-title">新闻标签</div>'
+            f'<div class="news-tag-summary-meta">{meta_text}{source_suffix}</div>'
+            '<div class="news-empty-state">今日新闻源暂未返回可展示内容，请稍后重试。</div>'
+            '</div>'
+            '</div>'
+        )
+
+    news_items_html = ""
     event_summary_html = _render_news_event_summary(
         news_tag_summary or {},
         news_event_summary or {},
@@ -136,11 +146,7 @@ def generate_news_html(
                 for tag in merged_tags
             ) + '</div>'
         impact_html = f'<span class="news-impact-badge">{impact}</span>' if impact else ""
-        summary_html = render_mobile_details(
-            preview_text=summary or "展开摘要",
-            body_html=f'<p class="news-summary">{summary}</p>',
-            css_class="mobile-details mobile-news-details",
-        )
+        summary_html = f'<p class="news-summary">{summary}</p>' if summary else ""
         news_items_html += f"""
             <div class="news-item">
                 <div class="news-title-row">

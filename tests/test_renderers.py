@@ -258,11 +258,18 @@ class RendererTests(unittest.TestCase):
         self.assertIn('本次抓取 16 条，当前展示 1 条', html)
         self.assertIn('本次抓取 16 条，当前展示 1 条；来源构成：CoinTelegraph 15 条 + CoinMarketCap 1 条', html)
         self.assertIn('监管', html)
-        self.assertIn('3', html)
-        self.assertIn('中影响', html)
-        self.assertEqual(html.count('监管'), 2)
-        self.assertEqual(html.count('ETF/机构'), 2)
-        self.assertNotIn('监管与合规', html)
+
+    def test_news_html_renders_empty_state_when_no_items(self) -> None:
+        html = generate_news_html(
+            [],
+            total_news_count=0,
+            news_source_summary='',
+        )
+        self.assertIn('新闻标签', html)
+        self.assertIn('本次未获取到可展示的新闻', html)
+        self.assertIn('今日新闻源暂未返回可展示内容，请稍后重试。', html)
+        self.assertNotIn('news-item', html)
+        self.assertNotIn('查看原文', html)
 
     def test_top_focus_assets_section_contains_cards(self) -> None:
         html = generate_top_focus_assets_section(

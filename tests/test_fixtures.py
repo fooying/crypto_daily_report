@@ -95,6 +95,14 @@ class RealFixtureTests(unittest.TestCase):
         self.assertEqual(items[0]['source'], 'CoinMarketCap')
         self.assertEqual(self.news_service.last_source_used, 'coinmarketcap_backup')
 
+    def test_news_service_returns_empty_when_all_sources_fail(self) -> None:
+        self.http.fetch_html.side_effect = RuntimeError('all sources down')
+
+        items = self.news_service.get_crypto_news()
+
+        self.assertEqual(items, [])
+        self.assertEqual(self.news_service.last_source_used, 'fallback_stub')
+
     def test_news_service_deduplicates_items(self) -> None:
         items = [
             {'title': 'Same Title', 'url': 'https://example.com/a'},

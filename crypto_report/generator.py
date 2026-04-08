@@ -155,11 +155,16 @@ class CryptoReportGenerator:
         mapping = {
             "coingecko_market_chart_range": f"{category}来源：CoinGecko 实时接口",
             "coinmarketcap_ohlcv_historical": f"{category}来源：CoinMarketCap 备用接口",
-            "local_cache": f"{category}来源：当日本地缓存",
             "coingecko_yahoo": f"{category}来源：CoinGecko + Yahoo Finance",
-            "default_empty": f"{category}来源：当前不可用",
         }
         return mapping.get(source_key, "")
+
+    def _resolve_display_source_key(self, current_source_key: str, cache_key: str) -> str:
+        if current_source_key != "local_cache":
+            return current_source_key
+        cached = self.storage.get_cached_snapshot(cache_key)
+        cached_source = str(cached.get("source", "")).strip()
+        return cached_source or current_source_key
 
     def _log_config_warnings(self) -> None:
         if self.config.ignores_asset_url_mode():
@@ -238,12 +243,18 @@ class CryptoReportGenerator:
             "ai_analysis": self.get_ai_analysis(),
             "macro_context": self.macro_context or {},
             "macro_context_source_note": self._build_data_source_note(
-                self.market_service.last_macro_context_source,
+                self._resolve_display_source_key(
+                    self.market_service.last_macro_context_source,
+                    "macro_context_cache",
+                ),
                 "宏观关联",
             ),
             "defi_overview": self.defi_overview or {},
             "technical_context_source_note": self._build_data_source_note(
-                self.market_service.last_technical_context_source,
+                self._resolve_display_source_key(
+                    self.market_service.last_technical_context_source,
+                    "technical_context_cache",
+                ),
                 "技术背景",
             ),
         }
