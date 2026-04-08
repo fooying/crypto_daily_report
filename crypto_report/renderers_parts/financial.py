@@ -4,7 +4,7 @@ import html
 import re
 from typing import Any, Dict
 
-from .common import render_bullet_list
+from .common import render_bullet_list, render_mobile_details
 
 
 def _normalize_compare_text(value: str) -> str:
@@ -75,13 +75,28 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
         _dedupe_items(long_term.get("action_items", [])),
         css_class="action-list",
     )
+    overall_details = render_mobile_details(
+        preview_text="展开整体解读",
+        body_html=overall_points,
+        css_class="mobile-details mobile-analysis-details",
+    )
+    short_summary_details = render_mobile_details(
+        preview_text=str(short_term.get('summary', '') or '展开短期建议'),
+        body_html=f'<div class="stance-row"><p>{html.escape(str(short_term.get("summary", "")))}</p></div>{short_actions}',
+        css_class="mobile-details mobile-analysis-details",
+    )
+    long_summary_details = render_mobile_details(
+        preview_text=str(long_term.get('summary', '') or '展开长期建议'),
+        body_html=f'<div class="stance-row"><p>{html.escape(str(long_term.get("summary", "")))}</p></div>{long_actions}',
+        css_class="mobile-details mobile-analysis-details",
+    )
     return f"""
     <div class="section">
         <h2>金融分析师视角</h2>
         <div class="content-panel financial-panel financial-overview">
             <div class="analysis-kicker">策略判断</div>
             <h3>整体解读</h3>
-            {overall_points}
+            {overall_details}
         </div>
 
         <div class="section-subgrid financial-detail-grid">
@@ -95,10 +110,7 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
                         <span>{html.escape(str(short_term.get('stance', '谨慎')))}</span>
                     </div>
                 </div>
-                <div class="stance-row">
-                    <p>{html.escape(str(short_term.get('summary', '')))}</p>
-                </div>
-                {short_actions}
+                {short_summary_details}
             </div>
 
             <div class="content-panel financial-panel financial-panel-long">
@@ -111,10 +123,7 @@ def generate_financial_analyst_section(financial_analyst: Dict[str, Any]) -> str
                         <span>{html.escape(str(long_term.get('stance', '中性')))}</span>
                     </div>
                 </div>
-                <div class="stance-row">
-                    <p>{html.escape(str(long_term.get('summary', '')))}</p>
-                </div>
-                {long_actions}
+                {long_summary_details}
             </div>
         </div>
     </div>

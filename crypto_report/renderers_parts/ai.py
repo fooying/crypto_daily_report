@@ -4,7 +4,7 @@ import html
 import re
 from typing import Any, Dict, List
 
-from .common import split_non_empty_lines
+from .common import render_mobile_details, split_non_empty_lines
 
 
 TERM_MAP = {
@@ -148,6 +148,16 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
             f'<div class="news-tag-summary-list">{risk_focus_items}</div>'
             "</div>"
         )
+    overview_details = render_mobile_details(
+        preview_text=overview,
+        body_html=f"<p>{overview}</p>{technical_analysis}",
+        css_class="mobile-details mobile-analysis-details",
+    )
+    risk_details = render_mobile_details(
+        preview_text=risk_assessment,
+        body_html=f'<p class="risk-level">{risk_assessment}</p>{risk_focus_html}',
+        css_class="mobile-details mobile-analysis-details",
+    )
     return f"""
     <div class="section">
         <h2>AI智能分析</h2>
@@ -155,8 +165,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
             <div class="content-panel ai-panel ai-panel-overview">
                 <div class="analysis-kicker">综合判断</div>
                 <div class="ai-merged-block">
-                    <p>{overview}</p>
-                    {technical_analysis}
+                    {overview_details}
                 </div>
             </div>
 
@@ -172,8 +181,7 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
                         </div>
                     </div>
                 </div>
-                <p class="risk-level">{risk_assessment}</p>
-                {risk_focus_html}
+                {risk_details}
             </div>
 
             <div class="content-panel ai-panel ai-panel-signals">

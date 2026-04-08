@@ -77,7 +77,7 @@ class TrendRepository:
             data["last_updated"] = str(datetime.now())
             serialized = json.dumps(data, ensure_ascii=False, indent=2)
             self.trend_data_file.write_text(serialized, encoding="utf-8")
-            self.logger.info("趋势数据已保存到: %s", self.trend_data_file)
+            self.logger.debug("趋势数据已保存到: %s", self.trend_data_file)
             return True
         except Exception as exc:
             self.logger.error(f"保存趋势数据失败: {exc}")

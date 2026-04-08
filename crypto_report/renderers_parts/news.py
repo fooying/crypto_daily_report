@@ -3,6 +3,8 @@ from __future__ import annotations
 import html
 from typing import Any, Dict, List
 
+from .common import render_mobile_details
+
 
 TAG_ALIASES = {
     "DeFi生态": "DeFi",
@@ -139,6 +141,11 @@ def generate_news_html(
                 for tag in merged_tags
             ) + '</div>'
         impact_html = f'<span class="news-impact-badge">{impact}</span>' if impact else ""
+        summary_html = render_mobile_details(
+            preview_text=summary or "展开摘要",
+            body_html=f'<p class="news-summary">{summary}</p>',
+            css_class="mobile-details mobile-news-details",
+        )
         news_items_html += f"""
             <div class="news-item">
                 <div class="news-title-row">
@@ -148,7 +155,7 @@ def generate_news_html(
                         <span class="news-sentiment-badge">{sentiment}</span>
                     </div>
                 </div>
-                <p class="news-summary">{summary}</p>
+                {summary_html}
                 {tags_html}
                 <div class="news-meta">
                     <span>{publish_time}</span>

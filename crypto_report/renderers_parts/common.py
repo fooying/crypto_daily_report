@@ -59,6 +59,20 @@ def render_bullet_list(items: List[Any], css_class: str = "action-list") -> str:
     return f'<ul class="{css_class}">{rows}</ul>'
 
 
+def render_mobile_details(
+    preview_text: Any,
+    body_html: str,
+    css_class: str = "mobile-details",
+) -> str:
+    preview = html.escape(str(preview_text or "").strip() or "展开查看")
+    return (
+        f'<details class="{css_class}">'
+        f'<summary>{preview}</summary>'
+        f'<div class="mobile-details-body">{body_html}</div>'
+        '</details>'
+    )
+
+
 def build_svg_sparkline(values: List[float], width: int = 160, height: int = 48) -> str:
     if len(values) < 2:
         return ""
