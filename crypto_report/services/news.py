@@ -302,17 +302,29 @@ class NewsService:
             )
             news_items = self.deduplicate_news(self.parse_primary_news_html(html, listing_url=url))
             self.last_source_used = "cointelegraph_primary"
+            primary_count = len(news_items)
+            backup_added = 0
             if len(news_items) < self.config.max_news_analysis_items:
                 self.logger.warning(
-                    f"从CoinTelegraph只找到{len(news_items)}条新闻，使用备用数据"
+                    "CoinTelegraph 主源仅获取 %s 条，低于目标 %s 条，尝试补充备用源",
+                    len(news_items),
+                    self.config.max_news_analysis_items,
                 )
                 backup_news = self.get_backup_news()[
                     : self.config.max_news_analysis_items - len(news_items)
                 ]
                 if backup_news:
+                    before_merge_count = len(news_items)
                     news_items = self.deduplicate_news(news_items + backup_news)
+                    backup_added = max(len(news_items) - before_merge_count, 0)
                     self.last_source_used = "mixed_primary_backup"
-            self.logger.info(f"成功获取{len(news_items)}条新闻，时间范围: {self.news_date_range}")
+            self.logger.info(
+                "成功获取 %s 条新闻，主源 %s 条，备用补充 %s 条，时间范围: %s",
+                len(news_items),
+                primary_count,
+                backup_added,
+                self.news_date_range,
+            )
             return news_items[: self.config.max_news_analysis_items]
         except HTTPRequestError as exc:
             self.logger.warning("CoinTelegraph 新闻源请求失败，尝试 CoinMarketCap 备用源: %s", exc)

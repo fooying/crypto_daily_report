@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
@@ -67,12 +68,16 @@ class TrendRepository:
         try:
             self.trend_data_file.parent.mkdir(parents=True, exist_ok=True)
             self._normalize_trend_data(data)
+            current_snapshot = self._snapshot_without_last_updated(data)
+            existing_snapshot = self._load_snapshot_without_last_updated()
+            if existing_snapshot == current_snapshot:
+                self.logger.debug("趋势数据无变化，跳过保存: %s", self.trend_data_file)
+                return False
+
             data["last_updated"] = str(datetime.now())
-            self.trend_data_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            self.logger.info(f"趋势数据已保存到: {self.trend_data_file}")
+            serialized = json.dumps(data, ensure_ascii=False, indent=2)
+            self.trend_data_file.write_text(serialized, encoding="utf-8")
+            self.logger.info("趋势数据已保存到: %s", self.trend_data_file)
             return True
         except Exception as exc:
             self.logger.error(f"保存趋势数据失败: {exc}")
@@ -83,19 +88,19 @@ class TrendRepository:
         current_date = self.report_date.strftime("%Y-%m-%d")
         fgi_history = trend_data.setdefault("fear_greed_index", {})
         existing = fgi_history.get(current_date) or {}
-        payload = {
-            "value": current_value,
-            "classification": classification,
-            "timestamp": str(int(time.time())),
-            "source": "alternative.me",
-        }
         changed = (
-            existing.get("value") != payload["value"]
-            or existing.get("classification") != payload["classification"]
+            existing.get("value") != current_value
+            or existing.get("classification") != classification
         )
-        fgi_history[current_date] = payload
-        self._trim_history(fgi_history, limit=self.SERIES_RETENTION_LIMITS["fear_greed_index"])
-        self.save(trend_data)
+        if changed or not existing:
+            fgi_history[current_date] = {
+                "value": current_value,
+                "classification": classification,
+                "timestamp": str(int(time.time())),
+                "source": "alternative.me",
+            }
+            self._trim_history(fgi_history, limit=self.SERIES_RETENTION_LIMITS["fear_greed_index"])
+            self.save(trend_data)
         if not existing:
             self.logger.info("恐惧贪婪指数已写入当日缓存: %s -> %s", current_date, current_value)
         elif changed:
@@ -165,7 +170,7 @@ class TrendRepository:
     def update_market_data_trend(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
         trend_data = self.load()
         current_date = self.report_date.strftime("%Y-%m-%d")
-        trend_data.setdefault("market_cap", {})[current_date] = {
+        payload = {
             "value": market_data.get("total_market_cap", 0),
             "change_24h": market_data.get("market_cap_change_percentage_24h_usd", 0),
             "volume_24h": market_data.get("total_volume", 0),
@@ -174,33 +179,57 @@ class TrendRepository:
             "timestamp": str(int(time.time())),
             "source": "coingecko",
         }
-        self._trim_history(trend_data["market_cap"], limit=self.SERIES_RETENTION_LIMITS["market_cap"])
-        self.save(trend_data)
+        history = trend_data.setdefault("market_cap", {})
+        existing = history.get(current_date) or {}
+        changed = any(
+            existing.get(field) != payload[field]
+            for field in ("value", "change_24h", "volume_24h", "btc_dominance", "eth_dominance", "source")
+        )
+        if changed or not existing:
+            history[current_date] = payload
+            self._trim_history(history, limit=self.SERIES_RETENTION_LIMITS["market_cap"])
+            self.save(trend_data)
         return trend_data
 
     def update_price_trend(self, symbol: str, price: float, change_24h: float) -> Dict[str, Any]:
         trend_data = self.load()
         current_date = self.report_date.strftime("%Y-%m-%d")
         key = self._price_storage_key(symbol)
-        trend_data.setdefault(key, {})[current_date] = {
+        payload = {
             "price": price,
             "change_24h": change_24h,
             "timestamp": str(int(time.time())),
             "source": "coingecko",
         }
-        self._trim_history(trend_data[key], limit=self.SERIES_RETENTION_LIMITS.get(key, 30))
-        self.save(trend_data)
+        history = trend_data.setdefault(key, {})
+        existing = history.get(current_date) or {}
+        changed = any(
+            existing.get(field) != payload[field]
+            for field in ("price", "change_24h", "source")
+        )
+        if changed or not existing:
+            history[current_date] = payload
+            self._trim_history(history, limit=self.SERIES_RETENTION_LIMITS.get(key, 30))
+            self.save(trend_data)
         return trend_data
 
     def update_cached_snapshot(self, key: str, payload: Dict[str, Any], source: str) -> Dict[str, Any]:
         trend_data = self.load()
-        trend_data[key] = {
-            "payload": payload,
-            "timestamp": str(int(time.time())),
-            "source": source,
-            "date": self.report_date.strftime("%Y-%m-%d"),
-        }
-        self.save(trend_data)
+        current_date = self.report_date.strftime("%Y-%m-%d")
+        existing = trend_data.get(key) or {}
+        changed = (
+            existing.get("payload") != payload
+            or existing.get("source") != source
+            or existing.get("date") != current_date
+        )
+        if changed:
+            trend_data[key] = {
+                "payload": payload,
+                "timestamp": str(int(time.time())),
+                "source": source,
+                "date": current_date,
+            }
+            self.save(trend_data)
         return trend_data
 
     def get_cached_snapshot(self, key: str) -> Dict[str, Any]:
@@ -241,3 +270,20 @@ class TrendRepository:
 
         data.clear()
         data.update(ordered)
+
+    def _snapshot_without_last_updated(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        snapshot = deepcopy(data)
+        snapshot.pop("last_updated", None)
+        return snapshot
+
+    def _load_snapshot_without_last_updated(self) -> Dict[str, Any] | None:
+        try:
+            if not self.trend_data_file.exists():
+                return None
+            existing = json.loads(self.trend_data_file.read_text(encoding="utf-8"))
+            if isinstance(existing, dict):
+                existing.pop("last_updated", None)
+                return existing
+        except Exception:
+            return None
+        return None

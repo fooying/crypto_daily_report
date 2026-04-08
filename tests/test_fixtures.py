@@ -214,6 +214,24 @@ class RealFixtureTests(unittest.TestCase):
         self.assertEqual(next(iter(raw['fear_greed_index'].keys())), '2026-04-03')
         self.assertNotIn('2026-02-28', raw['fear_greed_index'])
 
+    def test_trend_repository_skips_unchanged_save(self) -> None:
+        payload = {
+            'fear_greed_index': {
+                '2026-04-03': {
+                    'value': 15,
+                    'classification': '恐惧',
+                    'timestamp': '1775174400',
+                    'source': 'alternative.me',
+                }
+            }
+        }
+
+        first = self.storage.save(dict(payload))
+        second = self.storage.save(dict(payload))
+
+        self.assertTrue(first)
+        self.assertFalse(second)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -137,7 +137,7 @@ class CryptoReportGenerator:
 
     def _log_config_warnings(self) -> None:
         if self.config.ignores_asset_url_mode():
-            logger.info(
+            logger.debug(
                 "report_css_mode=inline 时将忽略 report_asset_url_mode=%s",
                 self.config.report_asset_url_mode,
             )
