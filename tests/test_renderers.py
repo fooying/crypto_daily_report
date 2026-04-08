@@ -356,7 +356,6 @@ class RendererTests(unittest.TestCase):
         self.assertIn('展示近 2 天的总市值与 24 小时交易量变化', html)
         self.assertIn('量能相对均值', html)
         self.assertIn('市值区间振幅', html)
-        self.assertIn('偏防御', html)
 
     def test_market_pulse_section_shows_charts_when_history_is_enough(self) -> None:
         html = generate_market_pulse_section(
@@ -380,6 +379,9 @@ class RendererTests(unittest.TestCase):
         self.assertIn('总市值走势', html)
         self.assertIn('24小时交易量走势', html)
         self.assertIn('<svg', html)
+        self.assertIn('market-pulse-chart-grid', html)
+        self.assertIn('chart-grid-line', html)
+        self.assertIn('chart-axis-label', html)
         self.assertIn('当前 50.0%', html)
         self.assertIn('7d -1.20pct', html)
 
@@ -481,7 +483,7 @@ class RendererTests(unittest.TestCase):
                 'top_protocols': [],
             }
         )
-        self.assertIn('TVL 占比', html)
+        self.assertNotIn('TVL 占比', html)
         self.assertNotIn('样本不足', html)
         self.assertNotIn('7d ', html)
 

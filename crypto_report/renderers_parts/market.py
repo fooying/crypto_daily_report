@@ -4,7 +4,7 @@ import html
 from typing import Any, Dict, List
 
 from ..helpers import format_large_number
-from .common import build_svg_sparkline
+from .common import build_svg_line_chart, build_svg_sparkline
 
 
 STABLECOIN_SYMBOLS = {
@@ -84,6 +84,17 @@ def _build_liquidity_label(turnover_ratio: float) -> str:
     if turnover_ratio >= 6:
         return "量能平稳"
     return "量能偏弱"
+
+
+def _format_chart_axis_value(value: float) -> str:
+    absolute = abs(value)
+    if absolute >= 1_000_000_000_000:
+        return f"${value / 1_000_000_000_000:.2f}T"
+    if absolute >= 1_000_000_000:
+        return f"${value / 1_000_000_000:.0f}B"
+    if absolute >= 1_000_000:
+        return f"${value / 1_000_000:.0f}M"
+    return f"${value:,.0f}"
 
 
 def _build_technical_takeaway(metrics: Dict[str, Any]) -> str:
@@ -437,9 +448,23 @@ def _generate_market_pulse_body(
     market_chart = ""
     volume_chart = ""
     if len(market_values) >= 4:
-        market_chart = build_svg_sparkline(market_values, width=640, height=180)
+        market_chart = build_svg_line_chart(
+            market_values,
+            width=640,
+            height=220,
+            x_labels=["起点", f"第{max(history_days // 2, 1)}天", f"第{history_days}天"],
+            value_formatter=_format_chart_axis_value,
+            chart_id="market-cap-chart",
+        )
     if len(volume_values) >= 4:
-        volume_chart = build_svg_sparkline(volume_values, width=640, height=72)
+        volume_chart = build_svg_line_chart(
+            volume_values,
+            width=640,
+            height=220,
+            x_labels=["起点", f"第{max(history_days // 2, 1)}天", f"第{history_days}天"],
+            value_formatter=_format_chart_axis_value,
+            chart_id="market-volume-chart",
+        )
 
     chart_sections = []
     if market_chart:
@@ -466,6 +491,11 @@ def _generate_market_pulse_body(
         </div>
         """
         )
+    chart_grid_html = (
+        f'<div class="market-pulse-chart-grid">{"".join(chart_sections)}</div>'
+        if chart_sections
+        else ""
+    )
     market_change = _safe_float(market_overview.get("market_cap_change_percentage_24h_usd"), 0.0)
     turnover_ratio = _safe_float(market_overview.get("volume_to_market_cap_ratio"), 0.0)
     market_change_class = "green" if market_change >= 0 else "red"
@@ -505,7 +535,7 @@ def _generate_market_pulse_body(
         <div><span>市值区间振幅</span><strong>{market_range:.2f}%</strong><small>{period_text} 高低点差</small></div>
         <div><span>活跃币种</span><strong>{market_overview.get('active_cryptocurrencies', 0):,}</strong></div>
     </div>
-    {''.join(chart_sections)}
+    {chart_grid_html}
     """
 
 
