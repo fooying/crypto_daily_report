@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock
@@ -231,6 +232,45 @@ class RealFixtureTests(unittest.TestCase):
 
         self.assertTrue(first)
         self.assertFalse(second)
+
+    def test_trend_repository_concurrent_updates_keep_valid_json(self) -> None:
+        report_date = datetime(2026, 4, 3, 12, 0)
+
+        def write_fear_greed(value: int) -> None:
+            self.storage.update_fear_greed_trend(value, '恐惧')
+
+        def write_market_cap(index: int) -> None:
+            self.storage.update_market_data_trend(
+                {
+                    'total_market_cap': 1000 + index,
+                    'market_cap_change_percentage_24h_usd': index * 0.1,
+                    'total_volume': 500 + index,
+                    'market_cap_percentage': {'btc': 52.0, 'eth': 17.0},
+                }
+            )
+
+        def write_snapshot(index: int) -> None:
+            self.storage.update_cached_snapshot(
+                'macro_context_cache',
+                {'index': index, 'date': report_date.strftime('%Y-%m-%d')},
+                'unit-test',
+            )
+
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            for index in range(12):
+                executor.submit(write_fear_greed, 10 + index)
+                executor.submit(write_market_cap, index)
+                executor.submit(write_snapshot, index)
+
+        raw_text = self.storage.trend_data_file.read_text(encoding='utf-8')
+        data = json.loads(raw_text)
+
+        self.assertIn('fear_greed_index', data)
+        self.assertIn('market_cap', data)
+        self.assertIn('macro_context_cache', data)
+        self.assertIn(data['fear_greed_index']['2026-04-03']['value'], range(10, 22))
+        self.assertIn(data['market_cap']['2026-04-03']['value'], range(1000, 1012))
+        self.assertIn(data['macro_context_cache']['payload']['index'], range(12))
 
 
 if __name__ == '__main__':

@@ -63,7 +63,18 @@ class AIAnalysisService:
             return fallback
 
         analysis = dict(fallback)
-        analysis.update(ai_result)
+        for key, value in ai_result.items():
+            if key in {"sentiment_deep_analysis", "financial_analyst"}:
+                analysis[key] = self._merge_nested_analysis(
+                    fallback.get(key),
+                    value,
+                )
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            if isinstance(value, list) and not value:
+                continue
+            analysis[key] = value
         analysis["sentiment_summary"] = sentiment_counts
         analysis["news_tag_summary"] = news_tag_summary
         analysis["news_event_summary"] = news_event_summary
@@ -442,30 +453,37 @@ class AIAnalysisService:
 
     @staticmethod
     def _normalize_ai_output(content: str) -> Dict[str, Any]:
-        data = json.loads(AIAnalysisService._extract_json_payload(content))
-        required_fields = {
+        payload = AIAnalysisService._extract_json_payload(content)
+        data = AIAnalysisService._loads_json_payload(payload)
+        supported_fields = {
             "market_overview",
             "technical_analysis",
             "risk_assessment",
             "trading_signals",
+            "trend_enhanced_analysis",
             "sentiment_deep_analysis",
             "financial_analyst",
         }
-        missing = [field for field in required_fields if field not in data]
-        if missing:
-            raise ValueError(f"DeepSeek 返回缺少字段: {', '.join(missing)}")
-        if not isinstance(data["trading_signals"], list):
+        if not any(field in data for field in supported_fields):
+            raise ValueError("DeepSeek 返回缺少可用分析字段")
+        if "trading_signals" in data and not isinstance(data["trading_signals"], list):
             raise ValueError("DeepSeek trading_signals 不是数组")
-        data["trading_signals"] = [
-            str(item).strip()
-            for item in data["trading_signals"]
-            if str(item).strip()
-        ][:5]
-        if not isinstance(data["sentiment_deep_analysis"], dict):
+        if "trading_signals" in data:
+            data["trading_signals"] = [
+                str(item).strip()
+                for item in data["trading_signals"]
+                if str(item).strip()
+            ][:5]
+            if not data["trading_signals"]:
+                data.pop("trading_signals", None)
+        if "sentiment_deep_analysis" in data and not isinstance(data["sentiment_deep_analysis"], dict):
             raise ValueError("DeepSeek sentiment_deep_analysis 不是对象")
-        if not isinstance(data["financial_analyst"], dict):
+        if "financial_analyst" in data and not isinstance(data["financial_analyst"], dict):
             raise ValueError("DeepSeek financial_analyst 不是对象")
-        return data
+        return {
+            key: value for key, value in data.items()
+            if key in supported_fields and value not in (None, "", [], {})
+        }
 
     @staticmethod
     def _extract_json_payload(content: str) -> str:
@@ -505,7 +523,69 @@ class AIAnalysisService:
                 depth -= 1
                 if depth == 0:
                     return text[start:index + 1]
-        raise ValueError("DeepSeek 返回 JSON 不完整")
+        return text[start:]
+
+    @staticmethod
+    def _loads_json_payload(payload: str) -> Dict[str, Any]:
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError:
+            repaired = AIAnalysisService._repair_json_payload(payload)
+            return json.loads(repaired)
+
+    @staticmethod
+    def _repair_json_payload(payload: str) -> str:
+        text = str(payload or "").strip()
+        if not text:
+            raise ValueError("DeepSeek 返回 JSON 不完整")
+
+        text = re.sub(r",(\s*[}\]])", r"\1", text)
+        closers: List[str] = []
+        in_string = False
+        escape = False
+        for char in text:
+            if in_string:
+                if escape:
+                    escape = False
+                elif char == "\\":
+                    escape = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                closers.append("}")
+            elif char == "[":
+                closers.append("]")
+            elif char in "}]":
+                if closers and closers[-1] == char:
+                    closers.pop()
+        if in_string:
+            text += '"'
+        return text + "".join(reversed(closers))
+
+    @staticmethod
+    def _merge_nested_analysis(base: Any, patch: Any) -> Any:
+        if not isinstance(base, dict) or not isinstance(patch, dict):
+            return patch if patch not in (None, "", [], {}) else base
+        merged = dict(base)
+        for key, value in patch.items():
+            if isinstance(value, dict):
+                merged[key] = AIAnalysisService._merge_nested_analysis(
+                    base.get(key, {}),
+                    value,
+                )
+            elif isinstance(value, list):
+                cleaned = [item for item in value if item not in (None, "")]
+                if cleaned:
+                    merged[key] = cleaned
+            elif isinstance(value, str):
+                if value.strip():
+                    merged[key] = value.strip()
+            elif value is not None:
+                merged[key] = value
+        return merged
 
     def _generate_deepseek_analysis(
         self,

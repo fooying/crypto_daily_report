@@ -150,6 +150,34 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertEqual(result['market_overview'], 'AI市场综述')
         self.assertEqual(result['financial_analyst']['long_term']['summary'], 'AI长期')
 
+    def test_get_ai_analysis_repairs_incomplete_json_and_keeps_fallback_fields(self) -> None:
+        self.http.post_json.return_value = {
+            'choices': [
+                {
+                    'message': {
+                        'content': (
+                            '{"market_overview":"AI市场综述",'
+                            '"trading_signals":["信号1"],'
+                            '"financial_analyst":{"short_term":{"summary":"AI短期"}}'
+                        )
+                    }
+                }
+            ]
+        }
+
+        result = self.service.get_ai_analysis(
+            self.fear_greed_index,
+            self.crypto_news,
+            self.market_overview,
+            self.technical_context,
+        )
+
+        self.assertEqual(result['market_overview'], 'AI市场综述')
+        self.assertEqual(result['trading_signals'], ['信号1'])
+        self.assertEqual(result['financial_analyst']['short_term']['summary'], 'AI短期')
+        self.assertIn('stance', result['financial_analyst']['short_term'])
+        self.assertIn('overall_points', result['financial_analyst'])
+
     def test_collect_news_features_includes_tag_summary(self) -> None:
         sentiment_counts, keywords, tag_summary, event_summary = self.service._collect_news_features(
             [
