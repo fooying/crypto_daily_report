@@ -1946,7 +1946,7 @@ body {
   }
 
   .desktop-details-body {
-    display: none;
+    display: none !important;
   }
 
   .mobile-details > summary {
@@ -1975,6 +1975,15 @@ body {
   .mobile-details[open] > summary {
     color: var(--text-primary);
     font-weight: 600;
+    justify-content: flex-end;
+  }
+
+  .mobile-details[open] .mobile-details-preview {
+    display: none;
+  }
+
+  .mobile-details[open] .mobile-details-toggle {
+    margin-left: auto;
   }
 
   .mobile-details:not([open]) .mobile-details-body {
