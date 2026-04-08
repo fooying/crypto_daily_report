@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -137,6 +137,44 @@ class RealFixtureTests(unittest.TestCase):
         self.assertEqual(len(result['historical_data']), 30)
         stored = self.storage.load()['fear_greed_index']
         self.assertGreaterEqual(len(stored), 30)
+
+    def test_fear_greed_history_uses_local_cache_after_writing_today(self) -> None:
+        current_date = datetime(2026, 4, 3, 12, 0)
+        history = {}
+        for offset in range(1, 31):
+            date_key = (current_date - timedelta(days=offset)).strftime('%Y-%m-%d')
+            history[date_key] = {
+                'value': 30 - offset,
+                'classification': '恐惧',
+                'timestamp': str(1775174400 - offset * 86400),
+                'source': 'alternative.me',
+            }
+        self.storage.save({'fear_greed_index': history})
+
+        self.http.fetch_json.return_value = {
+            'data': [
+                {
+                    'value': '15',
+                    'value_classification': 'Fear',
+                    'timestamp': '1775174400',
+                    'time_until_update': '3600',
+                },
+                {
+                    'value': '12',
+                    'value_classification': 'Fear',
+                    'timestamp': '1775088000',
+                },
+            ]
+        }
+
+        result = self.market_service.get_fear_greed_index(limit=7)
+
+        self.assertEqual(self.http.fetch_json.call_count, 1)
+        self.assertEqual(result['daily_change'], 3)
+        self.assertIsNotNone(result['weekly_change'])
+        self.assertGreaterEqual(len(result['historical_data']), 7)
+        stored = self.storage.load()['fear_greed_index']
+        self.assertEqual(stored['2026-04-03']['value'], 15)
 
 
 if __name__ == '__main__':

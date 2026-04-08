@@ -54,14 +54,32 @@ class TrendRepository:
     def update_fear_greed_trend(self, current_value: int, classification: str) -> Dict[str, Any]:
         trend_data = self.load()
         current_date = self.report_date.strftime("%Y-%m-%d")
-        trend_data.setdefault("fear_greed_index", {})[current_date] = {
+        fgi_history = trend_data.setdefault("fear_greed_index", {})
+        existing = fgi_history.get(current_date) or {}
+        payload = {
             "value": current_value,
             "classification": classification,
             "timestamp": str(int(time.time())),
             "source": "alternative.me",
         }
-        self._trim_history(trend_data["fear_greed_index"])
+        changed = (
+            existing.get("value") != payload["value"]
+            or existing.get("classification") != payload["classification"]
+        )
+        fgi_history[current_date] = payload
+        self._trim_history(fgi_history)
         self.save(trend_data)
+        if not existing:
+            self.logger.info("恐惧贪婪指数已写入当日缓存: %s -> %s", current_date, current_value)
+        elif changed:
+            self.logger.info(
+                "恐惧贪婪指数当日缓存已刷新: %s %s -> %s",
+                current_date,
+                existing.get("value"),
+                current_value,
+            )
+        else:
+            self.logger.info("恐惧贪婪指数当日缓存已确认最新: %s = %s", current_date, current_value)
         return trend_data
 
     def backfill_fear_greed_history(
@@ -75,6 +93,7 @@ class TrendRepository:
         trend_data = self.load()
         fgi_history = trend_data.setdefault("fear_greed_index", {})
         inserted = 0
+        updated = 0
         for item in historical_data:
             timestamp = item.get("timestamp")
             value = item.get("value")
@@ -82,21 +101,38 @@ class TrendRepository:
                 continue
             try:
                 date_key = datetime.fromtimestamp(int(timestamp)).strftime("%Y-%m-%d")
-                fgi_history[date_key] = {
+                new_payload = {
                     "value": int(value),
                     "classification": item.get("value_classification")
                     or item.get("classification", "未知"),
                     "timestamp": str(timestamp),
                     "source": source,
                 }
-                inserted += 1
+                existing = fgi_history.get(date_key)
+                if existing is None:
+                    fgi_history[date_key] = new_payload
+                    inserted += 1
+                elif (
+                    existing.get("value") != new_payload["value"]
+                    or existing.get("classification") != new_payload["classification"]
+                    or str(existing.get("timestamp", "")) != new_payload["timestamp"]
+                    or existing.get("source") != new_payload["source"]
+                ):
+                    fgi_history[date_key] = new_payload
+                    updated += 1
             except (TypeError, ValueError):
                 continue
 
-        if inserted:
+        if inserted or updated:
             self._trim_history(fgi_history)
             self.save(trend_data)
-            self.logger.info("已从API历史数据回补本地恐惧贪婪指数缓存: %s 条", inserted)
+            self.logger.info(
+                "恐惧贪婪指数历史缓存已同步: 新增 %s 条，更新 %s 条",
+                inserted,
+                updated,
+            )
+        else:
+            self.logger.info("恐惧贪婪指数历史缓存已存在，未新增或更新")
         return trend_data
 
     def update_market_data_trend(self, market_data: Dict[str, Any]) -> Dict[str, Any]:

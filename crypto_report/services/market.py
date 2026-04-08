@@ -94,6 +94,30 @@ class MarketService:
             return None
         return data
 
+    def _build_local_fear_greed_history(self, days: int) -> List[Dict[str, Any]]:
+        history = self.storage.load().get("fear_greed_index", {})
+        rows = []
+        for date_key in sorted(history.keys(), reverse=True)[:days]:
+            item = history.get(date_key) or {}
+            value = item.get("value")
+            if value is None:
+                continue
+            rows.append(
+                {
+                    "value": str(value),
+                    "value_classification": item.get("classification", "未知"),
+                    "classification": item.get("classification", "未知"),
+                    "timestamp": str(item.get("timestamp", "")),
+                    "source": item.get("source", "trend_cache"),
+                }
+            )
+        return rows
+
+    def _has_enough_local_fear_greed_history(self, days: int) -> bool:
+        history = self.storage.load().get("fear_greed_index", {})
+        current_date = self.report_date.strftime("%Y-%m-%d")
+        return current_date in history and len(history) >= days
+
     def _map_coinmarketcap_global_metrics(self, data: Dict[str, Any]) -> MarketOverview:
         metrics = data.get("data", {}) or {}
         btc_dominance = metrics.get("btc_dominance", 0.0)
@@ -830,6 +854,7 @@ class MarketService:
         limit: int = 7,
         history_7d: Dict[str, Any] | None = None,
         history_30d: Dict[str, Any] | None = None,
+        persist_current: bool = True,
     ) -> FearGreedIndex:
         if not data or "data" not in data or not data["data"]:
             raise ValueError("恐惧贪婪接口返回为空")
@@ -841,7 +866,8 @@ class MarketService:
             current_item.get("value_classification", ""),
         )
         self.logger.info(f"获取恐惧贪婪指数成功: {current_value} ({classification})")
-        self.storage.update_fear_greed_trend(current_value, classification)
+        if persist_current:
+            self.storage.update_fear_greed_trend(current_value, classification)
         self.storage.backfill_fear_greed_history(data.get("data", []), source="alternative.me")
         if history_7d is not None and history_7d is not data:
             self.storage.backfill_fear_greed_history(
@@ -896,6 +922,12 @@ class MarketService:
             else:
                 historical_data = data["data"]
 
+        if historical_data is None or len(historical_data) < min(limit, 30):
+            local_history_limit = 30 if limit >= 30 else max(limit, 7)
+            local_history = self._build_local_fear_greed_history(local_history_limit)
+            if len(local_history) > len(historical_data or []):
+                historical_data = local_history
+
         return {
             "value": current_value,
             "classification": classification,
@@ -913,13 +945,20 @@ class MarketService:
         try:
             request_limit = max(limit, 2)
             data = self.fetch_json(self._build_fng_url(request_limit), timeout=10)
-            local_fgi_history = self.storage.load().get("fear_greed_index", {})
             history_7d = data if len(data.get("data", [])) >= 7 else None
             history_30d = data if len(data.get("data", [])) >= 30 else None
 
-            if len(local_fgi_history) < 7 and history_7d is None:
+            current_item = data.get("data", [{}])[0]
+            current_value = int(current_item["value"])
+            classification = self.CLASSIFICATION_MAP.get(
+                current_item.get("value_classification", ""),
+                current_item.get("value_classification", ""),
+            )
+            self.storage.update_fear_greed_trend(current_value, classification)
+
+            if history_7d is None and not self._has_enough_local_fear_greed_history(7):
                 history_7d = self._fetch_fear_greed_history(7)
-            if len(local_fgi_history) < 30 and history_30d is None:
+            if history_30d is None and not self._has_enough_local_fear_greed_history(30):
                 history_30d = self._fetch_fear_greed_history(30)
 
             return self.parse_fear_greed_response(
@@ -927,6 +966,7 @@ class MarketService:
                 limit=limit,
                 history_7d=history_7d,
                 history_30d=history_30d,
+                persist_current=False,
             )
         except HTTPRequestError as exc:
             self.logger.warning("恐惧贪婪指数请求失败: %s", exc)
