@@ -1005,15 +1005,16 @@ class AIAnalysisService:
             return "暂无足够历史数据进行比较"
         average = sum(values) / len(values)
         diff = current_value - average
+        label = "近30天均值" if len(values) >= 30 else f"近{len(values)}天样本均值"
         if diff >= 10:
-            return f"当前指数显著高于近30天均值（{average:.1f}），情绪修复力度较强。"
+            return f"当前指数显著高于{label}（{average:.1f}），情绪修复力度较强。"
         if diff >= 3:
-            return f"当前指数略高于近30天均值（{average:.1f}），情绪边际改善。"
+            return f"当前指数略高于{label}（{average:.1f}），情绪边际改善。"
         if diff <= -10:
-            return f"当前指数显著低于近30天均值（{average:.1f}），市场仍处于深度谨慎阶段。"
+            return f"当前指数显著低于{label}（{average:.1f}），市场仍处于深度谨慎阶段。"
         if diff <= -3:
-            return f"当前指数低于近30天均值（{average:.1f}），资金偏防御。"
-        return f"当前指数接近近30天均值（{average:.1f}），市场情绪处于常态区间。"
+            return f"当前指数低于{label}（{average:.1f}），资金偏防御。"
+        return f"当前指数接近{label}（{average:.1f}），市场情绪处于常态区间。"
 
     def build_financial_analyst_view(
         self,

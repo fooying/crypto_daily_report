@@ -200,6 +200,50 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertIn('support_level', result['BTC'])
         self.assertEqual(self.service.last_technical_context_source, 'coingecko_market_chart_range')
 
+    def test_technical_context_uses_same_day_cache_without_network(self) -> None:
+        self.storage.update_cached_snapshot(
+            'technical_context_cache',
+            {'BTC': {'latest_close': 68000}, 'ETH': {'latest_close': 3200}},
+            source='coingecko_market_chart_range',
+        )
+
+        result = self.service.get_technical_context()
+
+        self.assertIn('BTC', result)
+        self.assertEqual(self.http.fetch_json.call_count, 0)
+        self.assertEqual(self.service.last_technical_context_source, 'local_cache')
+
+    def test_technical_context_skips_coinmarketcap_after_same_day_403(self) -> None:
+        self.storage.update_cached_snapshot(
+            'technical_context_cmc_capability',
+            {'disabled': True, 'reason': 'http_403'},
+            source='coinmarketcap_ohlcv_historical',
+        )
+        self.http.fetch_json.side_effect = HTTPRequestError(
+            url='https://coingecko.test',
+            reason='bad_status',
+            status_code=429,
+        )
+
+        result = self.service.get_technical_context()
+
+        self.assertEqual(result, {})
+        self.assertEqual(self.http.fetch_json.call_count, 1)
+        self.assertEqual(self.service.last_technical_context_source, 'default_empty')
+
+    def test_technical_context_skips_same_day_coingecko_429_retry(self) -> None:
+        self.storage.update_cached_snapshot(
+            'technical_context_coingecko_capability',
+            {'disabled': True, 'reason': 'http_429'},
+            source='coingecko_market_chart_range',
+        )
+
+        result = self.service.get_technical_context()
+
+        self.assertEqual(result, {})
+        self.assertEqual(self.http.fetch_json.call_count, 0)
+        self.assertEqual(self.service.last_technical_context_source, 'default_empty')
+
     def test_get_macro_context_uses_coingecko_and_yahoo(self) -> None:
         self.http.fetch_json.side_effect = [
             {'prices': [[index, 60000 + index * 500] for index in range(1, 50)]},
@@ -214,6 +258,36 @@ class MarketServiceFallbackTests(unittest.TestCase):
         self.assertEqual(result['assets'][0]['label'], '标普500')
         self.assertIn('summary', result)
         self.assertEqual(self.service.last_macro_context_source, 'coingecko_yahoo')
+
+    def test_get_macro_context_uses_same_day_cache_without_network(self) -> None:
+        self.storage.update_cached_snapshot(
+            'macro_context_cache',
+            {
+                'btc': {'label': '比特币', 'latest': 65000},
+                'assets': [{'label': '标普500', 'latest': 5000, 'change_30d': 2.1, 'correlation_30d': 0.4}],
+                'summary': 'cached',
+            },
+            source='coingecko_yahoo',
+        )
+
+        result = self.service.get_macro_context()
+
+        self.assertEqual(result['summary'], 'cached')
+        self.assertEqual(self.http.fetch_json.call_count, 0)
+        self.assertEqual(self.service.last_macro_context_source, 'local_cache')
+
+    def test_get_macro_context_skips_same_day_coingecko_429_retry(self) -> None:
+        self.storage.update_cached_snapshot(
+            'macro_context_coingecko_capability',
+            {'disabled': True, 'reason': 'http_429'},
+            source='coingecko_yahoo',
+        )
+
+        result = self.service.get_macro_context()
+
+        self.assertEqual(result, {})
+        self.assertEqual(self.http.fetch_json.call_count, 0)
+        self.assertEqual(self.service.last_macro_context_source, 'default_empty')
 
     def test_get_defi_overview_uses_defillama_chains(self) -> None:
         self.http.fetch_json.side_effect = [

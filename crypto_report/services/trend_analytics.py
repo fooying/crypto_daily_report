@@ -44,47 +44,64 @@ class TrendAnalytics:
         self,
         historical_data: Optional[List[Dict[str, Any]]] = None,
     ) -> Optional[float]:
+        average, _sample_days = self.calculate_average_with_sample_days(
+            historical_data=historical_data,
+            max_days=30,
+        )
+        return average
+
+    def calculate_average_with_sample_days(
+        self,
+        historical_data: Optional[List[Dict[str, Any]]] = None,
+        max_days: int = 30,
+    ) -> tuple[Optional[float], int]:
         try:
             if historical_data:
                 values = [
                     int(item["value"])
-                    for item in historical_data[:30]
+                    for item in historical_data[:max_days]
                     if item.get("value") is not None
                 ]
-                if values:
+                if len(values) >= max_days:
                     average = sum(values) / len(values)
                     self.logger.info(
-                        "使用API历史数据计算30天平均值: 使用%s天数据，平均值=%.1f",
+                        "使用API历史数据计算%s天平均值: 使用%s天数据，平均值=%.1f",
+                        max_days,
                         len(values),
                         average,
                     )
-                    return average
+                    return average, len(values)
 
             fgi_data = self.repository.load().get("fear_greed_index", {})
             dates = sorted(fgi_data.keys(), reverse=True)
-            recent_dates = dates[:30] if len(dates) >= 30 else dates
+            recent_dates = dates[:max_days] if len(dates) >= max_days else dates
             if not recent_dates:
-                return None
+                return None, 0
 
             values = [fgi_data[date]["value"] for date in recent_dates]
             average = sum(values) / len(values)
-            self.logger.info("计算30天平均值: 使用%s天数据，平均值=%.1f", len(values), average)
-            return average
+            label = f"{max_days}天" if len(values) >= max_days else f"{len(values)}天样本"
+            self.logger.info("计算%s平均值: 使用%s天数据，平均值=%.1f", label, len(values), average)
+            return average, len(values)
         except Exception as exc:
-            self.logger.warning("计算30天平均值失败: %s", exc)
-            return None
+            self.logger.warning("计算平均值失败: %s", exc)
+            return None, 0
 
     def generate_historical_comparison(
         self,
         current_value: int,
         historical_data: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
-        avg_30day = self.calculate_30day_average_from_trend(historical_data=historical_data)
-        if avg_30day is None:
+        average_value, sample_days = self.calculate_average_with_sample_days(
+            historical_data=historical_data,
+            max_days=30,
+        )
+        if average_value is None:
             return "暂无足够历史数据进行比较"
 
-        diff = current_value - avg_30day
-        diff_percent = (diff / avg_30day * 100) if avg_30day > 0 else 0
+        diff = current_value - average_value
+        diff_percent = (diff / average_value * 100) if average_value > 0 else 0
+        sample_label = "过去30天平均指数" if sample_days >= 30 else f"过去{sample_days}天样本平均指数"
         if diff < -10:
             level = "远低于"
             description = "市场情绪极度低迷"
@@ -102,7 +119,7 @@ class TrendAnalytics:
             description = "市场情绪处于正常水平"
 
         return (
-            f"过去30天平均指数：{avg_30day:.1f}，当前指数{level}平均水平"
+            f"{sample_label}：{average_value:.1f}，当前指数{level}平均水平"
             f"（{diff:+.1f}，{diff_percent:+.1f}%），{description}"
         )
 

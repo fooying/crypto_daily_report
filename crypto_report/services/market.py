@@ -32,6 +32,11 @@ class MarketService:
         "Neutral": "中性",
         "Greed": "贪婪",
         "Extreme Greed": "极度贪婪",
+        "极度恐惧": "极度恐惧",
+        "恐惧": "恐惧",
+        "中性": "中性",
+        "贪婪": "贪婪",
+        "极度贪婪": "极度贪婪",
     }
 
     def __init__(self, config, http, logger, report_date, storage: TrendStorage) -> None:
@@ -94,6 +99,24 @@ class MarketService:
             return None
         return data
 
+    def _normalize_fear_greed_history(
+        self,
+        payload: Dict[str, Any] | None,
+    ) -> Dict[str, Any] | None:
+        if not isinstance(payload, dict):
+            return payload
+        normalized_rows = []
+        for item in payload.get("data", []) or []:
+            row = dict(item)
+            classification = row.get("value_classification") or row.get("classification", "")
+            normalized = self.CLASSIFICATION_MAP.get(classification, classification)
+            row["value_classification"] = normalized
+            row["classification"] = normalized
+            normalized_rows.append(row)
+        normalized_payload = dict(payload)
+        normalized_payload["data"] = normalized_rows
+        return normalized_payload
+
     def _build_local_fear_greed_history(self, days: int) -> List[Dict[str, Any]]:
         history = self.storage.load().get("fear_greed_index", {})
         rows = []
@@ -117,6 +140,22 @@ class MarketService:
         history = self.storage.load().get("fear_greed_index", {})
         current_date = self.report_date.strftime("%Y-%m-%d")
         return current_date in history and len(history) >= days
+
+    def _is_same_day_cache_available(self, key: str) -> Dict[str, Any]:
+        cached = self.storage.get_cached_snapshot(key)
+        if cached.get("date") == self.report_date.strftime("%Y-%m-%d"):
+            return cached
+        return {}
+
+    def _should_skip_coinmarketcap_technical_fallback(self) -> bool:
+        cached = self._is_same_day_cache_available("technical_context_cmc_capability")
+        payload = cached.get("payload") or {}
+        return bool(payload.get("disabled"))
+
+    def _should_skip_same_day_capability(self, key: str) -> bool:
+        cached = self._is_same_day_cache_available(key)
+        payload = cached.get("payload") or {}
+        return bool(payload.get("disabled"))
 
     def _map_coinmarketcap_global_metrics(self, data: Dict[str, Any]) -> MarketOverview:
         metrics = data.get("data", {}) or {}
@@ -332,6 +371,17 @@ class MarketService:
         return self._normalize_series(closes)
 
     def get_macro_context(self) -> Dict[str, Any]:
+        cached = self._is_same_day_cache_available("macro_context_cache")
+        payload = cached.get("payload") or {}
+        if payload:
+            self.last_macro_context_source = "local_cache"
+            self.logger.info("宏观关联已命中当日本地缓存")
+            return payload
+        if self._should_skip_same_day_capability("macro_context_coingecko_capability"):
+            self.logger.info("宏观关联 CoinGecko 数据今日已标记不可用，跳过重试")
+            self.last_macro_context_source = "default_empty"
+            return {}
+
         try:
             btc_market_chart = self.fetch_json(
                 f"{self.config.coingecko_api}/coins/bitcoin/market_chart?vs_currency=usd&days=90&interval=daily",
@@ -401,6 +451,12 @@ class MarketService:
                 "summary": summary,
             }
         except HTTPRequestError as exc:
+            if exc.status_code == 429:
+                self.storage.update_cached_snapshot(
+                    "macro_context_coingecko_capability",
+                    {"disabled": True, "reason": "http_429"},
+                    source="coingecko_yahoo",
+                )
             self.logger.warning("宏观关联数据获取失败: %s", exc)
         except Exception as exc:
             self.logger.warning("宏观关联分析生成失败: %s", exc)
@@ -408,6 +464,7 @@ class MarketService:
         payload = cached.get("payload") or {}
         if payload:
             self.last_macro_context_source = "local_cache"
+            self.logger.info("宏观关联已回退到本地缓存")
             return payload
         self.last_macro_context_source = "default_empty"
         return {}
@@ -689,55 +746,100 @@ class MarketService:
         time_end = self.report_date
         time_start = time_end - timedelta(days=30)
 
-        try:
-            context: Dict[str, Any] = {}
-            range_from = int(time_start.timestamp())
-            range_to = int(time_end.timestamp())
+        cached = self._is_same_day_cache_available("technical_context_cache")
+        payload = cached.get("payload") or {}
+        if payload:
+            self.last_technical_context_source = "local_cache"
+            self.logger.info("技术背景摘要已命中当日本地缓存")
+            return payload
+        if self._should_skip_same_day_capability("technical_context_coingecko_capability"):
+            self.logger.info("CoinGecko 技术背景历史今日已标记不可用，跳过重试")
+        else:
+            try:
+                context: Dict[str, Any] = {}
+                range_from = int(time_start.timestamp())
+                range_to = int(time_end.timestamp())
 
-            for asset_id, label in (("bitcoin", "BTC"), ("ethereum", "ETH")):
-                url = (
-                    f"{self.config.coingecko_api}/coins/{asset_id}/market_chart/range"
-                    f"?vs_currency=usd&from={range_from}&to={range_to}"
-                )
-                data = self.fetch_json(url, timeout=15)
-                prices = data.get("prices") or []
-                volumes = data.get("total_volumes") or []
-                if not prices:
-                    continue
-
-                close_prices = []
-                volume_values = []
-                for point in prices:
-                    if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                for asset_id, label in (("bitcoin", "BTC"), ("ethereum", "ETH")):
+                    url = (
+                        f"{self.config.coingecko_api}/coins/{asset_id}/market_chart/range"
+                        f"?vs_currency=usd&from={range_from}&to={range_to}"
+                    )
+                    data = self.fetch_json(url, timeout=15)
+                    prices = data.get("prices") or []
+                    volumes = data.get("total_volumes") or []
+                    if not prices:
                         continue
-                    close_prices.append(float(point[1]))
 
-                for point in volumes:
-                    if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                    close_prices = []
+                    volume_values = []
+                    for point in prices:
+                        if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                            continue
+                        close_prices.append(float(point[1]))
+
+                    for point in volumes:
+                        if not isinstance(point, list) or len(point) < 2 or point[1] is None:
+                            continue
+                        volume_values.append(float(point[1]))
+
+                    if not close_prices:
                         continue
-                    volume_values.append(float(point[1]))
+                    context[label] = self._build_technical_context_from_series(close_prices, volume_values)
+                if context:
+                    self.last_technical_context_source = "coingecko_market_chart_range"
+                    self.storage.update_cached_snapshot(
+                        "technical_context_cache",
+                        context,
+                        source=self.last_technical_context_source,
+                    )
+                    return context
+            except HTTPRequestError as exc:
+                if exc.status_code == 429:
+                    self.storage.update_cached_snapshot(
+                        "technical_context_coingecko_capability",
+                        {"disabled": True, "reason": "http_429"},
+                        source="coingecko_market_chart_range",
+                    )
+                self.logger.warning("CoinGecko 技术背景历史请求失败，尝试 CoinMarketCap 备用源: %s", exc)
+            except Exception as exc:
+                self.logger.warning("CoinGecko 技术背景历史获取失败，尝试 CoinMarketCap 备用源: %s", exc)
 
-                if not close_prices:
-                    continue
-                context[label] = self._build_technical_context_from_series(close_prices, volume_values)
-            if context:
-                self.last_technical_context_source = "coingecko_market_chart_range"
-                return context
-        except HTTPRequestError as exc:
-            self.logger.warning("CoinGecko 技术背景历史请求失败，尝试 CoinMarketCap 备用源: %s", exc)
-        except Exception as exc:
-            self.logger.warning("CoinGecko 技术背景历史获取失败，尝试 CoinMarketCap 备用源: %s", exc)
+        if self._should_skip_coinmarketcap_technical_fallback():
+            self.logger.info("CoinMarketCap 技术背景历史备用源今日已标记不可用，跳过重试")
+            payload = (self.storage.get_cached_snapshot("technical_context_cache").get("payload") or {})
+            if payload:
+                self.last_technical_context_source = "local_cache"
+                return payload
+            self.last_technical_context_source = "default_empty"
+            return {}
 
         try:
             context = self._fetch_coinmarketcap_technical_context(time_start, time_end)
             if context:
                 self.last_technical_context_source = "coinmarketcap_ohlcv_historical"
                 self.logger.info("技术背景摘要已切换为 CoinMarketCap 备用源")
+                self.storage.update_cached_snapshot(
+                    "technical_context_cache",
+                    context,
+                    source=self.last_technical_context_source,
+                )
                 return context
         except HTTPRequestError as exc:
+            if exc.status_code == 403:
+                self.storage.update_cached_snapshot(
+                    "technical_context_cmc_capability",
+                    {"disabled": True, "reason": "http_403"},
+                    source="coinmarketcap_ohlcv_historical",
+                )
             self.logger.warning("CoinMarketCap 技术背景历史请求失败，技术背景摘要将降级为空: %s", exc)
         except Exception as exc:
             self.logger.warning("CoinMarketCap 技术背景历史获取失败，技术背景摘要将降级为空: %s", exc)
+        payload = (self.storage.get_cached_snapshot("technical_context_cache").get("payload") or {})
+        if payload:
+            self.last_technical_context_source = "local_cache"
+            self.logger.info("技术背景摘要已回退到本地缓存")
+            return payload
         self.last_technical_context_source = "default_empty"
         return {}
 
@@ -865,27 +967,33 @@ class MarketService:
             current_item.get("value_classification", ""),
             current_item.get("value_classification", ""),
         )
+        normalized_data = self._normalize_fear_greed_history(data) or data
         self.logger.info(f"获取恐惧贪婪指数成功: {current_value} ({classification})")
         if persist_current:
             self.storage.update_fear_greed_trend(current_value, classification)
-        self.storage.backfill_fear_greed_history(data.get("data", []), source="alternative.me")
+        self.storage.backfill_fear_greed_history(
+            normalized_data.get("data", []),
+            source="alternative.me",
+        )
         if history_7d is not None and history_7d is not data:
+            history_7d = self._normalize_fear_greed_history(history_7d)
             self.storage.backfill_fear_greed_history(
                 history_7d.get("data", []),
                 source="alternative.me",
             )
         if history_30d is not None and history_30d is not data and history_30d is not history_7d:
+            history_30d = self._normalize_fear_greed_history(history_30d)
             self.storage.backfill_fear_greed_history(
                 history_30d.get("data", []),
                 source="alternative.me",
             )
 
-        seven_day_history = history_7d or (data if len(data["data"]) >= 7 else None)
-        thirty_day_history = history_30d or (data if len(data["data"]) >= 30 else None)
+        seven_day_history = history_7d or (normalized_data if len(normalized_data["data"]) >= 7 else None)
+        thirty_day_history = history_30d or (normalized_data if len(normalized_data["data"]) >= 30 else None)
 
         daily_change = None
-        if len(data["data"]) >= 2:
-            daily_change = current_value - int(data["data"][1]["value"])
+        if len(normalized_data["data"]) >= 2:
+            daily_change = current_value - int(normalized_data["data"][1]["value"])
             self.logger.info(f"使用API历史数据计算日度变化: {daily_change}")
 
         weekly_change = self._calculate_change_from_history(
@@ -920,7 +1028,7 @@ class MarketService:
             elif history_7d is not None:
                 historical_data = history_7d["data"]
             else:
-                historical_data = data["data"]
+                historical_data = normalized_data["data"]
 
         if historical_data is None or len(historical_data) < min(limit, 30):
             local_history_limit = 30 if limit >= 30 else max(limit, 7)
@@ -943,7 +1051,7 @@ class MarketService:
 
     def get_fear_greed_index(self, limit: int = 7) -> FearGreedIndex:
         try:
-            request_limit = max(limit, 2)
+            request_limit = 2
             data = self.fetch_json(self._build_fng_url(request_limit), timeout=10)
             history_7d = data if len(data.get("data", [])) >= 7 else None
             history_30d = data if len(data.get("data", [])) >= 30 else None

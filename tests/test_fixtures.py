@@ -170,6 +170,8 @@ class RealFixtureTests(unittest.TestCase):
         result = self.market_service.get_fear_greed_index(limit=7)
 
         self.assertEqual(self.http.fetch_json.call_count, 1)
+        first_url = self.http.fetch_json.call_args_list[0].args[0]
+        self.assertTrue(first_url.endswith('limit=2'))
         self.assertEqual(result['daily_change'], 3)
         self.assertIsNotNone(result['weekly_change'])
         self.assertGreaterEqual(len(result['historical_data']), 7)
