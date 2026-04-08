@@ -66,6 +66,8 @@ def render_mobile_details(
 ) -> str:
     preview = html.escape(str(preview_text or "").strip() or "展开查看")
     return (
+        '<div class="responsive-details">'
+        f'<div class="desktop-details-body">{body_html}</div>'
         f'<details class="{css_class}">'
         '<summary>'
         f'<span class="mobile-details-preview">{preview}</span>'
@@ -76,6 +78,7 @@ def render_mobile_details(
         "</summary>"
         f'<div class="mobile-details-body">{body_html}</div>'
         '</details>'
+        '</div>'
     )
 
 

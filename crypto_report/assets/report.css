@@ -873,6 +873,10 @@ body {
   gap: 10px;
 }
 
+.desktop-details-body {
+  display: block;
+}
+
 .mobile-details > summary {
   display: none;
 }
@@ -1450,19 +1454,9 @@ body {
   font-size: 0.8rem;
 }
 
-.news-tag-summary-source,
 .section-source-note {
   color: var(--text-secondary);
   font-size: 0.8rem;
-}
-
-.news-tag-summary-source {
-  display: grid;
-  gap: 8px;
-}
-
-.news-tag-summary-source-label {
-  font-weight: 600;
 }
 
 .source-chip-row {
@@ -1947,7 +1941,12 @@ body {
   }
 
   .mobile-details {
+    display: block;
     gap: 8px;
+  }
+
+  .desktop-details-body {
+    display: none;
   }
 
   .mobile-details > summary {
@@ -2097,7 +2096,6 @@ body {
   }
 
   .news-tag-summary-meta,
-  .news-tag-summary-source,
   .section-source-note {
     font-size: 0.76rem;
   }
