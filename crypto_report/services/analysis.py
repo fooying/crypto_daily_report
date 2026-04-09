@@ -286,8 +286,7 @@ class AIAnalysisService:
         if total_news > 0:
             news_score = (
                 (
-                    sentiment_counts.get("positive", 0)
-                    + sentiment_counts.get("neutral", 0) * 0.5
+                    sentiment_counts.get("positive", 0) + sentiment_counts.get("neutral", 0) * 0.5
                 ) / total_news
             ) * 100
         else:
@@ -953,11 +952,13 @@ class AIAnalysisService:
         summary_lines = [line for line in [btc_summary, eth_summary] if line]
         summary_html = ""
         if summary_lines:
-            summary_html = (
-                '<div style="margin-bottom: 10px; padding: 10px 12px; background: #f8fafc; '
-                'border: 1px solid #e7edf4; border-radius: 10px; font-size: 0.9em; color: #475569;">'
-                + " ".join(summary_lines)
-                + "</div>"
+            summary_html = "".join(
+                [
+                    '<div style="margin-bottom: 10px; padding: 10px 12px; background: #f8fafc; ',
+                    'border: 1px solid #e7edf4; border-radius: 10px; font-size: 0.9em; color: #475569;">',
+                    " ".join(summary_lines),
+                    "</div>",
+                ]
             )
         if fgi_value <= 20:
             analysis = f"""

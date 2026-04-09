@@ -133,9 +133,7 @@ class NewsService:
             summary = summary_elem.get_text(strip=True)
 
         if (
-            summary == "点击查看详情"
-            and link != listing_url
-            and detail_fetch_count < self.config.max_news_detail_fetches
+            summary == "点击查看详情" and link != listing_url and detail_fetch_count < self.config.max_news_detail_fetches
         ):
             try:
                 article_html = self.http.fetch_html(

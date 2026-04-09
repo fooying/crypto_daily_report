@@ -4,7 +4,7 @@ import html
 import re
 from typing import Any, Dict, List
 
-from .common import render_mobile_details, split_non_empty_lines
+from .common import render_mobile_details
 
 
 TERM_MAP = {
@@ -111,12 +111,6 @@ def generate_ai_analysis_section(ai_analysis: Dict[str, Any], trading_signals_ht
     overview = html.escape(_normalize_plain_text(str(ai_analysis.get("market_overview", "暂无市场概况"))))
     technical_analysis = _localize_terms(str(ai_analysis.get("technical_analysis", "")))
     risk_assessment = html.escape(_normalize_plain_text(str(ai_analysis.get("risk_assessment", "暂无风险评估"))))
-    trend_raw = _normalize_plain_text(str(ai_analysis.get("trend_enhanced_analysis", "暂无趋势增强分析")))
-    trend_lines = split_non_empty_lines(trend_raw)
-    trend_summary_lines = [
-        line for line in trend_lines
-        if line.startswith(("⚖️", "📈", "📉", "😐", "😊", "😨"))
-    ]
     risk_tags = [
         (tag, count)
         for tag, count in sorted(

@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from zoneinfo import ZoneInfo
 
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -207,8 +206,11 @@ class CryptoReportGenerator:
         top_focus_assets = sorted(
             top_focus_assets,
             key=lambda crypto: (
-                float(crypto.get("price_change_percentage_24h") or 0.0) * 0.6
-                + float(crypto.get("price_change_percentage_7d") or 0.0) * 0.4
+                (
+                    float(crypto.get("price_change_percentage_24h") or 0.0) * 0.6
+                ) + (
+                    float(crypto.get("price_change_percentage_7d") or 0.0) * 0.4
+                )
             ),
             reverse=True,
         )
@@ -380,10 +382,19 @@ class CryptoReportGenerator:
     @staticmethod
     def _build_icon_slug(crypto: Dict[str, Any]) -> str:
         raw_value = str(
-            crypto.get("id")
-            or crypto.get("symbol")
-            or crypto.get("name")
-            or "coin"
+            next(
+                (
+                    value
+                    for value in (
+                        crypto.get("id"),
+                        crypto.get("symbol"),
+                        crypto.get("name"),
+                        "coin",
+                    )
+                    if value
+                ),
+                "coin",
+            )
         ).strip().lower()
         slug = re.sub(r"[^a-z0-9_-]+", "-", raw_value).strip("-")
         return slug or "coin"

@@ -188,8 +188,7 @@ def load_script_config(
     if runtime_overrides:
         runtime_overrides = dict(runtime_overrides)
         if (
-            "report_dir_override" in runtime_overrides
-            and "report_output_dir" not in runtime_overrides
+            "report_dir_override" in runtime_overrides and "report_output_dir" not in runtime_overrides
         ):
             runtime_overrides["report_output_dir"] = runtime_overrides["report_dir_override"]
         if "report_output_dir" in runtime_overrides and runtime_overrides["report_output_dir"] is not None:

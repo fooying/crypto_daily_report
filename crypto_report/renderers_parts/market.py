@@ -192,9 +192,7 @@ def generate_top_focus_assets_section(
         image_html = _build_icon_html(str(crypto.get("image", "")), str(crypto.get("symbol", "")))
         change_class = "green" if change >= 0 else "red"
         turnover_ratio = (
-            _safe_float(crypto.get("total_volume"), 0.0)
-            / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9)
-            * 100
+            _safe_float(crypto.get("total_volume"), 0.0) / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9) * 100
         )
         strength_label = _build_strength_label(change, market_change)
         liquidity_label = _build_liquidity_label(turnover_ratio)
@@ -386,6 +384,13 @@ def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
         leader = bucket["leader"] or {}
         avg_change = bucket["avg_change_24h"]
         change_class = "green" if avg_change >= 0 else "red"
+        rising_ratio = (
+            sum(
+                1
+                for item in bucket["items"]
+                if _safe_float(item.get("price_change_percentage_24h"), 0.0) > 0
+            ) / max(len(bucket["items"]), 1) * 100
+        )
         cards.append(
             f"""
             <div class="sector-card">
@@ -394,9 +399,12 @@ def _generate_sector_overview_body(cryptos: List[Dict[str, Any]]) -> str:
                     <span>{len(bucket['items'])} 个币种</span>
                 </div>
                 <div class="sector-value {change_class}">{avg_change:+.2f}%</div>
-                <div class="sector-meta">代表币：{html.escape(str(leader.get('symbol', '--')))} / 市值 {format_large_number(bucket['total_market_cap'])}</div>
+                <div class="sector-meta">
+                    代表币：{html.escape(str(leader.get('symbol', '--')))} / 市值
+                    {format_large_number(bucket['total_market_cap'])}
+                </div>
                 <div class="sector-submeta">
-                    <span>上涨占比 {sum(1 for item in bucket['items'] if _safe_float(item.get('price_change_percentage_24h'), 0.0) > 0) / max(len(bucket['items']), 1) * 100:.0f}%</span>
+                    <span>上涨占比 {rising_ratio:.0f}%</span>
                     <span>龙头 {_safe_float(leader.get('price_change_percentage_24h'), 0.0):+.2f}%</span>
                 </div>
             </div>
@@ -635,14 +643,42 @@ def generate_technical_context_section(
                     <div><span>30天均量</span><strong>{format_large_number(avg_volume_30d)}</strong></div>
                 </div>
                 <div class="technical-indicator-row">
-                    <div><span>MA7 / MA30</span><strong>{f'${float(ma7):,.2f}' if ma7 is not None else 'N/A'} / {f'${float(ma30):,.2f}' if ma30 is not None else 'N/A'}</strong><small>{ma_status or '样本不足'}</small></div>
-                    <div><span>RSI14</span><strong>{f'{float(rsi14):.1f}' if rsi14 is not None else 'N/A'}</strong><small>{'超卖' if rsi14 is not None and float(rsi14) < 30 else '偏强' if rsi14 is not None and float(rsi14) > 70 else '中性区间' if rsi14 is not None else '样本不足'}</small></div>
-                    <div><span>布林带</span><strong>{bollinger_status or 'N/A'}</strong><small>{f'${float(bollinger_lower):,.2f} - ${float(bollinger_upper):,.2f}' if bollinger_upper is not None and bollinger_lower is not None else '样本不足'}</small></div>
+                    <div>
+                        <span>MA7 / MA30</span>
+                        <strong>{f'${float(ma7):,.2f}' if ma7 is not None else 'N/A'} / {f'${float(ma30):,.2f}' if ma30 is not None else 'N/A'}</strong>
+                        <small>{ma_status or '样本不足'}</small>
+                    </div>
+                    <div>
+                        <span>RSI14</span>
+                        <strong>{f'{float(rsi14):.1f}' if rsi14 is not None else 'N/A'}</strong>
+                        <small>{'超卖' if rsi14 is not None and float(rsi14) < 30 else '偏强' if rsi14 is not None and float(rsi14) > 70 else '中性区间' if rsi14 is not None else '样本不足'}</small>
+                    </div>
+                    <div>
+                        <span>布林带</span>
+                        <strong>{bollinger_status or 'N/A'}</strong>
+                        <small>{f'${float(bollinger_lower):,.2f} - ${float(bollinger_upper):,.2f}' if bollinger_upper is not None and bollinger_lower is not None else '样本不足'}</small>
+                    </div>
                 </div>
                 <div class="technical-indicator-row">
-                    <div><span>MACD 动能</span><strong>{macd_bias or 'N/A'}</strong><small>观察趋势延续性</small></div>
-                    <div><span>30天波动率</span><strong>{f'{float(volatility_30d):.2f}%' if volatility_30d is not None else 'N/A'}</strong><small>衡量振幅强弱</small></div>
-                    <div><span>支撑 / 阻力</span><strong>{f'${float(support_level):,.2f}' if support_level is not None else 'N/A'} / {f'${float(resistance_level):,.2f}' if resistance_level is not None else 'N/A'}</strong><small>近7天价格区间</small></div>
+                    <div>
+                        <span>MACD 动能</span>
+                        <strong>{macd_bias or 'N/A'}</strong>
+                        <small>观察趋势延续性</small>
+                    </div>
+                    <div>
+                        <span>30天波动率</span>
+                        <strong>{f'{float(volatility_30d):.2f}%' if volatility_30d is not None else 'N/A'}</strong>
+                        <small>衡量振幅强弱</small>
+                    </div>
+                    <div>
+                        <span>支撑 / 阻力</span>
+                        <strong>
+                            {f'${float(support_level):,.2f}' if support_level is not None else 'N/A'}
+                            /
+                            {f'${float(resistance_level):,.2f}' if resistance_level is not None else 'N/A'}
+                        </strong>
+                        <small>近7天价格区间</small>
+                    </div>
                 </div>
             </div>
             """
@@ -690,7 +726,10 @@ def generate_macro_context_section(
         <h2>宏观关联观察</h2>
         {_render_section_source_note(source_note)}
         <div class="macro-summary">
-            <div><span>BTC 30天表现</span><strong class="{'green' if _safe_float(btc.get('change_30d'), 0.0) >= 0 else 'red'}">{_safe_float(btc.get('change_30d'), 0.0):+.2f}%</strong></div>
+            <div>
+                <span>BTC 30天表现</span>
+                <strong class="{'green' if _safe_float(btc.get('change_30d'), 0.0) >= 0 else 'red'}">{_safe_float(btc.get('change_30d'), 0.0):+.2f}%</strong>
+            </div>
             <p>{html.escape(str(macro_context.get('summary', '')))}</p>
         </div>
         <div class="macro-grid">
@@ -789,9 +828,7 @@ def generate_crypto_table_rows(cryptos: List[Dict[str, Any]]) -> str:
         high_24h = _safe_float(crypto.get("high_24h"), 0.0)
         low_24h = _safe_float(crypto.get("low_24h"), 0.0)
         volume_to_market_cap_ratio = (
-            _safe_float(crypto.get("total_volume"), 0.0)
-            / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9)
-            * 100
+            _safe_float(crypto.get("total_volume"), 0.0) / max(_safe_float(crypto.get("market_cap"), 0.0), 1e-9) * 100
         )
         supply_text = f"{circulating_supply:,.0f}" if circulating_supply else "N/A"
         name_meta_parts = []
@@ -846,7 +883,7 @@ def generate_market_overview_section(market_overview: Dict[str, Any]) -> str:
     turnover_ratio = market_overview.get('volume_to_market_cap_ratio', 0)
     total_market_cap = _safe_float(market_overview.get('total_market_cap', 0))
     total_volume = _safe_float(market_overview.get('total_volume', 0))
-    market_change = _safe_float(market_overview.get('market_cap_change_percentage_24h_usd', 0))
+
     def unit_label(value: float) -> str:
         if value >= 1_000_000_000_000:
             return "单位：万亿"

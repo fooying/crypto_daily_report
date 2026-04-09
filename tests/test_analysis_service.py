@@ -60,20 +60,30 @@ class AIAnalysisServiceTests(unittest.TestCase):
         }
 
     def test_get_ai_analysis_prefers_deepseek(self) -> None:
+        ai_content = (
+            '{"market_overview":"AI市场综述",'
+            '"technical_analysis":"<div>AI技术分析</div>",'
+            '"risk_assessment":"AI风险评估",'
+            '"trading_signals":["信号1","信号2"],'
+            '"trend_enhanced_analysis":"AI趋势增强",'
+            '"sentiment_deep_analysis":{'
+            '"current_interpretation":"AI情绪解读",'
+            '"weekly_trend":"AI周趋势",'
+            '"historical_comparison":"AI历史对比",'
+            '"market_impact":"AI市场影响",'
+            '"investor_behavior":"AI投资者行为",'
+            '"trading_advice":"AI交易建议"'
+            '},'
+            '"financial_analyst":{'
+            '"overall_points":["点1","点2","点3","点4","点5"],'
+            '"short_term":{"stance":"谨慎","summary":"AI短期","action_items":["a","b"]},'
+            '"long_term":{"stance":"机会","summary":"AI长期","action_items":["c","d"]}'
+            '}}'
+        )
         self.http.post_json.return_value = {
             'choices': [
                 {
-                    'message': {
-                        'content': (
-                            '{"market_overview":"AI市场综述",'
-                            '"technical_analysis":"<div>AI技术分析</div>",'
-                            '"risk_assessment":"AI风险评估",'
-                            '"trading_signals":["信号1","信号2"],'
-                            '"trend_enhanced_analysis":"AI趋势增强",'
-                            '"sentiment_deep_analysis":{"current_interpretation":"AI情绪解读","weekly_trend":"AI周趋势","historical_comparison":"AI历史对比","market_impact":"AI市场影响","investor_behavior":"AI投资者行为","trading_advice":"AI交易建议"},'
-                            '"financial_analyst":{"overall_points":["点1","点2","点3","点4","点5"],"short_term":{"stance":"谨慎","summary":"AI短期","action_items":["a","b"]},"long_term":{"stance":"机会","summary":"AI长期","action_items":["c","d"]}}}'
-                        )
-                    }
+                    'message': {'content': ai_content}
                 }
             ]
         }
@@ -121,21 +131,31 @@ class AIAnalysisServiceTests(unittest.TestCase):
         self.assertIn('news_tag_summary', result)
 
     def test_get_ai_analysis_accepts_wrapped_json_content(self) -> None:
+        wrapped_content = (
+            '下面是结果\\n```json\\n'
+            '{"market_overview":"AI市场综述",'
+            '"technical_analysis":"AI技术分析",'
+            '"risk_assessment":"AI风险评估",'
+            '"trading_signals":["信号1","信号2"],'
+            '"sentiment_deep_analysis":{'
+            '"current_interpretation":"AI情绪解读",'
+            '"weekly_trend":"AI周趋势",'
+            '"historical_comparison":"AI历史对比",'
+            '"market_impact":"AI市场影响",'
+            '"investor_behavior":"AI投资者行为",'
+            '"trading_advice":"AI交易建议"'
+            '},'
+            '"financial_analyst":{'
+            '"overall_points":["点1","点2","点3","点4","点5"],'
+            '"short_term":{"stance":"谨慎","summary":"AI短期","action_items":["a","b"]},'
+            '"long_term":{"stance":"机会","summary":"AI长期","action_items":["c","d"]}'
+            '}}'
+            '\\n```\\n备注'
+        )
         self.http.post_json.return_value = {
             'choices': [
                 {
-                    'message': {
-                        'content': (
-                            '下面是结果\\n```json\\n'
-                            '{"market_overview":"AI市场综述",'
-                            '"technical_analysis":"AI技术分析",'
-                            '"risk_assessment":"AI风险评估",'
-                            '"trading_signals":["信号1","信号2"],'
-                            '"sentiment_deep_analysis":{"current_interpretation":"AI情绪解读","weekly_trend":"AI周趋势","historical_comparison":"AI历史对比","market_impact":"AI市场影响","investor_behavior":"AI投资者行为","trading_advice":"AI交易建议"},'
-                            '"financial_analyst":{"overall_points":["点1","点2","点3","点4","点5"],"short_term":{"stance":"谨慎","summary":"AI短期","action_items":["a","b"]},"long_term":{"stance":"机会","summary":"AI长期","action_items":["c","d"]}}}'
-                            '\\n```\\n备注'
-                        )
-                    }
+                    'message': {'content': wrapped_content}
                 }
             ]
         }

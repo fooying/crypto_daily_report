@@ -61,8 +61,8 @@ class TrendRepository:
             fgi_history = trend_data.setdefault("fear_greed_index", {})
             existing = fgi_history.get(current_date) or {}
             changed = (
-                existing.get("value") != current_value
-                or existing.get("classification") != classification
+                existing.get("value") != current_value or
+                existing.get("classification") != classification
             )
             if changed or not existing:
                 fgi_history[current_date] = {
@@ -108,8 +108,8 @@ class TrendRepository:
                     date_key = datetime.fromtimestamp(int(timestamp)).strftime("%Y-%m-%d")
                     new_payload = {
                         "value": int(value),
-                        "classification": item.get("value_classification")
-                        or item.get("classification", "未知"),
+                        "classification": item.get("value_classification") or
+                        item.get("classification", "未知"),
                         "timestamp": str(timestamp),
                         "source": source,
                     }
@@ -118,10 +118,10 @@ class TrendRepository:
                         fgi_history[date_key] = new_payload
                         inserted += 1
                     elif (
-                        existing.get("value") != new_payload["value"]
-                        or existing.get("classification") != new_payload["classification"]
-                        or str(existing.get("timestamp", "")) != new_payload["timestamp"]
-                        or existing.get("source") != new_payload["source"]
+                        existing.get("value") != new_payload["value"] or
+                        existing.get("classification") != new_payload["classification"] or
+                        str(existing.get("timestamp", "")) != new_payload["timestamp"] or
+                        existing.get("source") != new_payload["source"]
                     ):
                         fgi_history[date_key] = new_payload
                         updated += 1
@@ -195,9 +195,9 @@ class TrendRepository:
             current_date = self.report_date.strftime("%Y-%m-%d")
             existing = trend_data.get(key) or {}
             changed = (
-                existing.get("payload") != payload
-                or existing.get("source") != source
-                or existing.get("date") != current_date
+                existing.get("payload") != payload or
+                existing.get("source") != source or
+                existing.get("date") != current_date
             )
             if changed:
                 trend_data[key] = {

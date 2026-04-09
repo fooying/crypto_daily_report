@@ -73,11 +73,11 @@ def get_structured_weekly_trend(sentiment: Dict[str, Any]) -> Dict[str, Any]:
 
 def format_large_number(num: float) -> str:
     if num >= 1_000_000_000_000:
-        return f"${num/1_000_000_000_000:.2f}T (万亿)"
+        return f"${num / 1_000_000_000_000:.2f}T (万亿)"
     if num >= 1_000_000_000:
-        return f"${num/1_000_000_000:.2f}B (十亿)"
+        return f"${num / 1_000_000_000:.2f}B (十亿)"
     if num >= 1_000_000:
-        return f"${num/1_000_000:.2f}M (百万)"
+        return f"${num / 1_000_000:.2f}M (百万)"
     return f"${num:,.0f}"
 
 
