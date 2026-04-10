@@ -30,6 +30,8 @@ class ScriptConfig:
     report_filename_date_format: str = "%Y-%m-%d"
     latest_report_filename: str = "latest.html"
     report_stylesheet_filename: str = "report.css"
+    report_favicon_svg_filename: str = "favicon.svg"
+    report_favicon_png_filename: str = "favicon.png"
     report_template_filename: str = "report.html.j2"
     report_icon_cache_dirname: str = "assets/coin-icons"
     report_asset_url_mode: str = "relative"
@@ -102,6 +104,14 @@ class ScriptConfig:
     @property
     def report_template_file(self) -> Path:
         return self.base_dir / "crypto_report" / "templates" / self.report_template_filename
+
+    @property
+    def report_favicon_svg_file(self) -> Path:
+        return self.base_dir / "crypto_report" / "assets" / self.report_favicon_svg_filename
+
+    @property
+    def report_favicon_png_file(self) -> Path:
+        return self.base_dir / "crypto_report" / "assets" / self.report_favicon_png_filename
 
     @property
     def report_icon_cache_dir(self) -> Path:

@@ -113,6 +113,7 @@ class CryptoReportGenerator:
         self.sentiment: FearGreedIndex = {}
         self.news_date_range = self.news_service.news_date_range
         self.last_netlify_deploy_url: str = ""
+        self.last_netlify_deploy_success: bool = False
 
         os.makedirs(self.report_dir, exist_ok=True)
         self.trend_data_file.parent.mkdir(parents=True, exist_ok=True)
@@ -372,13 +373,17 @@ class CryptoReportGenerator:
         )
 
     def _sync_report_assets(self):
-        if self.config.should_inline_css():
-            self.config.report_icon_cache_dir.mkdir(parents=True, exist_ok=True)
-            return
-        target_stylesheet = Path(self.report_dir) / self.report_stylesheet_name
         self.config.report_icon_cache_dir.mkdir(parents=True, exist_ok=True)
-        if self.config.report_stylesheet_file.exists():
-            shutil.copy2(self.config.report_stylesheet_file, target_stylesheet)
+        if not self.config.should_inline_css():
+            target_stylesheet = Path(self.report_dir) / self.report_stylesheet_name
+            if self.config.report_stylesheet_file.exists():
+                shutil.copy2(self.config.report_stylesheet_file, target_stylesheet)
+        favicon_svg_target = Path(self.report_dir) / self.config.report_favicon_svg_filename
+        if self.config.report_favicon_svg_file.exists():
+            shutil.copy2(self.config.report_favicon_svg_file, favicon_svg_target)
+        favicon_png_target = Path(self.report_dir) / self.config.report_favicon_png_filename
+        if self.config.report_favicon_png_file.exists():
+            shutil.copy2(self.config.report_favicon_png_file, favicon_png_target)
 
     @staticmethod
     def _build_icon_slug(crypto: Dict[str, Any]) -> str:
@@ -557,6 +562,10 @@ class CryptoReportGenerator:
             report_base_url=self.report_base_url,
             inline_styles=self._load_inline_styles(),
             stylesheet_href=self.config.build_asset_href(self.report_stylesheet_name),
+            favicon_svg_href=self.config.build_asset_href(self.config.report_favicon_svg_filename),
+            favicon_png_href=self.config.build_asset_href(self.config.report_favicon_png_filename),
+            favicon_svg_exists=self.config.report_favicon_svg_file.exists(),
+            favicon_png_exists=self.config.report_favicon_png_file.exists(),
             market_overview_section=generate_market_overview_section(context["market_overview"]),
             top_focus_assets_section=generate_top_focus_assets_section(
                 context["top_focus_assets"],
@@ -666,6 +675,8 @@ class CryptoReportGenerator:
             return None
 
     def _deploy_report_to_netlify(self, generated_artifacts: List[str]) -> Optional[str]:
+        self.last_netlify_deploy_success = False
+        self.last_netlify_deploy_url = ""
         if not self.config.enable_netlify_deploy:
             return None
 
@@ -722,9 +733,16 @@ class CryptoReportGenerator:
                     break
                 if "Website Draft URL:" in trimmed:
                     deploy_url = trimmed.split("Website Draft URL:", 1)[-1].strip()
+                if "Deploy URL:" in trimmed:
+                    deploy_url = trimmed.split("Deploy URL:", 1)[-1].strip()
+            if not deploy_url:
+                match = re.search(r"https://[a-zA-Z0-9.-]+\.netlify\.(app|com)\S*", output)
+                if match:
+                    deploy_url = match.group(0)
+            self.last_netlify_deploy_success = True
             self.last_netlify_deploy_url = deploy_url
             logger.info("Netlify 部署成功%s", f": {deploy_url}" if deploy_url else "")
-            return deploy_url
+            return deploy_url or None
         except Exception as exc:
             logger.warning("Netlify 部署执行失败: %s", exc)
             return None
@@ -886,6 +904,8 @@ class CryptoReportGenerator:
                     print(f"🖼️  截图已生成: {screenshot_path}")
                 if self.last_netlify_deploy_url:
                     print(f"🚀 Netlify 已部署: {self.last_netlify_deploy_url}")
+                elif self.last_netlify_deploy_success:
+                    print("🚀 Netlify 已部署（CLI 未返回公开 URL）")
                 elif self.config.enable_netlify_deploy:
                     print("⚠️  Netlify 部署未成功，请查看日志")
                 return report_path

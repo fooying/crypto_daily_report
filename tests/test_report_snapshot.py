@@ -331,10 +331,31 @@ class ReportSnapshotTests(unittest.TestCase):
                     deploy_url = obj._deploy_report_to_netlify(['a.html', 'a.png'])
 
         self.assertEqual(deploy_url, 'https://demo-site.netlify.app')
+        self.assertTrue(obj.last_netlify_deploy_success)
         self.assertEqual(obj.last_netlify_deploy_url, 'https://demo-site.netlify.app')
         args, kwargs = mocked_run.call_args
         self.assertIn('--site', args[0])
         self.assertEqual(kwargs['env']['NETLIFY_AUTH_TOKEN'], 'token-abc')
+
+    def test_deploy_report_to_netlify_marks_success_without_url(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = ScriptConfig(
+                base_dir=Path('.').resolve(),
+                generate_screenshots=False,
+                deepseek_api_key='replace-me',
+                enable_netlify_deploy=True,
+                netlify_site_id='site-123',
+                trend_data_filename=str(Path(tmpdir) / 'netlify_no_url_trend_data.json'),
+            )
+            obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+            completed = Mock(returncode=0, stdout='Deploy complete\n', stderr='')
+            with patch('crypto_report.generator.shutil.which', return_value='/usr/local/bin/netlify'):
+                with patch('crypto_report.generator.subprocess.run', return_value=completed):
+                    deploy_url = obj._deploy_report_to_netlify(['a.html', 'a.png'])
+
+        self.assertIsNone(deploy_url)
+        self.assertTrue(obj.last_netlify_deploy_success)
+        self.assertEqual(obj.last_netlify_deploy_url, '')
 
 
 if __name__ == "__main__":

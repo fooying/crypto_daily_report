@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ report_title }} - {{ report_date_iso }}</title>
+    {% if favicon_svg_exists %}
+    <link rel="icon" type="image/svg+xml" href="{{ favicon_svg_href }}">
+    {% endif %}
+    {% if favicon_png_exists %}
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ favicon_png_href }}">
+    {% endif %}
     {% if inline_styles %}
     <style>
 {{ inline_styles | safe }}
