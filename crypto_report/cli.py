@@ -22,11 +22,18 @@ def main() -> None:
     parser.add_argument("--date", type=parse_report_date, help="指定报告日期，格式 YYYY-MM-DD")
     parser.add_argument("--output-dir", type=Path, help="指定报告输出目录，例如 ./dist/reports")
     parser.add_argument("--no-screenshot", action="store_true", help="本次运行关闭截图生成")
+    parser.add_argument(
+        "--netlify-deploy",
+        action="store_true",
+        help="本次运行完成后将报告目录部署到 Netlify（需在配置中提供 site id / token）",
+    )
     args = parser.parse_args()
 
     runtime_overrides = {}
     if args.no_screenshot:
         runtime_overrides["generate_screenshots"] = False
+    if args.netlify_deploy:
+        runtime_overrides["enable_netlify_deploy"] = True
     if args.output_dir:
         runtime_overrides["report_output_dir"] = args.output_dir.resolve()
     config_path = args.config.resolve() if args.config else None

@@ -58,6 +58,12 @@ python3 -m venv .venv
 .venv/bin/python run_report.py --config ./local_config.json --output-dir ./dist/reports
 ```
 
+本次运行完成后部署到 Netlify：
+
+```bash
+.venv/bin/python run_report.py --config ./local_config.json --netlify-deploy
+```
+
 清理旧报告：
 
 ```bash
@@ -89,3 +95,5 @@ python3 -m venv .venv
 - CLI 支持 `--config`、`--date`、`--output-dir`、`--no-screenshot`
 - 新闻源 URL 和 FGI API URL 已收回到代码内部常量，避免误配置导致功能失效
 - 可通过 `report_output_dir` 或 CLI 的 `--output-dir` 将报告输出到独立目录
+- 可通过 `enable_netlify_deploy=true`（或 CLI `--netlify-deploy`）在生成 HTML/截图后自动执行 Netlify 部署
+- Netlify 部署依赖本机可用 `netlify` CLI，需配置 `netlify_site_id`；可选配置 `netlify_auth_token`

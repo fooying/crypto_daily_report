@@ -9,5 +9,9 @@
   "latest_report_filename": "latest.html",
   "report_css_mode": "inline",
   "generate_screenshots": true,
-  "report_asset_url_mode": "relative"
+  "report_asset_url_mode": "relative",
+  "enable_netlify_deploy": false,
+  "netlify_site_id": "replace-me",
+  "netlify_auth_token": "",
+  "netlify_deploy_prod": true
 }

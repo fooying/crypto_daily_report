@@ -58,6 +58,11 @@ class ScriptConfig:
     screenshot_backend: str = "auto"
     screenshot_width: int = 1200
     screenshot_timeout_seconds: int = 30
+    enable_netlify_deploy: bool = False
+    netlify_site_id: str = ""
+    netlify_auth_token: str = ""
+    netlify_cli_command: str = "netlify"
+    netlify_deploy_prod: bool = True
     coingecko_api: str = "https://api.coingecko.com/api/v3"
     coinmarketcap_api: str = "https://pro-api.coinmarketcap.com/v1"
     coinmarketcap_api_key: str = "replace-me"

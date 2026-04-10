@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 import tempfile
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from crypto_report.generator import CryptoReportGenerator
 from crypto_report.config import ScriptConfig
@@ -298,6 +298,43 @@ class ReportSnapshotTests(unittest.TestCase):
 
         self.assertEqual(len(context['news']), 2)
         self.assertEqual(len(obj.crypto_news), 3)
+
+    def test_deploy_report_to_netlify_skips_when_site_id_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = ScriptConfig(
+                base_dir=Path('.').resolve(),
+                generate_screenshots=False,
+                deepseek_api_key='replace-me',
+                enable_netlify_deploy=True,
+                trend_data_filename=str(Path(tmpdir) / 'netlify_skip_trend_data.json'),
+            )
+            obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+            with patch('crypto_report.generator.shutil.which', return_value='/usr/local/bin/netlify'):
+                result = obj._deploy_report_to_netlify([])
+        self.assertIsNone(result)
+
+    def test_deploy_report_to_netlify_returns_website_url(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cfg = ScriptConfig(
+                base_dir=Path('.').resolve(),
+                generate_screenshots=False,
+                deepseek_api_key='replace-me',
+                enable_netlify_deploy=True,
+                netlify_site_id='site-123',
+                netlify_auth_token='token-abc',
+                trend_data_filename=str(Path(tmpdir) / 'netlify_ok_trend_data.json'),
+            )
+            obj = CryptoReportGenerator(config=cfg, report_date=datetime(2026, 4, 6, 12, 0, 0))
+            completed = Mock(returncode=0, stdout='Website URL: https://demo-site.netlify.app\n', stderr='')
+            with patch('crypto_report.generator.shutil.which', return_value='/usr/local/bin/netlify'):
+                with patch('crypto_report.generator.subprocess.run', return_value=completed) as mocked_run:
+                    deploy_url = obj._deploy_report_to_netlify(['a.html', 'a.png'])
+
+        self.assertEqual(deploy_url, 'https://demo-site.netlify.app')
+        self.assertEqual(obj.last_netlify_deploy_url, 'https://demo-site.netlify.app')
+        args, kwargs = mocked_run.call_args
+        self.assertIn('--site', args[0])
+        self.assertEqual(kwargs['env']['NETLIFY_AUTH_TOKEN'], 'token-abc')
 
 
 if __name__ == "__main__":

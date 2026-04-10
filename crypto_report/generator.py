@@ -112,6 +112,7 @@ class CryptoReportGenerator:
         self.defi_overview: Dict[str, Any] = {}
         self.sentiment: FearGreedIndex = {}
         self.news_date_range = self.news_service.news_date_range
+        self.last_netlify_deploy_url: str = ""
 
         os.makedirs(self.report_dir, exist_ok=True)
         self.trend_data_file.parent.mkdir(parents=True, exist_ok=True)
@@ -646,15 +647,86 @@ class CryptoReportGenerator:
             logger.info(f"报告已保存: {filepath}")
             logger.info(f"最新报告已更新: {latest_path}")
 
+            generated_artifacts = [filepath, latest_path]
             if self.config.generate_screenshots:
                 screenshot_path = self.generate_screenshot(filepath)
-                if screenshot_path and os.path.exists(latest_path):
-                    self.generate_screenshot(latest_path)
+                if screenshot_path:
+                    generated_artifacts.append(screenshot_path)
+                if os.path.exists(latest_path):
+                    latest_screenshot_path = self.generate_screenshot(latest_path)
+                    if latest_screenshot_path:
+                        generated_artifacts.append(latest_screenshot_path)
+
+            self._deploy_report_to_netlify(generated_artifacts)
 
             self.cleanup_old_reports(self.config.cleanup_days_to_keep)
             return filepath
         except Exception as exc:
             logger.exception(f"保存报告失败: {exc}")
+            return None
+
+    def _deploy_report_to_netlify(self, generated_artifacts: List[str]) -> Optional[str]:
+        if not self.config.enable_netlify_deploy:
+            return None
+
+        site_id = self.config.netlify_site_id.strip()
+        if not site_id:
+            logger.warning("已开启 Netlify 部署，但 netlify_site_id 为空，跳过部署")
+            return None
+
+        netlify_cmd = self.config.netlify_cli_command.strip() or "netlify"
+        if shutil.which(netlify_cmd) is None:
+            logger.warning("未找到 Netlify CLI 命令 `%s`，跳过部署", netlify_cmd)
+            return None
+
+        deploy_cmd = [
+            netlify_cmd,
+            "deploy",
+            "--dir",
+            self.report_dir,
+            "--site",
+            site_id,
+            "--message",
+            f"crypto report {self.report_date.strftime('%Y-%m-%d %H:%M:%S')}",
+        ]
+        if self.config.netlify_deploy_prod:
+            deploy_cmd.append("--prod")
+
+        deploy_env = os.environ.copy()
+        if self.config.netlify_auth_token.strip():
+            deploy_env["NETLIFY_AUTH_TOKEN"] = self.config.netlify_auth_token.strip()
+
+        logger.info(
+            "开始部署到 Netlify，产物数量=%s，目录=%s",
+            len(generated_artifacts),
+            self.report_dir,
+        )
+        try:
+            result = subprocess.run(
+                deploy_cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=deploy_env,
+            )
+            output = f"{result.stdout}\n{result.stderr}".strip()
+            if result.returncode != 0:
+                logger.warning("Netlify 部署失败: %s", output or f"exit code {result.returncode}")
+                return None
+
+            deploy_url = ""
+            for line in output.splitlines():
+                trimmed = line.strip()
+                if "Website URL:" in trimmed:
+                    deploy_url = trimmed.split("Website URL:", 1)[-1].strip()
+                    break
+                if "Website Draft URL:" in trimmed:
+                    deploy_url = trimmed.split("Website Draft URL:", 1)[-1].strip()
+            self.last_netlify_deploy_url = deploy_url
+            logger.info("Netlify 部署成功%s", f": {deploy_url}" if deploy_url else "")
+            return deploy_url
+        except Exception as exc:
+            logger.warning("Netlify 部署执行失败: %s", exc)
             return None
 
     def cleanup_old_reports(self, days_to_keep: int = 30):
@@ -812,6 +884,10 @@ class CryptoReportGenerator:
                 screenshot_path = report_path.replace(".html", ".png")
                 if os.path.exists(screenshot_path):
                     print(f"🖼️  截图已生成: {screenshot_path}")
+                if self.last_netlify_deploy_url:
+                    print(f"🚀 Netlify 已部署: {self.last_netlify_deploy_url}")
+                elif self.config.enable_netlify_deploy:
+                    print("⚠️  Netlify 部署未成功，请查看日志")
                 return report_path
             print("❌ 报告生成失败")
             return None
