@@ -16,9 +16,20 @@ from crypto_report.renderers import (
     generate_top_focus_assets_section,
     generate_news_html,
 )
+from crypto_report.renderers_parts.sentiment import _get_composite_level
 
 
 class RendererTests(unittest.TestCase):
+    def test_get_composite_level_boundaries(self) -> None:
+        self.assertEqual(_get_composite_level(25)[0], '极度防御')
+        self.assertEqual(_get_composite_level(26)[0], '偏防御')
+        self.assertEqual(_get_composite_level(45)[0], '偏防御')
+        self.assertEqual(_get_composite_level(46)[0], '中性平衡')
+        self.assertEqual(_get_composite_level(60)[0], '中性平衡')
+        self.assertEqual(_get_composite_level(61)[0], '风险偏好回升')
+        self.assertEqual(_get_composite_level(75)[0], '风险偏好回升')
+        self.assertEqual(_get_composite_level(76)[0], '偏热')
+
     def test_market_overview_section_contains_expected_values(self) -> None:
         html = generate_market_overview_section(
             {

@@ -59,6 +59,20 @@ class AIAnalysisServiceTests(unittest.TestCase):
             'ETH': {'price_change_30d': 8.4, 'high_30d': 4200, 'low_30d': 3500},
         }
 
+    def test_sentiment_service_uses_value_range_for_classification(self) -> None:
+        result = self.sentiment_service.get_sentiment_analysis(
+            {
+                'value': 23,
+                'classification': 'Extreme Greed',
+                'daily_change': 1,
+                'weekly_change': 2,
+                'monthly_change': 3,
+            }
+        )
+
+        self.assertEqual(result['classification'], '恐惧')
+        self.assertIn('谨慎观望', result['recommendation'])
+
     def test_get_ai_analysis_prefers_deepseek(self) -> None:
         ai_content = (
             '{"market_overview":"AI市场综述",'

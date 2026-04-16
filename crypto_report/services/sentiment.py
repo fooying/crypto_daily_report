@@ -92,6 +92,15 @@ class SentimentService:
     def __init__(self, logger) -> None:
         self.logger = logger
 
+    def get_classification_by_value(self, value: int) -> str:
+        return {
+            "extreme_fear": "极度恐惧",
+            "fear": "恐惧",
+            "neutral": "中性",
+            "greed": "贪婪",
+            "extreme_greed": "极度贪婪",
+        }[self.get_sentiment_bucket(value)]
+
     def get_sentiment_bucket(self, value: int) -> str:
         if value <= 20:
             return "extreme_fear"
@@ -107,22 +116,31 @@ class SentimentService:
         return self.PROFILES[self.get_sentiment_bucket(value)]
 
     def get_sentiment_analysis(self, fgi: FearGreedIndex) -> FearGreedIndex:
-        classification_cn = self.CHINESE_CLASSIFICATION.get(
-            fgi["classification"], fgi["classification"]
+        value = int(fgi.get("value", 50) or 50)
+        raw_classification = self.CHINESE_CLASSIFICATION.get(
+            fgi.get("classification", ""), fgi.get("classification", "")
         )
+        classification_cn = self.get_classification_by_value(value)
+        if raw_classification and raw_classification != classification_cn:
+            self.logger.warning(
+                "情绪分类与指数区间不一致，已按数值修正: value=%s, raw=%s, normalized=%s",
+                value,
+                raw_classification,
+                classification_cn,
+            )
         level_info = self.SENTIMENT_LEVELS.get(
             classification_cn,
             {"color": "#6c757d", "description": "未知市场状态"},
         )
         weekly_trend = self.analyze_sentiment_weekly_trend(fgi)
-        trend_analysis = self.generate_sentiment_trend_analysis(fgi["value"], weekly_trend)
+        trend_analysis = self.generate_sentiment_trend_analysis(value, weekly_trend)
         return {
-            "value": fgi["value"],
+            "value": value,
             "classification": classification_cn,
             "color": level_info["color"],
             "description": level_info["description"],
             "timestamp": fgi.get("timestamp", int(time.time())),
-            "recommendation": self.get_sentiment_recommendation(fgi["value"], weekly_trend),
+            "recommendation": self.get_sentiment_recommendation(value, weekly_trend),
             "source": fgi.get("source", "币安恐惧贪婪指数"),
             "url": fgi.get("url", "https://www.binance.com/zh-CN/square/fear-and-greed-index"),
             "weekly_trend": weekly_trend,

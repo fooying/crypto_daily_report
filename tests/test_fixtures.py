@@ -124,6 +124,28 @@ class RealFixtureTests(unittest.TestCase):
         self.assertIsNone(result['monthly_change'])
         self.assertEqual(len(result['historical_data']), 7)
 
+    def test_parse_fear_greed_prefers_value_range_when_label_mismatch(self) -> None:
+        payload = {
+            'data': [
+                {
+                    'value': '23',
+                    'value_classification': 'Extreme Greed',
+                    'timestamp': '1712100000',
+                    'time_until_update': '3600',
+                },
+                {
+                    'value': '22',
+                    'value_classification': 'Extreme Greed',
+                    'timestamp': '1712013600',
+                },
+            ]
+        }
+
+        result = self.market_service.parse_fear_greed_response(payload, limit=2)
+
+        self.assertEqual(result['classification'], '恐惧')
+        self.assertEqual(result['daily_change'], 1)
+
     def test_fear_greed_history_backfills_7d_and_30d_when_local_data_insufficient(self) -> None:
         payload_7d = json.loads(
             (self.fixture_dir / 'alternative_fng_limit7.json').read_text(encoding='utf-8')

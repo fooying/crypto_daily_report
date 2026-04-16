@@ -39,6 +39,18 @@ class MarketService:
         "极度贪婪": "极度贪婪",
     }
 
+    @staticmethod
+    def _classification_from_value(value: int) -> str:
+        if value <= 20:
+            return "极度恐惧"
+        if value <= 40:
+            return "恐惧"
+        if value <= 60:
+            return "中性"
+        if value <= 80:
+            return "贪婪"
+        return "极度贪婪"
+
     def __init__(self, config, http, logger, report_date, storage: TrendStorage) -> None:
         self.config = config
         self.http = http
@@ -109,7 +121,10 @@ class MarketService:
         for item in payload.get("data", []) or []:
             row = dict(item)
             classification = row.get("value_classification") or row.get("classification", "")
-            normalized = self.CLASSIFICATION_MAP.get(classification, classification)
+            try:
+                normalized = self._classification_from_value(int(row.get("value", 0)))
+            except (TypeError, ValueError):
+                normalized = self.CLASSIFICATION_MAP.get(classification, classification)
             row["value_classification"] = normalized
             row["classification"] = normalized
             normalized_rows.append(row)
@@ -975,10 +990,18 @@ class MarketService:
 
         current_item = data["data"][0]
         current_value = int(current_item["value"])
-        classification = self.CLASSIFICATION_MAP.get(
+        raw_classification = self.CLASSIFICATION_MAP.get(
             current_item.get("value_classification", ""),
             current_item.get("value_classification", ""),
         )
+        classification = self._classification_from_value(current_value)
+        if raw_classification and raw_classification != classification:
+            self.logger.warning(
+                "恐惧贪婪分类与数值区间不一致，已按数值修正: value=%s, raw=%s, normalized=%s",
+                current_value,
+                raw_classification,
+                classification,
+            )
         normalized_data = self._normalize_fear_greed_history(data) or data
         self.logger.info(f"获取恐惧贪婪指数成功: {current_value} ({classification})")
         if persist_current:
@@ -1070,10 +1093,18 @@ class MarketService:
 
             current_item = data.get("data", [{}])[0]
             current_value = int(current_item["value"])
-            classification = self.CLASSIFICATION_MAP.get(
+            raw_classification = self.CLASSIFICATION_MAP.get(
                 current_item.get("value_classification", ""),
                 current_item.get("value_classification", ""),
             )
+            classification = self._classification_from_value(current_value)
+            if raw_classification and raw_classification != classification:
+                self.logger.warning(
+                    "恐惧贪婪分类与数值区间不一致，已按数值修正: value=%s, raw=%s, normalized=%s",
+                    current_value,
+                    raw_classification,
+                    classification,
+                )
             self.storage.update_fear_greed_trend(current_value, classification)
 
             has_local_7d = self._has_enough_local_fear_greed_history(7)
