@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 from typing import Any, Dict
 
+from ..helpers import get_fear_greed_classification
 from .common import render_key_value_list
 
 
@@ -33,8 +34,13 @@ def generate_sentiment_analysis_section(
     sentiment_composite: Dict[str, Any] | None = None,
 ) -> str:
     del sentiment_updated_at
+    raw_sentiment_value = sentiment.get("value", 0) or 0
+    try:
+        sentiment_value = int(raw_sentiment_value)
+    except (TypeError, ValueError):
+        sentiment_value = 0
     raw_source_name = str(sentiment.get("source", "币安恐惧贪婪指数"))
-    raw_classification = str(sentiment.get("classification", ""))
+    raw_classification = get_fear_greed_classification(raw_sentiment_value)
     source_url = html.escape(
         str(sentiment.get("url", "https://www.binance.com/zh-CN/square/fear-and-greed-index")),
         quote=True,
@@ -120,11 +126,11 @@ def generate_sentiment_analysis_section(
                 <div class="sentiment-score-pair">
                     <div class="sentiment-gauge sentiment-gauge-divider">
                         <div class="gauge-title">加密货币恐惧贪婪指数</div>
-                        <div class="gauge-value">{sentiment.get('value', 0)}</div>
+                        <div class="gauge-value">{sentiment_value}</div>
                         <div class="gauge-classification">{classification}</div>
 
                         <div class="sentiment-bar">
-                            <div class="sentiment-bar-fill" style="width: {sentiment.get('value', 0)}%; background: {sentiment_bar_color};"></div>
+                            <div class="sentiment-bar-fill" style="width: {sentiment_value}%; background: {sentiment_bar_color};"></div>
                         </div>
                     </div>
 

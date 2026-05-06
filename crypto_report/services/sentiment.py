@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict
 
+from ..helpers import get_fear_greed_classification
 from ..models import FearGreedIndex
 
 
@@ -93,13 +94,7 @@ class SentimentService:
         self.logger = logger
 
     def get_classification_by_value(self, value: int) -> str:
-        return {
-            "extreme_fear": "极度恐惧",
-            "fear": "恐惧",
-            "neutral": "中性",
-            "greed": "贪婪",
-            "extreme_greed": "极度贪婪",
-        }[self.get_sentiment_bucket(value)]
+        return get_fear_greed_classification(value)
 
     def get_sentiment_bucket(self, value: int) -> str:
         if value <= 20:

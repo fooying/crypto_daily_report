@@ -17,6 +17,7 @@ from crypto_report.renderers import (
     generate_news_html,
 )
 from crypto_report.renderers_parts.sentiment import _get_composite_level
+from crypto_report.helpers import get_fear_greed_classification
 
 
 class RendererTests(unittest.TestCase):
@@ -29,6 +30,16 @@ class RendererTests(unittest.TestCase):
         self.assertEqual(_get_composite_level(61)[0], '风险偏好回升')
         self.assertEqual(_get_composite_level(75)[0], '风险偏好回升')
         self.assertEqual(_get_composite_level(76)[0], '偏热')
+
+    def test_fear_greed_classification_boundaries(self) -> None:
+        self.assertEqual(get_fear_greed_classification(20), '极度恐惧')
+        self.assertEqual(get_fear_greed_classification(21), '恐惧')
+        self.assertEqual(get_fear_greed_classification(40), '恐惧')
+        self.assertEqual(get_fear_greed_classification(41), '中性')
+        self.assertEqual(get_fear_greed_classification(60), '中性')
+        self.assertEqual(get_fear_greed_classification(61), '贪婪')
+        self.assertEqual(get_fear_greed_classification(80), '贪婪')
+        self.assertEqual(get_fear_greed_classification(81), '极度贪婪')
 
     def test_market_overview_section_contains_expected_values(self) -> None:
         html = generate_market_overview_section(
@@ -224,6 +235,35 @@ class RendererTests(unittest.TestCase):
         self.assertIn('恐惧贪婪指数', html)
         self.assertIn('来源 恐惧贪婪指数、新闻情绪统计、市场总市值24小时变化、BTC主导率变化', html)
         self.assertIn('综合情绪当前为', html)
+
+    def test_sentiment_analysis_section_normalizes_fear_greed_label_by_value(self) -> None:
+        html = generate_sentiment_analysis_section(
+            sentiment={
+                'value': 46,
+                'classification': '恐惧',
+                'description': 'desc',
+                'trend_analysis': 'trend',
+                'recommendation': 'rec',
+                'source': 'src',
+                'url': 'https://example.com',
+            },
+            report_time='2026-04-03 10:00',
+            daily_change_str='N/A',
+            weekly_change_str='N/A',
+            monthly_change_str='N/A',
+            daily_change_class='trend-neutral',
+            weekly_change_class='trend-neutral',
+            monthly_change_class='trend-neutral',
+            sentiment_bar_color='linear-gradient(red, blue)',
+            sentiment_updated_at='2026-04-03 10:00:00',
+            deep_analysis={},
+            sentiment_composite={'score': 51, 'label': '中性平衡', 'summary': ''},
+        )
+
+        self.assertIn('恐惧贪婪指数处于 中性', html)
+        self.assertIn('<div class="gauge-value">46</div>', html)
+        self.assertIn('<div class="gauge-classification">中性</div>', html)
+        self.assertNotIn('<div class="gauge-classification">恐惧</div>', html)
 
     def test_financial_analyst_section_renders_lists(self) -> None:
         html = generate_financial_analyst_section(

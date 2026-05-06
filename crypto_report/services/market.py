@@ -12,7 +12,11 @@ from ..config import (
     FEAR_GREED_SOURCE_URL,
     YAHOO_CHART_API_URL,
 )
-from ..helpers import build_default_fear_greed_index, build_default_market_overview
+from ..helpers import (
+    build_default_fear_greed_index,
+    build_default_market_overview,
+    get_fear_greed_classification,
+)
 from ..http_client import HTTPRequestError
 from ..models import FearGreedIndex, MarketOverview
 from .storage import TrendStorage
@@ -41,15 +45,7 @@ class MarketService:
 
     @staticmethod
     def _classification_from_value(value: int) -> str:
-        if value <= 20:
-            return "极度恐惧"
-        if value <= 40:
-            return "恐惧"
-        if value <= 60:
-            return "中性"
-        if value <= 80:
-            return "贪婪"
-        return "极度贪婪"
+        return get_fear_greed_classification(value)
 
     def __init__(self, config, http, logger, report_date, storage: TrendStorage) -> None:
         self.config = config

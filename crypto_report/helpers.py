@@ -81,6 +81,22 @@ def format_large_number(num: float) -> str:
     return f"${num:,.0f}"
 
 
+def get_fear_greed_classification(value: int | float | str) -> str:
+    try:
+        score = int(value)
+    except (TypeError, ValueError):
+        score = 0
+    if score <= 20:
+        return "极度恐惧"
+    if score <= 40:
+        return "恐惧"
+    if score <= 60:
+        return "中性"
+    if score <= 80:
+        return "贪婪"
+    return "极度贪婪"
+
+
 def get_sentiment_color(value: int) -> str:
     if value <= 20:
         return "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
