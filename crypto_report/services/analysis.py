@@ -401,7 +401,7 @@ class AIAnalysisService:
             "top_news": news_digest,
         }
         return {
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-flash",
             "stream": False,
             "temperature": 0.4,
             "max_tokens": 900,
